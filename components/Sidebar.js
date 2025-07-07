@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { useAuth } from './AuthContext';
 
 // SVG Icon Component
@@ -138,7 +139,7 @@ const Sidebar = ({
         {/* Header */}
         <div className="sidebar-header">
           <div className="logo-container">
-            <img src={logoUrl} alt="Logo" className="logo-icon" />
+            <Image src={logoUrl} alt="Logo" className="logo-icon" width={32} height={32} />
             {!isCollapsed && <span className="logo-text">{logo}</span>}
           </div>
           <button 
@@ -213,7 +214,7 @@ const Sidebar = ({
               <div className="user-info">
                 <div className="user-avatar">
                   {user.photoURL ? (
-                    <img src={user.photoURL} alt="User" />
+                    <Image src={user.photoURL} alt="User" width={32} height={32} />
                   ) : (
                     <span>{user.displayName?.[0] || user.email?.[0] || <Icon name="users" size={16} />}</span>
                   )}

@@ -68,13 +68,15 @@ export default function QueryDataTable({
   rowStyle = {},
   cellStyle = {},
 }) {
-  // Always use an array for columns
-  const safeColumns = Array.isArray(columns) ? columns : [];
-
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
   const [selectedItems, setSelectedItems] = useState(selectedRows || []);
+
+  // Always use an array for columns - wrapped in useMemo to prevent dependency issues
+  const safeColumns = useMemo(() => {
+    return Array.isArray(columns) ? columns : [];
+  }, [columns]);
 
   // Extract data from the response using dataPath
   const extractedData = useMemo(() => {

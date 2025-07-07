@@ -5,7 +5,7 @@ import PlasmicGraphQLHelper from "./components/PlasmicGraphQLHelper";
 import QueryDataTable from "./components/QueryDataTable";
 import QueryDataTableDemo, { SimpleDataTableDemo, GraphQLDataTableDemo, CompactDataTableDemo } from "./components/QueryDataTableDemo";
 import Sidebar from "./components/Sidebar";
-import { SidebarDemo, MinimalSidebar, DarkSidebar } from "./components/SidebarDemo";
+import SidebarDemo, { MinimalSidebar, DarkSidebar } from "./components/SidebarDemo";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [

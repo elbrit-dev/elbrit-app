@@ -66,7 +66,7 @@ export default function PlasmicGraphQLHelper({
     };
 
     fetchData();
-  }, [query, endpoint, user?.email, user?.uid, user?.token, JSON.stringify(variables)]);
+  }, [query, endpoint, user, variables]);
 
   if (loading && loadingComponent) {
     return loadingComponent;
