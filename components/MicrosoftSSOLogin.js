@@ -28,13 +28,15 @@ export default function MicrosoftSSOLogin({ onSuccess, onError }) {
       // Fetch group IDs from Microsoft Graph
       let groupIds = [];
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_MICROSOFT_GRAPH_ENDPOINT}/me/memberOf`, {
+        const response = await fetch('https://graph.microsoft.com/v1.0/me/memberOf', {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         const data = await response.json();
+        console.log('Fetched group data from Microsoft Graph:', data);
         if (data.value) {
           groupIds = data.value.map(group => group.id);
         }
+        console.log('Extracted groupIds:', groupIds);
       } catch (groupError) {
         // If fetching groups fails, continue without group info
         console.error('Failed to fetch group IDs:', groupError);
