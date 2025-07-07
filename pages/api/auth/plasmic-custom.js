@@ -1,8 +1,8 @@
 import { ensurePlasmicAppUser } from '@plasmicapp/auth-api';
 
 // Group ID to Role mapping - configure this based on your Azure AD groups
-const IT_GROUP_ID = "036a7a77-668a-4217-a549-8a2192aa0e14";
-const HR_GROUP_ID = "50e52dda-3288-445a-a6b5-dac7677412e6";
+const IT_GROUP_ID = process.env.AZURE_IT_GROUP_ID;
+const HR_GROUP_ID = process.env.AZURE_HR_GROUP_ID;
 
 const GROUP_ROLE_MAPPING = {
   // IT Team group → Admin role
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
     console.log(`User ${email} assigned role: ${assignedRole} based on groups:`, groupIds);
 
     // Use the Plasmic Auth secret from the Plasmic Studio Auth settings
-    const appSecret = 'A2FFbtNUAhJZdJlSEZHy3Xp6YPjILSvONddfqsIKbo32xyJSwNF73CDvRvxANjt8Kl7cngAuGi03lvaFNumg';
+    const appSecret = process.env.PLASMIC_AUTH_SECRET;
     
     
     console.log('Calling ensurePlasmicAppUser with email:', email);

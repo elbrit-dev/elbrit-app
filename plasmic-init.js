@@ -10,8 +10,8 @@ import { SidebarDemo, MinimalSidebar, DarkSidebar } from "./components/SidebarDe
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
-      id: "oiawYdGgGKrh1ZZAv15gDZ",  // ID of a project you are using
-      token: "at5jesnXc89u9hbeOAv8HEZRXhbDHtJCVKm7DsJoRGxuRCGXsNP4LynYxAea6cDCjlePUmjN5TIX3ImE35A"  // API token for that project
+      id: process.env.NEXT_PUBLIC_PLASMIC_PROJECT_ID,  // ID of a project you are using
+      token: process.env.PLASMIC_API_TOKEN  // API token for that project
     }
   ],
 

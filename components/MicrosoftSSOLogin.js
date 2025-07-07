@@ -4,7 +4,7 @@ import { getAuth, signInWithPopup, OAuthProvider } from "firebase/auth";
 
 // Mapping of group IDs to group names and roles
 const groupIdToInfo = {
-  "036a7a77-668a-4217-a549-8a2192aa0e14": { name: "IT", role: "Editor" },
+  [process.env.AZURE_IT_GROUP_ID]: { name: "IT", role: "Editor" },
   // Add more group mappings here if needed
 };
 
@@ -14,7 +14,7 @@ export default function MicrosoftSSOLogin({ onSuccess, onError }) {
     const provider = new OAuthProvider('microsoft.com');
     // Set the tenant to restrict sign-in to your organization only
     provider.setCustomParameters({
-      tenant: 'e1456449-9865-4000-abc1-1fcff025db1f' // <-- Replace with your Azure Directory (tenant) ID
+      tenant: process.env.NEXT_PUBLIC_AZURE_TENANT_ID // <-- Replace with your Azure Directory (tenant) ID
     });
     try {
       const result = await signInWithPopup(auth, provider);
@@ -28,7 +28,7 @@ export default function MicrosoftSSOLogin({ onSuccess, onError }) {
       // Fetch group IDs from Microsoft Graph
       let groupIds = [];
       try {
-        const response = await fetch('https://graph.microsoft.com/v1.0/me/memberOf', {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_MICROSOFT_GRAPH_ENDPOINT}/me/memberOf`, {
           headers: { Authorization: `Bearer ${accessToken}` }
         });
         const data = await response.json();
