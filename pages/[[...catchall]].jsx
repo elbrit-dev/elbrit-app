@@ -37,6 +37,39 @@ export default function PlasmicLoaderPage(props) {
     }
   }, []);
 
+  // Fallback: If user is logged in but Plasmic user/token are missing, try to refresh them
+  useEffect(() => {
+    async function refreshPlasmicAuth() {
+      if (
+        typeof window !== 'undefined' &&
+        firebaseUser &&
+        (!plasmicUser || !plasmicAuthToken)
+      ) {
+        try {
+          const response = await fetch('/api/auth/plasmic-custom', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: firebaseUser.email,
+              groupIds: firebaseUser.groupIds || []
+            })
+          });
+          if (response.ok) {
+            const plasmicData = await response.json();
+            setPlasmicUser(plasmicData.user);
+            setPlasmicAuthToken(plasmicData.token);
+            localStorage.setItem('plasmicUser', JSON.stringify(plasmicData.user));
+            localStorage.setItem('plasmicAuthToken', plasmicData.token);
+          }
+        } catch (err) {
+          console.error('Failed to refresh Plasmic Auth:', err);
+        }
+      }
+    }
+    refreshPlasmicAuth();
+    // Only run if firebaseUser changes or plasmicUser/token are missing
+  }, [firebaseUser, plasmicUser, plasmicAuthToken]);
+
   if (!plasmicData || plasmicData.entryCompMetas.length === 0 || !authLoaded) {
     return <Error statusCode={404} />;
   }
@@ -52,8 +85,18 @@ export default function PlasmicLoaderPage(props) {
     displayName: firebaseUser?.displayName,
     photoURL: firebaseUser?.photoURL,
     groupIds: firebaseUser?.groupIds || [],
-    roles: firebaseUser?.roles || []
+    roles: firebaseUser?.roles || [],
+    // Add roleName and roleNames for Plasmic access control
+    roleName: plasmicUser?.roleName,
+    roleNames: plasmicUser?.roleNames,
   };
+
+  // Debug: Log what is being passed to Plasmic
+  if (typeof window !== "undefined") {
+    console.log("Plasmic user:", plasmicUser);
+    console.log("Plasmic token:", plasmicAuthToken);
+    console.log("User context:", userContext);
+  }
 
   return (
     <PlasmicRootProvider
