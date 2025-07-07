@@ -55,12 +55,19 @@ function getHighestRoleFromGroups(groupIds) {
 }
 
 export default async function handler(req, res) {
+  // Debug: Log incoming request and env vars
+  console.log('API called with body:', req.body);
+  console.log('AZURE_IT_GROUP_ID:', process.env.AZURE_IT_GROUP_ID);
+  console.log('AZURE_HR_GROUP_ID:', process.env.AZURE_HR_GROUP_ID);
+  console.log('PLASMIC_AUTH_SECRET:', process.env.PLASMIC_AUTH_SECRET);
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { email, groupIds } = req.body;
-  console.log('Plasmic Auth API called with:', { email, groupIds });
+  console.log('Received email:', email);
+  console.log('Received groupIds:', groupIds);
 
   if (!email) {
     console.error('No email provided');
@@ -70,11 +77,11 @@ export default async function handler(req, res) {
   try {
     // Determine role based on group membership
     const assignedRole = getHighestRoleFromGroups(groupIds);
-    console.log(`User ${email} assigned role: ${assignedRole} based on groups:`, groupIds);
+    console.log('Assigned role:', assignedRole);
 
     // Use the Plasmic Auth secret from the Plasmic Studio Auth settings
     const appSecret = process.env.PLASMIC_AUTH_SECRET;
-    
+    console.log('Using appSecret:', appSecret ? 'SET' : 'NOT SET');
     
     console.log('Calling ensurePlasmicAppUser with email:', email);
     
