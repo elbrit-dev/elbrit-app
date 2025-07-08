@@ -33,6 +33,9 @@ const AdvancedTable = ({
   columns = [],
   loading = false,
   error = null,
+  fields = [], // <-- Add fields prop
+  imageFields = [], // <-- new prop
+  popupImageFields = [], // <-- new prop
   
   // GraphQL props
   graphqlQuery = null,
@@ -92,6 +95,11 @@ const AdvancedTable = ({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hiddenColumns, setHiddenColumns] = useState([]);
   const [columnOrder, setColumnOrder] = useState([]);
+  const [showQrModal, setShowQrModal] = useState(false);
+  const [qrModalSrc, setQrModalSrc] = useState("");
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageModalSrc, setImageModalSrc] = useState("");
+  const [imageModalAlt, setImageModalAlt] = useState("");
 
   // GraphQL data simulation
   const [graphqlData, setGraphqlData] = useState([]);
@@ -181,49 +189,48 @@ const AdvancedTable = ({
 
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
+    let cols = [];
     if (columns.length > 0) {
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => columns.find(col => col.key === key)).filter(Boolean)
         : columns;
-      return orderedColumns.filter(col => !hiddenColumns.includes(col.key));
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
+    } else if (tableData.length > 0) {
+      const sampleRow = tableData[0];
+      const autoColumns = Object.keys(sampleRow).map(key => {
+        const value = sampleRow[key];
+        let type = 'text';
+        if (typeof value === 'number') {
+          type = 'number';
+        } else if (typeof value === 'boolean') {
+          type = 'boolean';
+        } else if (value && (value.includes('T') && value.includes('Z'))) {
+          type = 'datetime';
+        } else if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          type = 'date';
+        } else if (value && value.includes('@')) {
+          type = 'email';
+        }
+        return {
+          key,
+          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+          sortable: true,
+          filterable: true,
+          type,
+          width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto'
+        };
+      });
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
+        : autoColumns;
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     }
-    
-    if (tableData.length === 0) return [];
-    
-    const sampleRow = tableData[0];
-    const autoColumns = Object.keys(sampleRow).map(key => {
-      const value = sampleRow[key];
-      let type = 'text';
-      
-      // Auto-detect column type
-      if (typeof value === 'number') {
-        type = 'number';
-      } else if (typeof value === 'boolean') {
-        type = 'boolean';
-      } else if (value && (value.includes('T') && value.includes('Z'))) {
-        type = 'datetime';
-      } else if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-        type = 'date';
-      } else if (value && value.includes('@')) {
-        type = 'email';
-      }
-      
-      return {
-        key,
-        title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-        sortable: true,
-        filterable: true,
-        type,
-        width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto'
-      };
-    });
-    
-    const orderedColumns = columnOrder.length > 0 
-      ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
-      : autoColumns;
-    
-    return orderedColumns.filter(col => !hiddenColumns.includes(col.key));
-  }, [columns, tableData, hiddenColumns, columnOrder]);
+    // Filter by fields prop if provided
+    if (fields && Array.isArray(fields) && fields.length > 0) {
+      cols = cols.filter(col => fields.includes(col.key));
+    }
+    return cols;
+  }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
   // Enhanced filtering with different filter types
   const filteredData = useMemo(() => {
@@ -985,10 +992,12 @@ const AdvancedTable = ({
       {/* Table */}
       <div style={{ 
         overflowX: "auto", 
-        maxHeight: tableHeight 
+        maxHeight: tableHeight, 
+        width: "100%" 
       }}>
         <table style={{ 
           width: "100%", 
+          minWidth: Math.max(600, defaultColumns.length * 120), 
           borderCollapse: "collapse",
           fontSize: "14px"
         }}>
@@ -1128,7 +1137,22 @@ const AdvancedTable = ({
                   {defaultColumns.map(column => {
                     const value = row[column.key];
                     let displayValue = value;
-                    
+
+                    // Render as image if column is in imageFields and value is present
+                    if (imageFields && Array.isArray(imageFields) && imageFields.includes(column.key) && value) {
+                      const isPopup = popupImageFields && Array.isArray(popupImageFields) && popupImageFields.includes(column.key);
+                      return (
+                        <td key={column.key} style={{ padding: "12px 16px", borderBottom: `1px solid ${themeStyles.border}`, color: themeStyles.text }}>
+                          <img
+                            src={value}
+                            alt={column.key}
+                            style={{ maxWidth: 64, maxHeight: 64, cursor: isPopup ? 'pointer' : 'default', border: '1px solid #e5e7eb', borderRadius: 4 }}
+                            onClick={isPopup ? () => { setImageModalSrc(value); setImageModalAlt(column.key); setShowImageModal(true); } : undefined}
+                          />
+                        </td>
+                      );
+                    }
+
                     // Format based on column type
                     if (column.type === 'date' && value) {
                       displayValue = new Date(value).toLocaleDateString();
@@ -1203,7 +1227,12 @@ const AdvancedTable = ({
           alignItems: "center",
           justifyContent: "space-between",
           flexWrap: "wrap",
-          gap: "12px"
+          gap: "12px",
+          width: "100%",
+          background: themeStyles.headerBg,
+          position: "relative",
+          minHeight: "48px", // improved height
+          fontSize: "16px"   // improved font size
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
             <div style={{ fontSize: "14px", color: "#6b7280" }}>
@@ -1219,7 +1248,7 @@ const AdvancedTable = ({
                   setLocalCurrentPage(1);
                 }}
                 style={{
-                  padding: "4px 8px",
+                  padding: "8px 12px",
                   border: "1px solid #d1d5db",
                   borderRadius: "4px",
                   fontSize: "14px"
@@ -1239,7 +1268,7 @@ const AdvancedTable = ({
                 onClick={() => handlePageChange(1)}
                 disabled={localCurrentPage === 1}
                 style={{
-                  padding: "6px 8px",
+                  padding: "8px 16px",
                   backgroundColor: localCurrentPage === 1 ? "#f9fafb" : "#fff",
                   border: "1px solid #d1d5db",
                   borderRadius: "6px",
@@ -1256,7 +1285,7 @@ const AdvancedTable = ({
                 onClick={() => handlePageChange(localCurrentPage - 1)}
                 disabled={localCurrentPage === 1}
                 style={{
-                  padding: "6px 12px",
+                  padding: "8px 16px",
                   backgroundColor: localCurrentPage === 1 ? "#f9fafb" : "#fff",
                   border: "1px solid #d1d5db",
                   borderRadius: "6px",
@@ -1306,7 +1335,7 @@ const AdvancedTable = ({
                 onClick={() => handlePageChange(localCurrentPage + 1)}
                 disabled={localCurrentPage === totalPages}
                 style={{
-                  padding: "6px 12px",
+                  padding: "8px 16px",
                   backgroundColor: localCurrentPage === totalPages ? "#f9fafb" : "#fff",
                   border: "1px solid #d1d5db",
                   borderRadius: "6px",
@@ -1322,7 +1351,7 @@ const AdvancedTable = ({
                 onClick={() => handlePageChange(totalPages)}
                 disabled={localCurrentPage === totalPages}
                 style={{
-                  padding: "6px 8px",
+                  padding: "8px 16px",
                   backgroundColor: localCurrentPage === totalPages ? "#f9fafb" : "#fff",
                   border: "1px solid #d1d5db",
                   borderRadius: "6px",
@@ -1336,6 +1365,120 @@ const AdvancedTable = ({
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* QR Modal Popup */}
+      {showQrModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={() => setShowQrModal(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: 24,
+              borderRadius: 12,
+              boxShadow: '0 4px 32px rgba(0,0,0,0.2)',
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowQrModal(false)}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                background: 'transparent',
+                border: 'none',
+                fontSize: 24,
+                cursor: 'pointer',
+                color: '#888'
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <img
+              src={qrModalSrc}
+              alt="QR Large"
+              style={{ maxWidth: '60vw', maxHeight: '60vh', borderRadius: 8, border: '1px solid #e5e7eb' }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Image Modal Popup */}
+      {showImageModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }}
+          onClick={() => setShowImageModal(false)}
+        >
+          <div
+            style={{
+              background: '#fff',
+              padding: 24,
+              borderRadius: 12,
+              boxShadow: '0 4px 32px rgba(0,0,0,0.2)',
+              position: 'relative',
+              maxWidth: '90vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center'
+            }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setShowImageModal(false)}
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                background: 'transparent',
+                border: 'none',
+                fontSize: 24,
+                cursor: 'pointer',
+                color: '#888'
+              }}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <img
+              src={imageModalSrc}
+              alt={imageModalAlt}
+              style={{ maxWidth: '60vw', maxHeight: '60vh', borderRadius: 8, border: '1px solid #e5e7eb' }}
+            />
+          </div>
         </div>
       )}
     </div>

@@ -241,7 +241,8 @@ PLASMIC.registerComponent(AdvancedTable, {
     },
     onRefresh: {
       type: "eventHandler",
-      description: "Called when refresh is triggered"
+      description: "Called when refresh is triggered",
+      argTypes: []
     },
     onPageChange: {
       type: "eventHandler",
@@ -340,6 +341,21 @@ PLASMIC.registerComponent(AdvancedTable, {
       type: "boolean",
       description: "Enable row action buttons",
       defaultValue: false
+    },
+    fields: {
+      type: "object",
+      description: "Array of field keys to display as columns in the table. If empty, all fields are shown.",
+      defaultValue: []
+    },
+    imageFields: {
+      type: "object",
+      description: "Array of field keys to render as images.",
+      defaultValue: []
+    },
+    popupImageFields: {
+      type: "object",
+      description: "Array of image field keys that should open a popup modal when clicked.",
+      defaultValue: []
     }
   },
   
