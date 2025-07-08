@@ -1,37 +1,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  
-  /* Enhanced theme variables for sidebar component */
-  --sidebar-bg: #ffffff;
-  --sidebar-border: #e5e7eb;
-  --sidebar-text: #374151;
-  --sidebar-text-secondary: #6b7280;
-  --sidebar-hover: #f3f4f6;
-  --sidebar-active: #3b82f6;
-  --sidebar-active-bg: #eff6ff;
-  --sidebar-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  --sidebar-accent: #3b82f6;
 }
 
 /* Theme data attribute overrides */
 [data-theme="light"] {
   --background: #ffffff;
   --foreground: #374151;
-  --sidebar-bg: #fdfdfd;
-  --sidebar-header-bg: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-  --sidebar-border: #e2e8f0;
-  --sidebar-text: #374151;
-  --sidebar-text-secondary: #6b7280;
-  --sidebar-hover: #f8fafc;
-  --sidebar-active: #ef4444;
-  --sidebar-active-bg: linear-gradient(135deg, #fef7f7 0%, #fef2f2 100%);
-  --sidebar-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08), 0 2px 8px -2px rgba(0, 0, 0, 0.06);
-  --sidebar-accent: #ef4444;
-  --sidebar-accent-secondary: #3b82f6;
-  --sidebar-logo-text: #ffffff;
-  --sidebar-border-radius: 12px;
-  --sidebar-item-radius: 8px;
 }
 
 html,
