@@ -9,7 +9,7 @@ import { useAuth } from './AuthContext';
  * that can be used in Plasmic Studio's data queries.
  */
 export default function PlasmicDataContext() {
-  const { user } = useAuth();
+  const { user, loading, isAuthenticated } = useAuth();
   
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -20,21 +20,28 @@ export default function PlasmicDataContext() {
           email: user?.email || '',
           uid: user?.uid || '',
           displayName: user?.displayName || '',
-          isAuthenticated: !!user
+          isAuthenticated: !!user,
+          role: user?.role || '',
+          roleName: user?.roleName || '',
+          customProperties: user?.customProperties || {}
         },
         
-        // Group and role information
-        userGroups: user?.groupIds || [],
-        userRoles: user?.roles || []
+        // Role information from Plasmic custom auth
+        userRole: user?.role || '',
+        userRoleName: user?.roleName || '',
+        userCustomProperties: user?.customProperties || {}
       };
       
       // Dispatch an event to notify Plasmic Studio that data is ready
       const event = new CustomEvent('plasmic-data-ready', { 
-        detail: { user: window.PLASMIC_DATA.user } 
+        detail: { 
+          user: window.PLASMIC_DATA.user,
+          timestamp: new Date().toISOString()
+        } 
       });
       window.dispatchEvent(event);
     }
-  }, [user]);
+  }, [user, isAuthenticated, loading]);
   
   // This component doesn't render anything visible
   return null;

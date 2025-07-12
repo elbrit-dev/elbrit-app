@@ -13,12 +13,12 @@ export default async function handler(req, res) {
 
   try {
     const appSecret = process.env.PLASMIC_AUTH_SECRET;
+
+    // Only pass email and appSecret, let Plasmic handle role assignment
     const result = await ensurePlasmicAppUser({
       email,
       appSecret
-      // Do NOT send role, roleName, or customProperties for role
     });
-    console.log('Plasmic API result:', result);
 
     if (result.error) {
       return res.status(400).json({ error: result.error });
@@ -26,6 +26,7 @@ export default async function handler(req, res) {
 
     const { user: plasmicUser, token: plasmicUserToken } = result;
 
+    // Return the user object as provided by Plasmic
     return res.status(200).json({
       success: true,
       user: plasmicUser,

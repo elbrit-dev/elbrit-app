@@ -2,6 +2,8 @@ import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import MicrosoftSSOLogin from "./components/MicrosoftSSOLogin";
 import PlasmicDataContext from "./components/PlasmicDataContext";
 import AdvancedTable from "./components/AdvancedTable";
+import FirestoreDebug from "./components/FirestoreDebug";
+import EnvironmentCheck from "./components/EnvironmentCheck";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -25,42 +27,57 @@ export const PLASMIC = initPlasmicLoader({
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {
   name: "MicrosoftSSOLogin",
+  displayName: "Microsoft SSO Login",
+  description: "Microsoft SSO login component using FirebaseUI",
   props: {
     onSuccess: {
       type: "eventHandler",
-      description: "Called when login succeeds",
       argTypes: [
         {
-          name: "result",
-          type: "object",
-          description: "The result object from Firebase sign-in"
+          name: "firebaseUser",
+          type: "object"
         }
       ]
     },
     onError: {
       type: "eventHandler",
-      description: "Called when login fails",
       argTypes: [
         {
           name: "error",
-          type: "object",
-          description: "The error object from Firebase sign-in"
+          type: "object"
         }
       ]
-    },
+    }
   },
+  importPath: "./components/MicrosoftSSOLogin"
 });
 
 // Register the Plasmic Data Context component
 PLASMIC.registerComponent(PlasmicDataContext, {
   name: "PlasmicDataContext",
+  displayName: "Plasmic Data Context",
+  description: "Provides user data context for Plasmic Studio data queries",
   props: {},
   importPath: "./components/PlasmicDataContext"
 });
 
+// Register the Firestore Debug component
+PLASMIC.registerComponent(FirestoreDebug, {
+  name: "FirestoreDebug",
+  displayName: "Firestore Debug Panel",
+  description: "Debug component to test Firestore connectivity and user creation",
+  props: {},
+  importPath: "./components/FirestoreDebug"
+});
 
-
-
+// Register the Environment Check component
+PLASMIC.registerComponent(EnvironmentCheck, {
+  name: "EnvironmentCheck",
+  displayName: "Environment Variables Check",
+  description: "Check if all required environment variables are set",
+  props: {},
+  importPath: "./components/EnvironmentCheck"
+});
 
 // Register the Advanced Table component
 PLASMIC.registerComponent(AdvancedTable, {

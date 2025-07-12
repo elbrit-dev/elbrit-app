@@ -45,6 +45,7 @@ export default function PlasmicLoaderPage(props) {
         firebaseUser &&
         (!plasmicUser || !plasmicAuthToken)
       ) {
+        console.log('Refreshing Plasmic auth for Firebase user:', firebaseUser.email);
         try {
           const response = await fetch('/api/auth/plasmic-custom', {
             method: 'POST',
@@ -56,10 +57,13 @@ export default function PlasmicLoaderPage(props) {
           });
           if (response.ok) {
             const plasmicData = await response.json();
+            console.log('Plasmic auth refresh successful:', plasmicData);
             setPlasmicUser(plasmicData.user);
             setPlasmicAuthToken(plasmicData.token);
             localStorage.setItem('plasmicUser', JSON.stringify(plasmicData.user));
             localStorage.setItem('plasmicAuthToken', plasmicData.token);
+          } else {
+            console.error('Plasmic auth refresh failed:', response.status, response.statusText);
           }
         } catch (err) {
           console.error('Failed to refresh Plasmic Auth:', err);
