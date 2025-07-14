@@ -204,11 +204,11 @@ const AdvancedTable = ({
           type = 'number';
         } else if (typeof value === 'boolean') {
           type = 'boolean';
-        } else if (value && (value.includes('T') && value.includes('Z'))) {
+        } else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
           type = 'datetime';
-        } else if (value && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+        } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
           type = 'date';
-        } else if (value && value.includes('@')) {
+        } else if (typeof value === 'string' && value.includes('@')) {
           type = 'email';
         }
         return {
@@ -244,14 +244,14 @@ const AdvancedTable = ({
           Object.entries(searchFields).every(([field, term]) => {
             if (!term) return true;
             const value = String(row[field] || '').toLowerCase();
-            return value.includes(term.toLowerCase());
+            return typeof value === 'string' && value.includes(term.toLowerCase());
           })
         );
       } else {
         // Global search across all fields
         filtered = filtered.filter(row =>
           Object.values(row).some(value =>
-            String(value).toLowerCase().includes(searchTerm.toLowerCase())
+            typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
           )
         );
       }
@@ -278,7 +278,7 @@ const AdvancedTable = ({
                   case 'between': 
                     return numValue >= Number(filterConfig.min || 0) && 
                            numValue <= Number(filterConfig.max || Infinity);
-                  default: return String(cellValue).includes(String(filterConfig.value));
+                  default: return typeof cellValue === 'string' && cellValue.includes(String(filterConfig.value));
                 }
               
               case 'date':
@@ -289,7 +289,7 @@ const AdvancedTable = ({
                   case 'after': return dateValue > filterDate;
                   case 'before': return dateValue < filterDate;
                   case 'equals': return dateValue.toDateString() === filterDate.toDateString();
-                  default: return String(cellValue).includes(String(filterConfig.value));
+                  default: return typeof cellValue === 'string' && cellValue.includes(String(filterConfig.value));
                 }
               
               case 'select':
@@ -299,7 +299,7 @@ const AdvancedTable = ({
                 return String(cellValue) === String(filterConfig.value);
               
               default:
-                return String(cellValue).toLowerCase().includes(
+                return typeof cellValue === 'string' && cellValue.toLowerCase().includes(
                   String(filterConfig.value).toLowerCase()
                 );
             }
