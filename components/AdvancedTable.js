@@ -187,15 +187,12 @@ const AdvancedTable = ({
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
     let cols = [];
-    
     if (columns.length > 0) {
-      // Use provided columns
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => columns.find(col => col.key === key)).filter(Boolean)
         : columns;
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (tableData.length > 0) {
-      // Auto-generate columns from data
       const sampleRow = tableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
@@ -211,76 +208,24 @@ const AdvancedTable = ({
         } else if (typeof value === 'string' && value.includes('@')) {
           type = 'email';
         }
-        
-        // Improved title generation
-        let title = key;
-        
-        // Handle common field name patterns
-        if (key.includes('_')) {
-          // Convert snake_case to Title Case
-          title = key.split('_').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          ).join(' ');
-        } else if (key.includes(' ')) {
-          // Already has spaces, just capitalize first letter of each word
-          title = key.split(' ').map(word => 
-            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          ).join(' ');
-        } else {
-          // Handle camelCase and other patterns
-          // First, handle common abbreviations
-          const commonAbbreviations = ['R', 'B', 'M', 'A', 'S', 'Sr', 'Dy', 'E'];
-          let processedKey = key;
-          
-          // Add spaces before capital letters, but preserve common abbreviations
-          processedKey = processedKey.replace(/([A-Z])/g, ' $1');
-          
-          // Clean up multiple spaces and trim
-          processedKey = processedKey.replace(/\s+/g, ' ').trim();
-          
-          // Capitalize first letter of each word
-          title = processedKey.split(' ').map(word => {
-            const upperWord = word.toUpperCase();
-            if (commonAbbreviations.includes(upperWord)) {
-              return upperWord;
-            }
-            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-          }).join(' ');
-        }
-        
         return {
           key,
-          title,
+          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
           sortable: true,
           filterable: true,
           type,
           width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto'
         };
       });
-      
-      // Apply fields order if provided
-      if (fields && Array.isArray(fields) && fields.length > 0) {
-        // Create a map for quick lookup
-        const columnMap = new Map(autoColumns.map(col => [col.key, col]));
-        
-        // Arrange columns based on fields order
-        cols = fields
-          .map(fieldKey => columnMap.get(fieldKey))
-          .filter(Boolean); // Remove any fields that don't exist in data
-        
-        // Add any remaining columns that weren't in fields array
-        const usedKeys = new Set(fields);
-        const remainingColumns = autoColumns.filter(col => !usedKeys.has(col.key));
-        cols = [...cols, ...remainingColumns];
-      } else {
-        // No fields specified, use default order
-        const orderedColumns = columnOrder.length > 0 
-          ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
-          : autoColumns;
-        cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
-      }
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
+        : autoColumns;
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     }
-    
+    // Filter by fields prop if provided
+    if (fields && Array.isArray(fields) && fields.length > 0) {
+      cols = cols.filter(col => fields.includes(col.key));
+    }
     return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
