@@ -187,12 +187,15 @@ const AdvancedTable = ({
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
     let cols = [];
+    
     if (columns.length > 0) {
+      // Use provided columns
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => columns.find(col => col.key === key)).filter(Boolean)
         : columns;
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (tableData.length > 0) {
+      // Auto-generate columns from data
       const sampleRow = tableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
@@ -217,15 +220,30 @@ const AdvancedTable = ({
           width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto'
         };
       });
-      const orderedColumns = columnOrder.length > 0 
-        ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
-        : autoColumns;
-      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
+      
+      // Apply fields order if provided
+      if (fields && Array.isArray(fields) && fields.length > 0) {
+        // Create a map for quick lookup
+        const columnMap = new Map(autoColumns.map(col => [col.key, col]));
+        
+        // Arrange columns based on fields order
+        cols = fields
+          .map(fieldKey => columnMap.get(fieldKey))
+          .filter(Boolean); // Remove any fields that don't exist in data
+        
+        // Add any remaining columns that weren't in fields array
+        const usedKeys = new Set(fields);
+        const remainingColumns = autoColumns.filter(col => !usedKeys.has(col.key));
+        cols = [...cols, ...remainingColumns];
+      } else {
+        // No fields specified, use default order
+        const orderedColumns = columnOrder.length > 0 
+          ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
+          : autoColumns;
+        cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
+      }
     }
-    // Filter by fields prop if provided
-    if (fields && Array.isArray(fields) && fields.length > 0) {
-      cols = cols.filter(col => fields.includes(col.key));
-    }
+    
     return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
