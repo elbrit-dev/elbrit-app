@@ -83,12 +83,9 @@ const AdvancedTable = ({
 }) => {
   // Local state
   const [searchTerm, setSearchTerm] = useState("");
-  const [advancedSearch, setAdvancedSearch] = useState(false);
-  const [searchFields, setSearchFields] = useState({});
+  const [dateFilter, setDateFilter] = useState({ value: '', operator: 'equals' });
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-  const [columnFilters, setColumnFilters] = useState({});
   const [selectedRows, setSelectedRows] = useState([]);
-  const [showFilters, setShowFilters] = useState(false);
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [localCurrentPage, setLocalCurrentPage] = useState(currentPage);
   const [localPageSize, setLocalPageSize] = useState(pageSize);
@@ -236,80 +233,50 @@ const AdvancedTable = ({
   const filteredData = useMemo(() => {
     let filtered = [...tableData];
 
-    // Global search with advanced options
+    // Global search for all text and number fields
     if (searchTerm && enableSearch) {
-      if (advancedSearch && Object.keys(searchFields).length > 0) {
-        // Advanced search by specific fields
-        filtered = filtered.filter(row =>
-          Object.entries(searchFields).every(([field, term]) => {
-            if (!term) return true;
-            const value = String(row[field] || '').toLowerCase();
-            return typeof value === 'string' && value.includes(term.toLowerCase());
-          })
-        );
-      } else {
-        // Global search across all fields
-        filtered = filtered.filter(row =>
-          Object.values(row).some(value =>
-            typeof value === 'string' && value.toLowerCase().includes(searchTerm.toLowerCase())
-          )
-        );
-      }
+      filtered = filtered.filter(row =>
+        Object.entries(row).some(([key, value]) => {
+          // Skip date fields from global search
+          const columnDef = defaultColumns.find(col => col.key === key);
+          if (columnDef && (columnDef.type === 'date' || columnDef.type === 'datetime')) {
+            return false;
+          }
+          
+          // Search in text and number fields
+          if (typeof value === 'string') {
+            return value.toLowerCase().includes(searchTerm.toLowerCase());
+          } else if (typeof value === 'number') {
+            return String(value).includes(searchTerm);
+          }
+          return false;
+        })
+      );
     }
 
-    // Enhanced column filters with different types
-    if (enableColumnFilter) {
-      Object.entries(columnFilters).forEach(([column, filterConfig]) => {
-        if (filterConfig && filterConfig.value) {
-          const columnDef = defaultColumns.find(col => col.key === column);
-          const filterType = filterConfig.type || columnDef?.type || 'text';
+    // Date filter for date/datetime fields
+    if (dateFilter && dateFilter.value && enableColumnFilter) {
+      const filterDate = new Date(dateFilter.value);
+      const dateFields = defaultColumns.filter(col => col.type === 'date' || col.type === 'datetime');
+      
+      filtered = filtered.filter(row => {
+        return dateFields.some(col => {
+          const cellValue = row[col.key];
+          if (!cellValue) return false;
           
-          filtered = filtered.filter(row => {
-            const cellValue = row[column];
-            
-            switch (filterType) {
-              case 'number':
-                const numValue = Number(cellValue);
-                const filterNum = Number(filterConfig.value);
-                switch (filterConfig.operator || 'equals') {
-                  case 'greater': return numValue > filterNum;
-                  case 'less': return numValue < filterNum;
-                  case 'equals': return numValue === filterNum;
-                  case 'between': 
-                    return numValue >= Number(filterConfig.min || 0) && 
-                           numValue <= Number(filterConfig.max || Infinity);
-                  default: return typeof cellValue === 'string' && cellValue.includes(String(filterConfig.value));
-                }
-              
-              case 'date':
-              case 'datetime':
-                const dateValue = new Date(cellValue);
-                const filterDate = new Date(filterConfig.value);
-                switch (filterConfig.operator || 'equals') {
-                  case 'after': return dateValue > filterDate;
-                  case 'before': return dateValue < filterDate;
-                  case 'equals': return dateValue.toDateString() === filterDate.toDateString();
-                  default: return typeof cellValue === 'string' && cellValue.includes(String(filterConfig.value));
-                }
-              
-              case 'select':
-                return filterConfig.value === 'all' || cellValue === filterConfig.value;
-              
-              case 'boolean':
-                return String(cellValue) === String(filterConfig.value);
-              
-              default:
-                return typeof cellValue === 'string' && cellValue.toLowerCase().includes(
-                  String(filterConfig.value).toLowerCase()
-                );
-            }
-          });
-        }
+          const dateValue = new Date(cellValue);
+          switch (dateFilter.operator || 'equals') {
+            case 'after': return dateValue > filterDate;
+            case 'before': return dateValue < filterDate;
+            case 'equals': return dateValue.toDateString() === filterDate.toDateString();
+            default: return dateValue.toDateString() === filterDate.toDateString();
+          }
+        });
       });
     }
 
     return filtered;
-  }, [tableData, searchTerm, columnFilters, searchFields, advancedSearch, enableSearch, enableColumnFilter, defaultColumns]);
+  }, [tableData, searchTerm, dateFilter, enableSearch, enableColumnFilter, defaultColumns]);
 
   // Sort data
   const sortedData = useMemo(() => {
@@ -364,15 +331,17 @@ const AdvancedTable = ({
   }, [enableSorting, onSortChange, sortConfig.direction]);
 
   const handleAdvancedFilter = useCallback((column, filterConfig) => {
-    setColumnFilters(prev => ({
-      ...prev,
-      [column]: filterConfig
-    }));
-    
-    if (onFilterChange) {
-      onFilterChange(column, filterConfig);
+    // This function is now primarily for text/number filters, date filters are handled separately
+    if (column.type === 'date' || column.type === 'datetime') {
+      setDateFilter(prev => ({ ...prev, [column.key]: filterConfig }));
+    } else {
+      // For other columns, update columnFilters
+      // This state is no longer directly used for global search, but kept for consistency
+      // if (onFilterChange) {
+      //   onFilterChange(column.key, filterConfig);
+      // }
     }
-  }, [onFilterChange]);
+  }, []);
 
   const handleSearch = useCallback((value) => {
     setSearchTerm(value);
@@ -382,10 +351,16 @@ const AdvancedTable = ({
   }, [onSearch]);
 
   const handleAdvancedSearch = useCallback((field, value) => {
-    setSearchFields(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    // This function is now primarily for global search, date filters are handled separately
+    if (field.type === 'date' || field.type === 'datetime') {
+      setDateFilter(prev => ({ ...prev, [field.key]: { value: value } }));
+    } else {
+      // For other columns, update searchFields
+      // This state is no longer directly used for global search, but kept for consistency
+      // if (onFilterChange) {
+      //   onFilterChange(field.key, { type: 'text', value: value });
+      // }
+    }
   }, []);
 
   const handleBulkAction = useCallback((action) => {
@@ -395,9 +370,8 @@ const AdvancedTable = ({
   }, [onBulkAction, selectedRows]);
 
   const clearAllFilters = useCallback(() => {
-    setColumnFilters({});
+    setDateFilter({ value: '', operator: 'equals' });
     setSearchTerm("");
-    setSearchFields({});
     setSortConfig({ key: null, direction: "asc" });
   }, []);
 
@@ -480,7 +454,7 @@ const AdvancedTable = ({
 
   // Enhanced filter component
   const FilterInput = ({ column }) => {
-    const filterConfig = columnFilters[column.key] || {};
+    const filterConfig = column.type === 'date' || column.type === 'datetime' ? dateFilter[column.key] || {} : {};
     
     switch (column.type) {
       case 'number':
@@ -488,7 +462,7 @@ const AdvancedTable = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <select
               value={filterConfig.operator || 'equals'}
-              onChange={(e) => handleAdvancedFilter(column.key, {
+              onChange={(e) => handleAdvancedFilter(column, {
                 ...filterConfig,
                 operator: e.target.value
               })}
@@ -511,7 +485,7 @@ const AdvancedTable = ({
                   type="number"
                   placeholder="Min"
                   value={filterConfig.min || ''}
-                  onChange={(e) => handleAdvancedFilter(column.key, {
+                  onChange={(e) => handleAdvancedFilter(column, {
                     ...filterConfig,
                     min: e.target.value
                   })}
@@ -527,7 +501,7 @@ const AdvancedTable = ({
                   type="number"
                   placeholder="Max"
                   value={filterConfig.max || ''}
-                  onChange={(e) => handleAdvancedFilter(column.key, {
+                  onChange={(e) => handleAdvancedFilter(column, {
                     ...filterConfig,
                     max: e.target.value
                   })}
@@ -545,7 +519,7 @@ const AdvancedTable = ({
                 type="number"
                 placeholder={`Filter ${column.title}...`}
                 value={filterConfig.value || ''}
-                onChange={(e) => handleAdvancedFilter(column.key, {
+                onChange={(e) => handleAdvancedFilter(column, {
                   ...filterConfig,
                   value: e.target.value
                 })}
@@ -566,7 +540,7 @@ const AdvancedTable = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <select
               value={filterConfig.operator || 'equals'}
-              onChange={(e) => handleAdvancedFilter(column.key, {
+              onChange={(e) => handleAdvancedFilter(column, {
                 ...filterConfig,
                 operator: e.target.value
               })}
@@ -585,7 +559,7 @@ const AdvancedTable = ({
             <input
               type="date"
               value={filterConfig.value || ''}
-              onChange={(e) => handleAdvancedFilter(column.key, {
+              onChange={(e) => handleAdvancedFilter(column, {
                 ...filterConfig,
                 value: e.target.value
               })}
@@ -604,7 +578,7 @@ const AdvancedTable = ({
         return (
           <select
             value={filterConfig.value || 'all'}
-            onChange={(e) => handleAdvancedFilter(column.key, {
+            onChange={(e) => handleAdvancedFilter(column, {
               type: 'select',
               value: e.target.value
             })}
@@ -629,7 +603,7 @@ const AdvancedTable = ({
             type="text"
             placeholder={`Filter ${column.title}...`}
             value={filterConfig.value || ''}
-            onChange={(e) => handleAdvancedFilter(column.key, {
+            onChange={(e) => handleAdvancedFilter(column, {
               type: 'text',
               value: e.target.value
             })}
@@ -723,84 +697,84 @@ const AdvancedTable = ({
     <div className={className} style={containerStyle}>
       {/* Enhanced Toolbar */}
       <div style={{ 
-        padding: "16px 24px", 
+        padding: "20px 24px", 
         borderBottom: `1px solid ${themeStyles.border}`,
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         flexWrap: "wrap",
-        gap: "12px",
+        gap: "16px",
         backgroundColor: themeStyles.headerBg
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+        {/* Left side - Search and Date Filter */}
+        <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+          {/* Global Search */}
           {enableSearch && (
-            <div style={{ display: "flex", gap: "8px" }}>
-              <div style={{ position: "relative" }}>
-                <Search size={16} style={{ 
-                  position: "absolute", 
-                  left: "12px", 
-                  top: "50%", 
-                  transform: "translateY(-50%)",
-                  color: "#6b7280"
-                }} />
-                <input
-                  type="text"
-                  placeholder={advancedSearch ? "Advanced search active..." : "Search..."}
-                  value={searchTerm}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  disabled={advancedSearch}
-                  style={{
-                    paddingLeft: "40px",
-                    paddingRight: "12px",
-                    paddingTop: "8px",
-                    paddingBottom: "8px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "6px",
-                    fontSize: "14px",
-                    width: "250px",
-                    backgroundColor: advancedSearch ? "#f9fafb" : "#fff"
-                  }}
-                />
-              </div>
-              
-              <button
-                onClick={() => setAdvancedSearch(!advancedSearch)}
+            <div style={{ position: "relative" }}>
+              <Search size={18} style={{ 
+                position: "absolute", 
+                left: "16px", 
+                top: "50%", 
+                transform: "translateY(-50%)",
+                color: "#6b7280"
+              }} />
+              <input
+                type="text"
+                placeholder="Search all data..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
                 style={{
-                  padding: "8px",
-                  backgroundColor: advancedSearch ? "#3b82f6" : "#fff",
+                  paddingLeft: "48px",
+                  paddingRight: "16px",
+                  paddingTop: "12px",
+                  paddingBottom: "12px",
                   border: "1px solid #d1d5db",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                  color: advancedSearch ? "#fff" : "#374151"
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                  width: "300px",
+                  backgroundColor: "#fff",
+                  boxShadow: "0 1px 2px rgba(0, 0, 0, 0.05)"
                 }}
-                title="Advanced Search"
-              >
-                <Settings size={16} />
-              </button>
+              />
             </div>
           )}
           
+          {/* Date Filter */}
           {enableColumnFilter && (
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 12px",
-                backgroundColor: showFilters ? "#f3f4f6" : "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                fontSize: "14px",
-                cursor: "pointer"
-              }}
-            >
-              <Filter size={16} />
-              Filters {Object.keys(columnFilters).length > 0 && `(${Object.keys(columnFilters).length})`}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Calendar size={18} style={{ color: "#6b7280" }} />
+              <select
+                value={dateFilter.operator || 'equals'}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, operator: e.target.value }))}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  backgroundColor: "#fff"
+                }}
+              >
+                <option value="equals">On date</option>
+                <option value="after">After date</option>
+                <option value="before">Before date</option>
+              </select>
+              <input
+                type="date"
+                value={dateFilter.value || ''}
+                onChange={(e) => setDateFilter(prev => ({ ...prev, value: e.target.value }))}
+                style={{
+                  padding: "8px 12px",
+                  border: "1px solid #d1d5db",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  backgroundColor: "#fff"
+                }}
+              />
+            </div>
           )}
 
-          {(Object.keys(columnFilters).length > 0 || searchTerm) && (
+          {/* Clear Filters Button */}
+          {(searchTerm || dateFilter.value) && (
             <button
               onClick={clearAllFilters}
               style={{
@@ -817,14 +791,15 @@ const AdvancedTable = ({
               }}
             >
               <RotateCcw size={16} />
-              Clear All
+              Clear
             </button>
           )}
         </div>
 
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+        {/* Right side - Actions */}
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {selectedRows.length > 0 && enableBulkActions && bulkActions.length > 0 && (
-            <div style={{ display: "flex", gap: "4px" }}>
+            <div style={{ display: "flex", gap: "8px" }}>
               <span style={{ fontSize: "14px", color: "#6b7280", padding: "8px 12px" }}>
                 {selectedRows.length} selected
               </span>
@@ -833,13 +808,14 @@ const AdvancedTable = ({
                   key={index}
                   onClick={() => handleBulkAction(action)}
                   style={{
-                    padding: "8px 12px",
+                    padding: "8px 16px",
                     backgroundColor: action.color || "#3b82f6",
                     color: "#fff",
                     border: "none",
                     borderRadius: "6px",
                     fontSize: "14px",
-                    cursor: "pointer"
+                    cursor: "pointer",
+                    fontWeight: "500"
                   }}
                 >
                   {action.title}
@@ -867,7 +843,27 @@ const AdvancedTable = ({
               Columns
             </button>
           )}
-          
+
+          {enableExport && (
+            <button
+              onClick={handleExport}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "8px 12px",
+                backgroundColor: "#fff",
+                border: "1px solid #d1d5db",
+                borderRadius: "6px",
+                fontSize: "14px",
+                cursor: "pointer"
+              }}
+            >
+              <Download size={16} />
+              Export
+            </button>
+          )}
+
           {enableRefresh && (
             <button
               onClick={handleRefresh}
@@ -889,105 +885,11 @@ const AdvancedTable = ({
               Refresh
             </button>
           )}
-          
-          {enableExport && (
-            <button
-              onClick={handleExport}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "6px",
-                padding: "8px 12px",
-                backgroundColor: "#fff",
-                border: "1px solid #d1d5db",
-                borderRadius: "6px",
-                fontSize: "14px",
-                cursor: "pointer"
-              }}
-            >
-              <Download size={16} />
-              Export
-            </button>
-          )}
         </div>
       </div>
 
-      {/* Advanced Search Fields */}
-      {advancedSearch && enableSearch && (
-        <div style={{ 
-          padding: "16px 24px", 
-          backgroundColor: "#f8fafc",
-          borderBottom: `1px solid ${themeStyles.border}`
-        }}>
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
-            gap: "12px" 
-          }}>
-            {defaultColumns.map(column => (
-              <div key={column.key}>
-                <label style={{ 
-                  display: "block", 
-                  fontSize: "12px", 
-                  fontWeight: "500",
-                  color: "#374151",
-                  marginBottom: "4px"
-                }}>
-                  Search {column.title}
-                </label>
-                <input
-                  type="text"
-                  placeholder={`Search in ${column.title}...`}
-                  value={searchFields[column.key] || ""}
-                  onChange={(e) => handleAdvancedSearch(column.key, e.target.value)}
-                  style={{
-                    width: "100%",
-                    padding: "6px 8px",
-                    border: "1px solid #d1d5db",
-                    borderRadius: "4px",
-                    fontSize: "13px"
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Enhanced Column Filters */}
-      {showFilters && enableColumnFilter && (
-        <div style={{ 
-          padding: "16px 24px", 
-          backgroundColor: "#f9fafb",
-          borderBottom: `1px solid ${themeStyles.border}`
-        }}>
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", 
-            gap: "16px" 
-          }}>
-            {defaultColumns.filter(col => col.filterable).map(column => (
-              <div key={column.key}>
-                <label style={{ 
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  fontSize: "12px", 
-                  fontWeight: "500",
-                  color: "#374151",
-                  marginBottom: "8px"
-                }}>
-                  {column.type === 'number' && <Hash size={14} />}
-                  {column.type === 'date' && <Calendar size={14} />}
-                  {column.type === 'text' && <Type size={14} />}
-                  {column.title}
-                </label>
-                <FilterInput column={column} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* This section is no longer needed as search is integrated into the toolbar */}
 
       {/* Table */}
       <div style={{ 
