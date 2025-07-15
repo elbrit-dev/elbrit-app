@@ -211,9 +211,46 @@ const AdvancedTable = ({
         } else if (typeof value === 'string' && value.includes('@')) {
           type = 'email';
         }
+        
+        // Improved title generation
+        let title = key;
+        
+        // Handle common field name patterns
+        if (key.includes('_')) {
+          // Convert snake_case to Title Case
+          title = key.split('_').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+        } else if (key.includes(' ')) {
+          // Already has spaces, just capitalize first letter of each word
+          title = key.split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          ).join(' ');
+        } else {
+          // Handle camelCase and other patterns
+          // First, handle common abbreviations
+          const commonAbbreviations = ['R', 'B', 'M', 'A', 'S', 'Sr', 'Dy', 'E'];
+          let processedKey = key;
+          
+          // Add spaces before capital letters, but preserve common abbreviations
+          processedKey = processedKey.replace(/([A-Z])/g, ' $1');
+          
+          // Clean up multiple spaces and trim
+          processedKey = processedKey.replace(/\s+/g, ' ').trim();
+          
+          // Capitalize first letter of each word
+          title = processedKey.split(' ').map(word => {
+            const upperWord = word.toUpperCase();
+            if (commonAbbreviations.includes(upperWord)) {
+              return upperWord;
+            }
+            return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+          }).join(' ');
+        }
+        
         return {
           key,
-          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+          title,
           sortable: true,
           filterable: true,
           type,
