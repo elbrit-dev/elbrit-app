@@ -5,8 +5,6 @@ import AdvancedTable from "./components/AdvancedTable";
 import PrimeReactAdvancedTable from "./components/PrimeReactAdvancedTable";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
-import TableDemo from "./pages/table-demo";
-import TestTables from "./pages/test-tables";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -837,20 +835,4 @@ PLASMIC.registerComponent(PrimeReactAdvancedTable, {
   importPath: "./components/PrimeReactAdvancedTable"
 });
 
-// Register the Table Demo component
-PLASMIC.registerComponent(TableDemo, {
-  name: "TableDemo",
-  displayName: "Table Components Demo",
-  description: "Demo page showcasing both custom AdvancedTable and PrimeReact AdvancedTable components with comparison",
-  props: {},
-  importPath: "./pages/table-demo"
-});
 
-// Register the Test Tables component
-PLASMIC.registerComponent(TestTables, {
-  name: "TestTables",
-  displayName: "Table Components Test",
-  description: "Simple test page to verify both table components work without errors",
-  props: {},
-  importPath: "./pages/test-tables"
-});
