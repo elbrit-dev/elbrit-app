@@ -302,9 +302,9 @@ const PrimeReactAdvancedTable = ({
   // Initialize filters
   useEffect(() => {
     const initialFilters = {};
-    if (columns.length > 0) {
+    if (columns && columns.length > 0) {
       columns.forEach(column => {
-        if (column.filterable !== false) {
+        if (column && column.field && column.filterable !== false) {
           switch (column.type) {
             case 'text':
             case 'email':
@@ -330,71 +330,73 @@ const PrimeReactAdvancedTable = ({
       });
     }
     setFilters(initialFilters);
-  }, [columns]);
+  }, [columns?.length]);
 
   // Initialize visible columns
   useEffect(() => {
-    if (columns.length > 0) {
-      setVisibleColumns(columns.map(col => col.field));
+    if (columns && columns.length > 0) {
+      setVisibleColumns(columns.map(col => col.field).filter(Boolean));
     }
-  }, [columns]);
+  }, [columns?.length]);
 
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
-    if (columns.length > 0) {
-      return columns.filter(col => visibleColumns.includes(col.field));
+    if (columns && columns.length > 0) {
+      return columns.filter(col => col && col.field && visibleColumns.includes(col.field));
     }
     
-    if (tableData.length > 0) {
+    if (tableData && tableData.length > 0) {
       const sampleRow = tableData[0];
-      return Object.keys(sampleRow).map(key => {
-        const value = sampleRow[key];
-        let type = 'text';
-        let filterMatchMode = FilterMatchMode.CONTAINS;
-        
-        if (typeof value === 'number') {
-          type = 'number';
-          filterMatchMode = FilterMatchMode.EQUALS;
-        } else if (typeof value === 'boolean') {
-          type = 'boolean';
-          filterMatchMode = FilterMatchMode.EQUALS;
-        } else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
-          type = 'datetime';
-          filterMatchMode = FilterMatchMode.DATE_IS;
-        } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          type = 'date';
-          filterMatchMode = FilterMatchMode.DATE_IS;
-        } else if (typeof value === 'string' && value.includes('@')) {
-          type = 'email';
-          filterMatchMode = FilterMatchMode.CONTAINS;
-        } else if (Array.isArray(value)) {
-          type = 'array';
-          filterMatchMode = FilterMatchMode.IN;
-        }
-        
-        return {
-          field: key,
-          header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-          sortable: true,
-          filterable: true,
-          type,
-          filterMatchMode,
-          width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto',
-          style: { minWidth: '120px' }
-        };
-      });
+      if (sampleRow) {
+        return Object.keys(sampleRow).map(key => {
+          const value = sampleRow[key];
+          let type = 'text';
+          let filterMatchMode = FilterMatchMode.CONTAINS;
+          
+          if (typeof value === 'number') {
+            type = 'number';
+            filterMatchMode = FilterMatchMode.EQUALS;
+          } else if (typeof value === 'boolean') {
+            type = 'boolean';
+            filterMatchMode = FilterMatchMode.EQUALS;
+          } else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
+            type = 'datetime';
+            filterMatchMode = FilterMatchMode.DATE_IS;
+          } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            type = 'date';
+            filterMatchMode = FilterMatchMode.DATE_IS;
+          } else if (typeof value === 'string' && value.includes('@')) {
+            type = 'email';
+            filterMatchMode = FilterMatchMode.CONTAINS;
+          } else if (Array.isArray(value)) {
+            type = 'array';
+            filterMatchMode = FilterMatchMode.IN;
+          }
+          
+          return {
+            field: key,
+            header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+            sortable: true,
+            filterable: true,
+            type,
+            filterMatchMode,
+            width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto',
+            style: { minWidth: '120px' }
+          };
+        });
+      }
     }
     
     return [];
-  }, [columns, visibleColumns, tableData.length]);
+  }, [columns?.length, visibleColumns?.length, tableData?.length]);
 
   // Filter by fields prop if provided
   const filteredColumns = useMemo(() => {
     if (fields && Array.isArray(fields) && fields.length > 0) {
-      return defaultColumns.filter(col => fields.includes(col.field));
+      return defaultColumns.filter(col => col && col.field && fields.includes(col.field));
     }
     return defaultColumns;
-  }, [defaultColumns, fields?.length]);
+  }, [defaultColumns?.length, fields?.length]);
 
   // Event handlers
   const handleGlobalFilterChange = useCallback((e) => {
@@ -507,7 +509,9 @@ const PrimeReactAdvancedTable = ({
   const renderImage = useCallback((value, row) => {
     if (!value) return '-';
     
-    const isPopup = popupImageFields && popupImageFields.includes(row.field);
+    // Find the field name from the row data
+    const fieldName = row ? Object.keys(row).find(key => row[key] === value) : null;
+    const isPopup = popupImageFields && popupImageFields.includes(fieldName);
     
     return (
       <img
@@ -865,18 +869,18 @@ const PrimeReactAdvancedTable = ({
 
       {/* DataTable */}
       <DataTable
-        value={tableData}
+        value={tableData || []}
         paginator={enablePagination}
         rows={rows}
         first={first}
         onPage={handlePageChange}
-        totalRecords={tableData.length}
+        totalRecords={tableData ? tableData.length : 0}
         lazy={false}
         dataKey="id"
         filters={filters}
         filterDisplay={showColumnFilters ? "row" : "menu"}
         globalFilter={globalFilterValue}
-        globalFilterFields={filteredColumns.map(col => col.field)}
+        globalFilterFields={filteredColumns ? filteredColumns.map(col => col.field).filter(Boolean) : []}
         sortMode="single"
         removableSort={false}
         onSort={handleSort}
@@ -903,7 +907,9 @@ const PrimeReactAdvancedTable = ({
           />
         )}
 
-        {filteredColumns.map((column) => {
+        {filteredColumns && filteredColumns.map((column) => {
+          if (!column || !column.field) return null;
+          
           let bodyTemplate = null;
           
           // Custom renderer based on field type
@@ -985,7 +991,7 @@ const PrimeReactAdvancedTable = ({
         }}>
           <div style={{ display: 'flex', gap: '16px' }}>
             {showRowCount && (
-              <span>Total: {tableData.length} records</span>
+              <span>Total: {tableData ? tableData.length : 0} records</span>
             )}
             {showSelectedCount && selectedRows.length > 0 && (
               <span>Selected: {selectedRows.length} records</span>
@@ -994,7 +1000,7 @@ const PrimeReactAdvancedTable = ({
           
           {enablePagination && (
             <span>
-              Showing {first + 1} to {Math.min(first + rows, tableData.length)} of {tableData.length} entries
+              Showing {first + 1} to {Math.min(first + rows, tableData ? tableData.length : 0)} of {tableData ? tableData.length : 0} entries
             </span>
           )}
         </div>
