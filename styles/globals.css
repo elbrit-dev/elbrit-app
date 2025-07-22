@@ -34,3 +34,60 @@ a {
   text-decoration: none;
 }
 
+/* PrimeDataTable specific styles for Plasmic Studio */
+.p-datatable {
+  font-family: inherit;
+}
+
+.p-datatable .p-datatable-header {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  font-weight: 600;
+  color: #374151;
+}
+
+.p-datatable .p-datatable-tbody > tr > td {
+  border: 1px solid #e5e7eb;
+  color: #374151;
+}
+
+.p-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: #f9fafb;
+}
+
+.p-datatable .p-datatable-tbody > tr:hover {
+  background: #f3f4f6;
+}
+
+.p-toolbar {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-bottom: none;
+}
+
+.p-paginator {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-top: none;
+}
+
+/* Animation for refresh spinner */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
