@@ -3,9 +3,6 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { FilterMatchMode } from "primereact/api";
 import { InputText } from "primereact/inputtext";
-import { Dropdown } from "primereact/dropdown";
-import { MultiSelect } from "primereact/multiselect";
-import { Calendar } from "primereact/calendar";
 import { Button } from "primereact/button";
 import { Toolbar } from "primereact/toolbar";
 import { ConfirmDialog, confirmDialog } from "primereact/confirmdialog";
@@ -21,23 +18,16 @@ const PrimeReactAdvancedTable = ({
   fields = [],
   loading = false,
   error = null,
-
-  // Built-in configuration
   enablePagination = true,
   enableSearch = true,
   enableSorting = true,
   enableRowSelection = false,
   enableExport = false,
   enableColumnFilter = true,
-
   pageSize = 10,
   pageSizeOptions = [5, 10, 25, 50],
   tableHeight = "auto",
-
-  // Optional identity keys
   idField = "id",
-
-  // Event handlers
   onRowClick,
   onRowSelect,
   onExport,
@@ -45,20 +35,13 @@ const PrimeReactAdvancedTable = ({
   onEdit,
   onDelete,
   onView,
-
-  // Row actions
   rowActions = [],
-
-  // Context + GraphQL
   graphqlQuery = null,
   graphqlVariables = {},
   onGraphqlData,
   refetchInterval = 0,
-
-  // Style
   className = "",
   style = {},
-
   title = "Advanced Data Table",
   showTitle = true,
   showToolbar = true
@@ -71,7 +54,8 @@ const PrimeReactAdvancedTable = ({
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState(null);
 
-  // Simulated GraphQL loading
+  const serializedVariables = useMemo(() => JSON.stringify(graphqlVariables), [graphqlVariables]);
+
   useEffect(() => {
     if (!graphqlQuery) {
       setInternalData(data);
@@ -93,9 +77,8 @@ const PrimeReactAdvancedTable = ({
         setFetching(false);
       }
     }, 1000);
-  }, [graphqlQuery, JSON.stringify(graphqlVariables), data]);
+  }, [graphqlQuery, serializedVariables, data, onGraphqlData]);
 
-  // Auto-initialize filters
   useEffect(() => {
     const f = {};
     (columns || []).forEach((col) => {
@@ -113,10 +96,14 @@ const PrimeReactAdvancedTable = ({
 
   const getDefaultRenderer = (col) => {
     if (col.field === "status") {
-      return (row) => <Tag value={row[col.field]} severity={row[col.field] === "active" ? "success" : "danger"} />;
+      const StatusRenderer = (row) => <Tag value={row[col.field]} severity={row[col.field] === "active" ? "success" : "danger"} />;
+      StatusRenderer.displayName = 'StatusRenderer';
+      return StatusRenderer;
     }
     if (col.field === "role") {
-      return (row) => <Chip label={row[col.field]} />;
+      const RoleRenderer = (row) => <Chip label={row[col.field]} />;
+      RoleRenderer.displayName = 'RoleRenderer';
+      return RoleRenderer;
     }
     return null;
   };
@@ -135,6 +122,38 @@ const PrimeReactAdvancedTable = ({
           }
         });
     }
+  };
+
+  const renderLeftToolbar = () => {
+    if (!onAdd) return null;
+    return <Button label="Add" icon="pi pi-plus" onClick={onAdd} />;
+  };
+
+  const renderRightToolbar = () => {
+    if (!enableExport) return null;
+    return (
+      <Button
+        label="Export"
+        icon="pi pi-download"
+        onClick={() => {
+          const csv = [
+            visibleColumns.map((col) => col.header).join(","),
+            ...internalData.map((row) =>
+              visibleColumns.map((col) => `"${row[col.field] || ""}"`).join(",")
+            )
+          ].join("\n");
+
+          const blob = new Blob([csv], { type: "text/csv" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "export.csv";
+          a.click();
+          URL.revokeObjectURL(url);
+          onExport?.(internalData);
+        }}
+      />
+    );
   };
 
   if (fetching || loading) {
@@ -162,32 +181,8 @@ const PrimeReactAdvancedTable = ({
 
       {showToolbar && (
         <Toolbar
-          left={() => onAdd && (
-            <Button label="Add" icon="pi pi-plus" onClick={onAdd} />
-          )}
-          right={() => enableExport && (
-            <Button
-              label="Export"
-              icon="pi pi-download"
-              onClick={() => {
-                const csv = [
-                  visibleColumns.map((col) => col.header).join(","),
-                  ...internalData.map((row) =>
-                    visibleColumns.map((col) => `"${row[col.field] || ""}"`).join(",")
-                  )
-                ].join("\n");
-
-                const blob = new Blob([csv], { type: "text/csv" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "export.csv";
-                a.click();
-                URL.revokeObjectURL(url);
-                onExport?.(internalData);
-              }}
-            />
-          )}
+          left={renderLeftToolbar}
+          right={renderRightToolbar}
         />
       )}
 
@@ -261,4 +256,5 @@ const PrimeReactAdvancedTable = ({
   );
 };
 
+PrimeReactAdvancedTable.displayName = "PrimeReactAdvancedTable";
 export default PrimeReactAdvancedTable;
