@@ -50,7 +50,8 @@ const PrimeDataTable = ({
   onSearch,
   showGridlines = true,
   stripedRows = true,
-  responsiveLayout = "scroll"
+  responsiveLayout = "scroll",
+  tableHeight = "600px"
 }) => {
   const [filters, setFilters] = useState({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
   const [globalFilterValue, setGlobalFilterValue] = useState("");
@@ -237,6 +238,7 @@ const PrimeDataTable = ({
             });
           }
         }}
+        style={{ height: tableHeight }}
       >
         {enableRowSelection && <Column selectionMode="multiple" headerStyle={{ width: '3em' }} />}
         {enableRowExpansion && <Column expander style={{ width: '3em' }} />}

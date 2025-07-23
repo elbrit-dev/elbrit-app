@@ -1129,6 +1129,11 @@ PLASMIC.registerComponent(PrimeDataTab, {
       description: "Responsive layout mode",
       defaultValue: "scroll"
     },
+    tableHeight: {
+      type: "string",
+      description: "Height of the table container",
+      defaultValue: "600px"
+    },
     
     // Styling props
     className: {
