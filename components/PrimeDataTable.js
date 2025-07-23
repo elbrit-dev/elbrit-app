@@ -130,6 +130,17 @@ const PrimeDataTable = ({
     groupStyle: {},
     headerGroupStyle: {},
     footerGroupStyle: {}
+  },
+  
+  // Footer totals props
+  enableFooterTotals = false,
+  footerTotalsConfig = {
+    showTotals: true,
+    showAverages: false,
+    showCounts: true,
+    numberFormat: 'en-US',
+    currency: 'USD',
+    precision: 2
   }
 }) => {
   // Local state
@@ -658,6 +669,96 @@ const PrimeDataTable = ({
     );
   };
 
+  // Calculate footer totals for numeric columns
+  const calculateFooterTotals = useMemo(() => {
+    if (!enableFooterTotals || !tableData.length) return {};
+    
+    const totals = {};
+    const averages = {};
+    const counts = {};
+    
+    defaultColumns.forEach(column => {
+      if (column.type === 'number') {
+        const values = tableData
+          .map(row => {
+            const value = row[column.key];
+            return typeof value === 'number' ? value : 0;
+          })
+          .filter(val => val !== null && val !== undefined);
+        
+        if (values.length > 0) {
+          if (footerTotalsConfig.showTotals) {
+            totals[column.key] = values.reduce((sum, val) => sum + val, 0);
+          }
+          
+          if (footerTotalsConfig.showAverages) {
+            averages[column.key] = values.reduce((sum, val) => sum + val, 0) / values.length;
+          }
+          
+          if (footerTotalsConfig.showCounts) {
+            counts[column.key] = values.length;
+          }
+        }
+      }
+    });
+    
+    return { totals, averages, counts };
+  }, [tableData, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+
+  // Footer template for column totals
+  const footerTemplate = (column) => {
+    if (!enableFooterTotals || column.type !== 'number') return null;
+    
+    const { totals, averages, counts } = calculateFooterTotals;
+    const total = totals[column.key];
+    const average = averages[column.key];
+    const count = counts[column.key];
+    
+    if (total === undefined && average === undefined && count === undefined) return null;
+    
+    const formatNumber = (value) => {
+      if (typeof value !== 'number') return '';
+      
+      // Check if it's currency
+      if (column.isCurrency || column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('cost') || column.key.toLowerCase().includes('amount')) {
+        return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+          style: 'currency',
+          currency: footerTotalsConfig.currency,
+          minimumFractionDigits: footerTotalsConfig.precision,
+          maximumFractionDigits: footerTotalsConfig.precision
+        }).format(value);
+      }
+      
+      // Regular number formatting
+      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+        minimumFractionDigits: footerTotalsConfig.precision,
+        maximumFractionDigits: footerTotalsConfig.precision
+      }).format(value);
+    };
+    
+    return (
+      <div style={{
+        padding: '8px',
+        textAlign: 'right',
+        fontWeight: '600',
+        fontSize: '13px',
+        backgroundColor: '#f8fafc',
+        borderTop: '2px solid #e5e7eb',
+        color: '#374151'
+      }}>
+        {footerTotalsConfig.showTotals && total !== undefined && (
+          <div>Total: {formatNumber(total)}</div>
+        )}
+        {footerTotalsConfig.showAverages && average !== undefined && (
+          <div>Avg: {formatNumber(average)}</div>
+        )}
+        {footerTotalsConfig.showCounts && count !== undefined && (
+          <div>Count: {count}</div>
+        )}
+      </div>
+    );
+  };
+
   // Toolbar components
   const leftToolbarTemplate = () => (
     <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
@@ -1182,6 +1283,7 @@ const PrimeDataTable = ({
               filterClear={enableFilterClear ? filterClearTemplate : undefined}
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
+              footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
               filterMenuStyle={filterMenuStyle}
               headerStyle={{
