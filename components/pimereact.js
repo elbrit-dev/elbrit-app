@@ -1,11 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from "react";
-import {
-  DataTable,
-  Column,
-  ColumnGroup,
-  Row
-} from "primereact/datatable";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
+import { ColumnGroup } from "primereact/columngroup";
+import { Row } from "primereact/row";
 import { Toolbar } from "primereact/toolbar";
 import { Dialog } from "primereact/dialog";
 import { InputText } from "primereact/inputtext";
