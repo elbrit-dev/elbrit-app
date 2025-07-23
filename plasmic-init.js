@@ -993,8 +993,7 @@ PLASMIC.registerComponent(PrimeDataTab, {
     },
     rowExpansionTemplate: {
       type: "function",
-      description: "Template function for expanded row content",
-      defaultValue: () => <span>Expanded</span>
+      description: "Template function for expanded row content"
     },
     
     // Event handlers

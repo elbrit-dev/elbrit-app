@@ -32,7 +32,7 @@ const PrimeDataTable = ({
   customFormatters = {},
   rowActions = [],
   enableRowExpansion = false,
-  rowExpansionTemplate = () => <span>Expanded</span>,
+  rowExpansionTemplate,
   enableEditable = false,
   onRowEditComplete,
   graphqlQuery = null,
@@ -220,7 +220,7 @@ const PrimeDataTable = ({
         responsiveLayout={responsiveLayout}
         expandedRows={enableRowExpansion ? expandedRows : null}
         onRowToggle={(e) => setExpandedRows(e.data)}
-        rowExpansionTemplate={enableRowExpansion && typeof rowExpansionTemplate === 'function' ? rowExpansionTemplate : undefined}
+        rowExpansionTemplate={enableRowExpansion && rowExpansionTemplate ? rowExpansionTemplate : undefined}
         editMode={enableEditable ? "row" : undefined}
         editingRows={editingRows}
         onRowEditChange={(e) => setEditingRows(e.data)}
