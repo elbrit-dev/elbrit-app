@@ -39,7 +39,18 @@ const PrimeDataTable = ({
   graphqlVariables = {},
   onGraphqlData,
   enableLazyLoading = false,
-  onLazyLoad = () => {}
+  onLazyLoad = () => {},
+  className = "",
+  style = {},
+  onRowClick,
+  onRowSelect,
+  onPageChange,
+  onFilterChange,
+  onSortChange,
+  onSearch,
+  showGridlines = true,
+  stripedRows = true,
+  responsiveLayout = "scroll"
 }) => {
   const [filters, setFilters] = useState({ global: { value: null, matchMode: FilterMatchMode.CONTAINS } });
   const [globalFilterValue, setGlobalFilterValue] = useState("");
@@ -51,14 +62,47 @@ const PrimeDataTable = ({
   const [lazyData, setLazyData] = useState([]);
   const [first, setFirst] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [sortField, setSortField] = useState(null);
+  const [sortOrder, setSortOrder] = useState(null);
 
   useEffect(() => {
     if (graphqlQuery && enableLazyLoading) {
-      onLazyLoad({ first, rows: pageSize, filters, globalFilterValue });
+      const params = { 
+        first, 
+        rows: pageSize, 
+        filters, 
+        globalFilterValue, 
+        variables: graphqlVariables,
+        sortField,
+        sortOrder
+      };
+      onLazyLoad(params);
     }
-  }, [first, filters, globalFilterValue]);
+  }, [first, filters, globalFilterValue, graphqlVariables, graphqlQuery, enableLazyLoading, pageSize, onLazyLoad, sortField, sortOrder]);
 
   const displayedData = graphqlQuery ? lazyData : data;
+
+  // Call onGraphqlData when lazy data changes
+  useEffect(() => {
+    if (graphqlQuery && lazyData.length > 0 && onGraphqlData) {
+      onGraphqlData({ data: lazyData });
+    }
+  }, [lazyData, graphqlQuery, onGraphqlData]);
+
+  // Function to update lazy data (called from parent component)
+  const updateLazyData = (newData, total) => {
+    setLazyData(newData);
+    if (total !== undefined) {
+      setTotalRecords(total);
+    }
+  };
+
+  // Expose updateLazyData function to parent
+  useEffect(() => {
+    if (window && window.updatePrimeDataTableLazyData) {
+      window.updatePrimeDataTableLazyData = updateLazyData;
+    }
+  }, []);
 
   const tableColumns = useMemo(() => selectedColumns.length ? selectedColumns : columns, [selectedColumns, columns]);
 
@@ -66,6 +110,9 @@ const PrimeDataTable = ({
     const value = e.target.value;
     setFilters((prev) => ({ ...prev, global: { value, matchMode: FilterMatchMode.CONTAINS } }));
     setGlobalFilterValue(value);
+    if (onSearch) {
+      onSearch({ searchTerm: value });
+    }
   };
 
   const totalRow = useMemo(() => {
@@ -85,26 +132,34 @@ const PrimeDataTable = ({
   };
 
   const getFilterElement = (col) => {
+    const handleFilterChange = (value, matchMode) => {
+      const newFilters = { ...filters, [col.field]: { value, matchMode } };
+      setFilters(newFilters);
+      if (onFilterChange) {
+        onFilterChange({ column: col.field, filterConfig: newFilters[col.field] });
+      }
+    };
+
     switch (col.filterType) {
       case 'dropdown':
         return <Dropdown options={col.filterOptions || []} value={filters[col.field]?.value || null}
-                         onChange={(e) => setFilters({ ...filters, [col.field]: { value: e.value, matchMode: FilterMatchMode.EQUALS } })}
+                         onChange={(e) => handleFilterChange(e.value, FilterMatchMode.EQUALS)}
                          placeholder={`Select ${col.header}`} className="p-column-filter" />;
       case 'calendar':
         return <Calendar value={filters[col.field]?.value || null}
-                         onChange={(e) => setFilters({ ...filters, [col.field]: { value: e.value, matchMode: FilterMatchMode.DATE_IS } })}
+                         onChange={(e) => handleFilterChange(e.value, FilterMatchMode.DATE_IS)}
                          placeholder={`Pick ${col.header}`} showIcon />;
       case 'number':
         return <InputNumber value={filters[col.field]?.value || null}
-                            onValueChange={(e) => setFilters({ ...filters, [col.field]: { value: e.value, matchMode: FilterMatchMode.EQUALS } })}
+                            onValueChange={(e) => handleFilterChange(e.value, FilterMatchMode.EQUALS)}
                             placeholder={`Filter ${col.header}`} className="p-column-filter" />;
       case 'slider':
         return <Slider value={filters[col.field]?.value || 0}
-                       onChange={(e) => setFilters({ ...filters, [col.field]: { value: e.value, matchMode: FilterMatchMode.GREATER_THAN } })}
+                       onChange={(e) => handleFilterChange(e.value, FilterMatchMode.GREATER_THAN)}
                        min={col.min || 0} max={col.max || 100} />;
       default:
         return <InputText value={filters[col.field]?.value || ''}
-                          onChange={(e) => setFilters({ ...filters, [col.field]: { value: e.target.value, matchMode: FilterMatchMode.CONTAINS } })}
+                          onChange={(e) => handleFilterChange(e.target.value, FilterMatchMode.CONTAINS)}
                           placeholder={`Search ${col.header}`} className="p-column-filter" />;
     }
   };
@@ -122,7 +177,7 @@ const PrimeDataTable = ({
   };
 
   return (
-    <div>
+    <div className={className} style={style}>
       <Toolbar
         left={enableSearch && (
           <span className="p-input-icon-left">
@@ -141,26 +196,47 @@ const PrimeDataTable = ({
         rows={pageSize}
         filters={filters}
         first={first}
-        onPage={(e) => setFirst(e.first)}
+        onPage={(e) => {
+          setFirst(e.first);
+          if (onPageChange) {
+            onPageChange({ page: Math.floor(e.first / pageSize) + 1 });
+          }
+        }}
         totalRecords={graphqlQuery ? totalRecords : undefined}
         lazy={!!graphqlQuery}
         globalFilterFields={columns.map(col => col.field)}
         selection={enableRowSelection ? selectedRows : null}
-        onSelectionChange={(e) => setSelectedRows(e.value)}
+        onSelectionChange={(e) => {
+          setSelectedRows(e.value);
+          if (onRowSelect) {
+            onRowSelect({ selectedRows: e.value });
+          }
+        }}
         selectionMode={enableRowSelection ? "multiple" : null}
         headerColumnGroup={columnGroups?.header}
         footerColumnGroup={columnGroups?.footer}
-        showGridlines
-        stripedRows
-        responsiveLayout="scroll"
+        showGridlines={showGridlines}
+        stripedRows={stripedRows}
+        responsiveLayout={responsiveLayout}
         expandedRows={enableRowExpansion ? expandedRows : null}
         onRowToggle={(e) => setExpandedRows(e.data)}
-        rowExpansionTemplate={enableRowExpansion ? rowExpansionTemplate : undefined}
+        rowExpansionTemplate={enableRowExpansion && typeof rowExpansionTemplate === 'function' ? rowExpansionTemplate : undefined}
         editMode={enableEditable ? "row" : undefined}
         editingRows={editingRows}
         onRowEditChange={(e) => setEditingRows(e.data)}
-        onRowEditComplete={enableEditable ? onRowEditComplete : undefined}
+        onRowEditComplete={enableEditable && onRowEditComplete ? onRowEditComplete : undefined}
         loading={loading}
+        onRowClick={onRowClick}
+        onSort={(e) => {
+          setSortField(e.sortField);
+          setSortOrder(e.sortOrder);
+          if (onSortChange) {
+            onSortChange({ 
+              sortField: e.sortField, 
+              sortOrder: e.sortOrder 
+            });
+          }
+        }}
       >
         {enableRowSelection && <Column selectionMode="multiple" headerStyle={{ width: '3em' }} />}
         {enableRowExpansion && <Column expander style={{ width: '3em' }} />}
