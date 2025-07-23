@@ -88,6 +88,10 @@ const PrimeDataTable = ({
   cellMaxWidth = "none", // none or specific value like "300px"
   cellMaxHeight = "none", // none or specific value like "100px"
   
+  // Default styling props
+  defaultHeaderStyle = {}, // Default header styling for auto-generated columns
+  defaultBodyStyle = {}, // Default body styling for auto-generated columns
+  
   // Event handlers
   onRowClick,
   onRowSelect,
@@ -178,18 +182,46 @@ const PrimeDataTable = ({
         } else if (typeof value === 'string' && value.includes('@')) {
           type = 'email';
         }
+        
+        // Default header and body styles based on data type
+        const columnHeaderStyle = {
+          fontWeight: '600',
+          fontSize: '13px',
+          textAlign: 'center',
+          padding: '12px 8px',
+          borderBottom: '2px solid #e5e7eb',
+          whiteSpace: 'nowrap',
+          lineHeight: '1.4',
+          width: cellWidth,
+          minWidth: cellMinWidth,
+          maxWidth: cellMaxWidth,
+          height: cellHeight,
+          minHeight: cellMinHeight,
+          maxHeight: cellMaxHeight,
+          ...defaultHeaderStyle
+        };
+        
+        const columnBodyStyle = {
+          textAlign: type === 'number' ? 'right' : type === 'boolean' ? 'center' : 'left',
+          padding: '8px',
+          fontSize: '13px',
+          width: cellWidth,
+          minWidth: cellMinWidth,
+          maxWidth: cellMaxWidth,
+          height: cellHeight,
+          minHeight: cellMinHeight,
+          maxHeight: cellMaxHeight,
+          ...defaultBodyStyle
+        };
+        
         return {
           key,
           title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
           sortable: true,
           filterable: true,
           type,
-          width: cellWidth,
-          minWidth: cellMinWidth,
-          maxWidth: cellMaxWidth,
-          height: cellHeight,
-          minHeight: cellMinHeight,
-          maxHeight: cellMaxHeight
+          headerStyle: columnHeaderStyle,
+          style: columnBodyStyle
         };
       });
       const orderedColumns = columnOrder.length > 0 
@@ -202,7 +234,7 @@ const PrimeDataTable = ({
       cols = cols.filter(col => fields.includes(col.key));
     }
     return cols;
-  }, [columns, tableData, hiddenColumns, columnOrder, fields]);
+  }, [columns, tableData, hiddenColumns, columnOrder, fields, cellWidth, cellMinWidth, cellMaxWidth, cellHeight, cellMinHeight, cellMaxHeight, defaultHeaderStyle, defaultBodyStyle]);
 
   // Initialize filters based on columns
   useEffect(() => {
@@ -242,6 +274,13 @@ const PrimeDataTable = ({
     });
     setFilters(initialFilters);
   }, [defaultColumns, enableColumnFilter]);
+
+  // Debug customFormatters
+  useEffect(() => {
+    if (Object.keys(customFormatters).length > 0) {
+      debugCustomFormatters();
+    }
+  }, [customFormatters]);
 
   // Enhanced event handlers
   const handleSort = useCallback((event) => {
@@ -364,6 +403,12 @@ const PrimeDataTable = ({
         } : undefined}
       />
     );
+  };
+
+  // Debug function to check if customFormatters are working
+  const debugCustomFormatters = () => {
+    console.log('Custom Formatters:', customFormatters);
+    console.log('Custom Formatters Keys:', Object.keys(customFormatters));
   };
 
   const dateBodyTemplate = (rowData, column) => {
@@ -644,6 +689,148 @@ const PrimeDataTable = ({
     }
   };
 
+  // Theme system implementation
+  const getThemeStyles = () => {
+    switch (theme) {
+      case 'dark':
+        return {
+          container: {
+            backgroundColor: '#1f2937',
+            color: '#f9fafb',
+            border: '1px solid #374151'
+          },
+          header: {
+            backgroundColor: '#111827',
+            color: '#f9fafb',
+            borderBottom: '1px solid #374151'
+          },
+          toolbar: {
+            backgroundColor: '#111827',
+            borderBottom: '1px solid #374151'
+          },
+          table: {
+            backgroundColor: '#1f2937',
+            color: '#f9fafb'
+          },
+          row: {
+            backgroundColor: '#1f2937',
+            borderBottom: '1px solid #374151'
+          },
+          rowHover: {
+            backgroundColor: '#374151'
+          },
+          rowStriped: {
+            backgroundColor: '#374151'
+          },
+          filter: {
+            backgroundColor: '#374151',
+            border: '1px solid #4b5563',
+            color: '#f9fafb'
+          },
+          button: {
+            backgroundColor: '#374151',
+            color: '#f9fafb',
+            border: '1px solid #4b5563'
+          },
+          buttonHover: {
+            backgroundColor: '#4b5563'
+          }
+        };
+      
+      case 'minimal':
+        return {
+          container: {
+            backgroundColor: '#ffffff',
+            color: '#111827',
+            border: '1px solid #f3f4f6'
+          },
+          header: {
+            backgroundColor: '#ffffff',
+            color: '#111827',
+            borderBottom: '1px solid #f3f4f6'
+          },
+          toolbar: {
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f3f4f6'
+          },
+          table: {
+            backgroundColor: '#ffffff',
+            color: '#111827'
+          },
+          row: {
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f3f4f6'
+          },
+          rowHover: {
+            backgroundColor: '#f9fafb'
+          },
+          rowStriped: {
+            backgroundColor: '#f9fafb'
+          },
+          filter: {
+            backgroundColor: '#ffffff',
+            border: '1px solid #e5e7eb',
+            color: '#111827'
+          },
+          button: {
+            backgroundColor: '#ffffff',
+            color: '#111827',
+            border: '1px solid #e5e7eb'
+          },
+          buttonHover: {
+            backgroundColor: '#f9fafb'
+          }
+        };
+      
+      default: // default theme
+        return {
+          container: {
+            backgroundColor: '#ffffff',
+            color: '#111827',
+            border: '1px solid #e5e7eb'
+          },
+          header: {
+            backgroundColor: '#f8fafc',
+            color: '#374151',
+            borderBottom: '1px solid #e5e7eb'
+          },
+          toolbar: {
+            backgroundColor: '#f9fafb',
+            borderBottom: '1px solid #e5e7eb'
+          },
+          table: {
+            backgroundColor: '#ffffff',
+            color: '#111827'
+          },
+          row: {
+            backgroundColor: '#ffffff',
+            borderBottom: '1px solid #f3f4f6'
+          },
+          rowHover: {
+            backgroundColor: '#f8fafc'
+          },
+          rowStriped: {
+            backgroundColor: '#f9fafb'
+          },
+          filter: {
+            backgroundColor: '#ffffff',
+            border: '1px solid #d1d5db',
+            color: '#111827'
+          },
+          button: {
+            backgroundColor: '#ffffff',
+            color: '#111827',
+            border: '1px solid #d1d5db'
+          },
+          buttonHover: {
+            backgroundColor: '#f9fafb'
+          }
+        };
+    }
+  };
+
+  const themeStyles = getThemeStyles();
+
   // Generate column groups from configuration
   const generateColumnGroups = useCallback(() => {
     if (!enableColumnGrouping || !columnGroups.length) {
@@ -776,7 +963,76 @@ const PrimeDataTable = ({
   }
 
   return (
-    <div className={className} style={style}>
+    <div className={className} style={{
+      ...themeStyles.container,
+      ...style
+    }}>
+      {/* Debug Info - Remove this in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div style={{ 
+          padding: '8px', 
+          margin: '8px', 
+          backgroundColor: '#f3f4f6', 
+          border: '1px solid #d1d5db', 
+          borderRadius: '4px',
+          fontSize: '12px'
+        }}>
+          <strong>Debug Info:</strong><br/>
+          <strong>Data:</strong> {data.length} rows<br/>
+          <strong>Columns:</strong> {columns.length} custom, {defaultColumns.length} total<br/>
+          <strong>Custom Formatters:</strong> {Object.keys(customFormatters).length}<br/>
+          <strong>Custom Templates:</strong> {Object.keys(customTemplates).length}<br/>
+          <strong>Custom Filters:</strong> {Object.keys(customFilters).length}<br/>
+          <strong>Row Actions:</strong> {rowActions.length}<br/>
+          <strong>Bulk Actions:</strong> {bulkActions.length}<br/>
+          <strong>Column Groups:</strong> {columnGroups.length}<br/>
+          <strong>Features:</strong> Search:{enableSearch ? '✓' : '✗'} | Filter:{enableColumnFilter ? '✓' : '✗'} | Sort:{enableSorting ? '✓' : '✗'} | Pagination:{enablePagination ? '✓' : '✗'}<br/>
+          <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
+          <strong>Theme:</strong> {theme} | Size: {tableSize} | Style: {tableStyle}<br/>
+          <strong>Theme Colors:</strong> BG: {themeStyles.container.backgroundColor} | Text: {themeStyles.container.color}
+        </div>
+      )}
+      
+      {/* Theme CSS Variables */}
+      <style jsx>{`
+        .p-datatable .p-datatable-thead > tr > th {
+          background-color: var(--header-bg) !important;
+          color: var(--header-color) !important;
+          border-bottom: var(--header-border) !important;
+        }
+        
+        .p-datatable .p-datatable-tbody > tr > td {
+          background-color: var(--row-bg) !important;
+          border-bottom: var(--header-border) !important;
+        }
+        
+        .p-datatable .p-datatable-tbody > tr:hover > td {
+          background-color: var(--row-hover-bg) !important;
+        }
+        
+        .p-datatable .p-datatable-tbody > tr:nth-child(even) > td {
+          background-color: var(--row-striped-bg) !important;
+        }
+        
+        .p-datatable .p-column-filter {
+          background-color: var(--filter-bg) !important;
+          border: var(--filter-border) !important;
+        }
+        
+        .p-datatable .p-column-filter:focus {
+          border-color: #3b82f6 !important;
+        }
+        
+        .p-datatable .p-button {
+          background-color: var(--filter-bg) !important;
+          border: var(--filter-border) !important;
+          color: var(--header-color) !important;
+        }
+        
+        .p-datatable .p-button:hover {
+          background-color: var(--row-hover-bg) !important;
+        }
+      `}</style>
       
       {/* Toolbar */}
       <Toolbar
@@ -784,8 +1040,7 @@ const PrimeDataTable = ({
         right={rightToolbarTemplate}
         style={{
           padding: "20px 24px",
-          borderBottom: "1px solid #e5e7eb",
-          backgroundColor: "#f9fafb"
+          ...themeStyles.toolbar
         }}
       />
 
@@ -816,11 +1071,15 @@ const PrimeDataTable = ({
         className={`${getTableSizeClass()} ${getTableStyleClass()}`}
         style={{
           height: tableHeight,
-          '--header-bg': '#f8fafc',
-          '--header-color': '#374151',
-          '--header-border': '#e5e7eb',
-          '--filter-bg': '#ffffff',
-          '--filter-border': '#d1d5db'
+          ...themeStyles.table,
+          '--header-bg': themeStyles.header.backgroundColor,
+          '--header-color': themeStyles.header.color,
+          '--header-border': themeStyles.header.borderBottom,
+          '--filter-bg': themeStyles.filter.backgroundColor,
+          '--filter-border': themeStyles.filter.border,
+          '--row-bg': themeStyles.row.backgroundColor,
+          '--row-hover-bg': themeStyles.rowHover.backgroundColor,
+          '--row-striped-bg': themeStyles.rowStriped.backgroundColor
         }}
         emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
@@ -863,38 +1122,21 @@ const PrimeDataTable = ({
               showFilterMatchModes={enableFilterMatchModes}
               filterMenuStyle={filterMenuStyle}
               headerStyle={{
-                width: cellWidth,
-                minWidth: cellMinWidth,
-                maxWidth: cellMaxWidth,
-                height: cellHeight,
-                minHeight: cellMinHeight,
-                maxHeight: cellMaxHeight,
+                ...themeStyles.header,
                 ...column.headerStyle
               }}
               bodyStyle={{
-                textAlign: column.type === 'number' ? 'right' : column.type === 'boolean' ? 'center' : 'left',
-                width: cellWidth,
-                minWidth: cellMinWidth,
-                maxWidth: cellMaxWidth,
-                height: cellHeight,
-                minHeight: cellMinHeight,
-                maxHeight: cellMaxHeight,
-                ...column.bodyStyle
+                ...themeStyles.row,
+                ...column.style
               }}
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                     column.type === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
                     column.type === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
+                    customFormatters[column.key] ? (rowData) => customFormatters[column.key](rowData[column.key], rowData) :
                     customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
-              style={{
-                width: cellWidth,
-                minWidth: cellMinWidth,
-                maxWidth: cellMaxWidth,
-                height: cellHeight,
-                minHeight: cellMinHeight,
-                maxHeight: cellMaxHeight
-              }}
+              style={column.style}
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
           );

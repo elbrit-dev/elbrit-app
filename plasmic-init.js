@@ -238,6 +238,18 @@ PLASMIC.registerComponent(AdvancedTable, {
       defaultValue: "none"
     },
     
+    // Default styling props
+    defaultHeaderStyle: {
+      type: "object",
+      description: "Default header styling for auto-generated columns",
+      defaultValue: {}
+    },
+    defaultBodyStyle: {
+      type: "object",
+      description: "Default body styling for auto-generated columns",
+      defaultValue: {}
+    },
+    
     // Column grouping props
     enableColumnGrouping: {
       type: "boolean",
