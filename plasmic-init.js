@@ -991,6 +991,20 @@ PLASMIC.registerComponent(PrimeDataTab, {
       description: "Show footer totals for numeric columns",
       defaultValue: false
     },
+    footerTotalsConfig: {
+      type: "object",
+      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision, includeColumns, excludeColumns)",
+      defaultValue: {
+        showTotals: true,
+        showAverages: false,
+        showCounts: false,
+        numberFormat: 'en-IN',
+        currency: 'INR',
+        precision: 0,
+        includeColumns: [],
+        excludeColumns: []
+      }
+    },
     
     // Pagination
     pageSize: {

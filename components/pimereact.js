@@ -22,6 +22,16 @@ const PrimeDataTable = ({
   columnGroups = null,
   loading = false,
   footerTotals = false,
+  footerTotalsConfig = {
+    showTotals: true,
+    showAverages: false,
+    showCounts: false,
+    numberFormat: 'en-IN',
+    currency: 'INR',
+    precision: 0,
+    includeColumns: [], // Specific columns to include (empty = all numeric)
+    excludeColumns: []  // Specific columns to exclude
+  },
   enableSearch = true,
   enableExport = true,
   enableColumnManagement = true,
@@ -180,17 +190,77 @@ const PrimeDataTable = ({
   const totalRow = useMemo(() => {
     if (!footerTotals || !data.length) return null;
     const totals = {};
-    columns.forEach(col => {
-      if (typeof data[0][col.field] === "number") {
-        totals[col.field] = data.reduce((sum, row) => sum + (row[col.field] || 0), 0);
+    const averages = {};
+    const counts = {};
+    
+    // Use tableColumns (which includes auto-generated columns) instead of just columns prop
+    const columnsToProcess = tableColumns.length > 0 ? tableColumns : defaultColumns;
+    
+    columnsToProcess.forEach(col => {
+      const field = col.field || col.key;
+      if (!field) return;
+      
+      // Check if this column should be included/excluded
+      if (footerTotalsConfig.includeColumns.length > 0 && !footerTotalsConfig.includeColumns.includes(field)) {
+        return;
+      }
+      if (footerTotalsConfig.excludeColumns.includes(field)) {
+        return;
+      }
+      
+      if (typeof data[0][field] === "number") {
+        const values = data.map(row => row[field] || 0).filter(val => val !== null && val !== undefined);
+        
+        if (footerTotalsConfig.showTotals) {
+          totals[field] = values.reduce((sum, val) => sum + val, 0);
+        }
+        
+        if (footerTotalsConfig.showAverages) {
+          averages[field] = values.length > 0 ? values.reduce((sum, val) => sum + val, 0) / values.length : 0;
+        }
+        
+        if (footerTotalsConfig.showCounts) {
+          counts[field] = values.length;
+        }
       }
     });
-    return totals;
-  }, [data, columns, footerTotals]);
+    
+    return { totals, averages, counts };
+  }, [data, tableColumns, defaultColumns, footerTotals, footerTotalsConfig]);
 
   const renderFooter = (col) => {
-    if (!footerTotals || !totalRow || typeof totalRow[col.field] === "undefined") return null;
-    return totalRow[col.field].toLocaleString();
+    if (!footerTotals || !totalRow) return null;
+    const field = col.field || col.key;
+    if (!field) return null;
+    
+    const { totals, averages, counts } = totalRow;
+    const parts = [];
+    
+    if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
+      const formattedTotal = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
+        currency: footerTotalsConfig.currency,
+        minimumFractionDigits: footerTotalsConfig.precision,
+        maximumFractionDigits: footerTotalsConfig.precision
+      }).format(totals[field]);
+      parts.push(`Total: ${formattedTotal}`);
+    }
+    
+    if (footerTotalsConfig.showAverages && averages[field] !== undefined) {
+      const formattedAvg = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
+        currency: footerTotalsConfig.currency,
+        minimumFractionDigits: footerTotalsConfig.precision,
+        maximumFractionDigits: footerTotalsConfig.precision
+      }).format(averages[field]);
+      parts.push(`Avg: ${formattedAvg}`);
+    }
+    
+    if (footerTotalsConfig.showCounts && counts[field] !== undefined) {
+      parts.push(`Count: ${counts[field]}`);
+    }
+    
+    return parts.length > 0 ? parts.join(' | ') : null;
   };
 
   const getFilterElement = (col) => {
