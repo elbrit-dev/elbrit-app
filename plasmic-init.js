@@ -657,6 +657,147 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "object",
       description: "Array of image field keys that should open a popup modal when clicked.",
       defaultValue: []
+    },
+    
+    // Advanced toggle features
+    enableGlobalFilter: {
+      type: "boolean",
+      description: "Enable global filter functionality",
+      defaultValue: true
+    },
+    enableFilterMenu: {
+      type: "boolean",
+      description: "Enable filter menu display",
+      defaultValue: true
+    },
+    enableFilterMatchModes: {
+      type: "boolean",
+      description: "Show filter match modes in filter menus",
+      defaultValue: true
+    },
+    enableFilterClear: {
+      type: "boolean",
+      description: "Show clear filter button in filter menus",
+      defaultValue: true
+    },
+    enableFilterApply: {
+      type: "boolean",
+      description: "Show apply filter button in filter menus",
+      defaultValue: true
+    },
+    enableFilterFooter: {
+      type: "boolean",
+      description: "Show filter footer in filter menus",
+      defaultValue: true
+    },
+    enableGridLines: {
+      type: "boolean",
+      description: "Show grid lines in the table",
+      defaultValue: true
+    },
+    enableStripedRows: {
+      type: "boolean",
+      description: "Enable striped row styling",
+      defaultValue: true
+    },
+    enableHoverEffect: {
+      type: "boolean",
+      description: "Enable hover effects on rows",
+      defaultValue: true
+    },
+    enableResizableColumns: {
+      type: "boolean",
+      description: "Allow column resizing",
+      defaultValue: false
+    },
+    enableReorderableColumns: {
+      type: "boolean",
+      description: "Allow column reordering",
+      defaultValue: false
+    },
+    enableVirtualScrolling: {
+      type: "boolean",
+      description: "Enable virtual scrolling for large datasets",
+      defaultValue: false
+    },
+    enableLazyLoading: {
+      type: "boolean",
+      description: "Enable lazy loading for data",
+      defaultValue: false
+    },
+    enableRowGrouping: {
+      type: "boolean",
+      description: "Enable row grouping functionality",
+      defaultValue: false
+    },
+    enableRowExpansion: {
+      type: "boolean",
+      description: "Enable row expansion functionality",
+      defaultValue: false
+    },
+    enableFrozenColumns: {
+      type: "boolean",
+      description: "Enable frozen columns",
+      defaultValue: false
+    },
+    enableFrozenRows: {
+      type: "boolean",
+      description: "Enable frozen rows",
+      defaultValue: false
+    },
+    
+    // Advanced filter options
+    filterDisplay: {
+      type: "choice",
+      options: ["menu", "row"],
+      description: "Display mode for filters",
+      defaultValue: "menu"
+    },
+    globalFilterFields: {
+      type: "object",
+      description: "Array of field names to include in global filter",
+      defaultValue: []
+    },
+    showFilterMatchModes: {
+      type: "boolean",
+      description: "Show filter match modes",
+      defaultValue: true
+    },
+    filterMenuStyle: {
+      type: "object",
+      description: "Custom styles for filter menus",
+      defaultValue: {}
+    },
+    
+    // Table styling options
+    tableSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Size of the table",
+      defaultValue: "normal"
+    },
+    tableStyle: {
+      type: "choice",
+      options: ["default", "compact", "comfortable"],
+      description: "Style of the table",
+      defaultValue: "default"
+    },
+    
+    // Custom templates
+    customTemplates: {
+      type: "object",
+      description: "Custom cell templates for specific columns",
+      defaultValue: {}
+    },
+    customFilters: {
+      type: "object",
+      description: "Custom filter components for specific columns",
+      defaultValue: {}
+    },
+    customFormatters: {
+      type: "object",
+      description: "Custom formatters for specific columns",
+      defaultValue: {}
     }
   },
   

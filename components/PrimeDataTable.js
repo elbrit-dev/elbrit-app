@@ -9,32 +9,16 @@ import { MultiSelect } from 'primereact/multiselect';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
 import { Toolbar } from 'primereact/toolbar';
-import { Paginator } from 'primereact/paginator';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
+import { InputNumber } from 'primereact/inputnumber';
+import { TriStateCheckbox } from 'primereact/tristatecheckbox';
+import { classNames } from 'primereact/utils';
 import { 
-  Search, 
-  Filter, 
-  Download, 
   RefreshCw,
-  Check,
   X,
-  MoreHorizontal,
-  Eye,
-  Edit,
-  Trash2,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  MoreVertical,
-  CheckSquare,
-  Square,
-  Calendar as CalendarIcon,
-  Hash,
-  Type,
-  RotateCcw,
-  Columns,
-  SortAsc,
-  SortDesc
+  Calendar as CalendarIcon
 } from "lucide-react";
 
 const PrimeDataTable = ({
@@ -53,7 +37,7 @@ const PrimeDataTable = ({
   onGraphqlData,
   refetchInterval = 0,
   
-  // Table configuration
+  // Table configuration - All features are now toggleable
   enableSearch = true,
   enableColumnFilter = true,
   enableSorting = true,
@@ -63,6 +47,23 @@ const PrimeDataTable = ({
   enableRefresh = false,
   enableColumnManagement = true,
   enableBulkActions = false,
+  enableGlobalFilter = true,
+  enableFilterMenu = true,
+  enableFilterMatchModes = true,
+  enableFilterClear = true,
+  enableFilterApply = true,
+  enableFilterFooter = true,
+  enableGridLines = true,
+  enableStripedRows = true,
+  enableHoverEffect = true,
+  enableResizableColumns = false,
+  enableReorderableColumns = false,
+  enableVirtualScrolling = false,
+  enableLazyLoading = false,
+  enableRowGrouping = false,
+  enableRowExpansion = false,
+  enableFrozenColumns = false,
+  enableFrozenRows = false,
   
   // Pagination
   pageSize = 10,
@@ -74,6 +75,8 @@ const PrimeDataTable = ({
   style = {},
   tableHeight = "600px",
   theme = "default", // default, dark, minimal
+  tableSize = "normal", // small, normal, large
+  tableStyle = "default", // default, compact, comfortable
   
   // Event handlers
   onRowClick,
@@ -89,11 +92,20 @@ const PrimeDataTable = ({
   // Action buttons
   rowActions = [],
   bulkActions = [],
-  enableRowActions = false
+  enableRowActions = false,
+  
+  // Advanced filter options
+  filterDisplay = "menu", // menu, row
+  globalFilterFields = [],
+  showFilterMatchModes = true,
+  filterMenuStyle = {},
+  
+  // Custom templates
+  customTemplates = {},
+  customFilters = {},
+  customFormatters = {}
 }) => {
   // Local state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateFilter, setDateFilter] = useState({ value: null, operator: 'equals' });
   const [selectedRows, setSelectedRows] = useState([]);
   const [showColumnManager, setShowColumnManager] = useState(false);
   const [localCurrentPage, setLocalCurrentPage] = useState(currentPage);
@@ -107,6 +119,7 @@ const PrimeDataTable = ({
   const [filters, setFilters] = useState({});
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(1);
+  const [globalFilterValue, setGlobalFilterValue] = useState('');
 
   // GraphQL data state
   const [graphqlData, setGraphqlData] = useState([]);
@@ -148,7 +161,8 @@ const PrimeDataTable = ({
           sortable: true,
           filterable: true,
           type,
-          width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto'
+          width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto',
+          minWidth: type === 'email' ? '200px' : type === 'date' ? '120px' : '150px'
         };
       });
       const orderedColumns = columnOrder.length > 0 
@@ -165,24 +179,42 @@ const PrimeDataTable = ({
 
   // Initialize filters based on columns
   useEffect(() => {
-    const initialFilters = {};
+    const initialFilters = {
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+    };
+    
     defaultColumns.forEach(col => {
-      if (col.filterable) {
+      if (col.filterable && enableColumnFilter) {
         switch (col.type) {
           case 'number':
-            initialFilters[col.key] = { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] };
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
+            };
             break;
           case 'date':
           case 'datetime':
-            initialFilters[col.key] = { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }] };
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }] 
+            };
+            break;
+          case 'boolean':
+            initialFilters[col.key] = { 
+              value: null, 
+              matchMode: FilterMatchMode.EQUALS 
+            };
             break;
           default:
-            initialFilters[col.key] = { operator: FilterOperator.AND, constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] };
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+            };
         }
       }
     });
     setFilters(initialFilters);
-  }, [defaultColumns]);
+  }, [defaultColumns, enableColumnFilter]);
 
   // Enhanced event handlers
   const handleSort = useCallback((event) => {
@@ -203,11 +235,16 @@ const PrimeDataTable = ({
   }, [onFilterChange]);
 
   const handleSearch = useCallback((value) => {
-    setSearchTerm(value);
+    setGlobalFilterValue(value);
+    
+    let _filters = { ...filters };
+    _filters['global'].value = value;
+    setFilters(_filters);
+    
     if (onSearch) {
       onSearch(value);
     }
-  }, [onSearch]);
+  }, [onSearch, filters]);
 
   const handleBulkAction = useCallback((action) => {
     if (onBulkAction) {
@@ -216,8 +253,7 @@ const PrimeDataTable = ({
   }, [onBulkAction, selectedRows]);
 
   const clearAllFilters = useCallback(() => {
-    setDateFilter({ value: null, operator: 'equals' });
-    setSearchTerm("");
+    setGlobalFilterValue("");
     setFilters({});
     setSortField(null);
     setSortOrder(1);
@@ -321,6 +357,16 @@ const PrimeDataTable = ({
     return Number(value).toLocaleString();
   };
 
+  const booleanBodyTemplate = (rowData, column) => {
+    const value = rowData[column.key];
+    return (
+      <i className={classNames('pi', { 
+        'text-green-500 pi-check-circle': value, 
+        'text-red-500 pi-times-circle': !value 
+      })}></i>
+    );
+  };
+
   const actionsBodyTemplate = (rowData) => {
     return (
       <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
@@ -342,15 +388,23 @@ const PrimeDataTable = ({
     );
   };
 
-  // Filter components
+  // Advanced filter components
   const getFilterComponent = (column) => {
+    // Check for custom filter template
+    if (customFilters[column.key]) {
+      return customFilters[column.key];
+    }
+
     switch (column.type) {
       case 'number':
         return (
-          <InputText
+          <InputNumber
             placeholder={`Filter ${column.title}...`}
             className="p-column-filter"
             style={{ width: '100%' }}
+            mode="currency"
+            currency="USD"
+            locale="en-US"
           />
         );
       
@@ -363,18 +417,35 @@ const PrimeDataTable = ({
             style={{ width: '100%' }}
             showTime={column.type === 'datetime'}
             showSeconds={column.type === 'datetime'}
+            dateFormat="mm/dd/yy"
+            mask="99/99/9999"
           />
+        );
+      
+      case 'boolean':
+        return (
+          <div className="flex align-items-center gap-2">
+            <label htmlFor={`${column.key}-filter`} className="font-bold">
+              {column.title}
+            </label>
+            <TriStateCheckbox 
+              inputId={`${column.key}-filter`} 
+              value={null} 
+              onChange={(e) => {}} 
+            />
+          </div>
         );
       
       case 'select':
         const uniqueValues = [...new Set(tableData.map(row => row[column.key]))];
         return (
-          <Dropdown
+          <MultiSelect
             placeholder={`Filter ${column.title}...`}
             className="p-column-filter"
             style={{ width: '100%' }}
             options={uniqueValues.map(value => ({ label: String(value), value }))}
             showClear
+            optionLabel="label"
           />
         );
       
@@ -389,55 +460,60 @@ const PrimeDataTable = ({
     }
   };
 
+  // Filter templates
+  const filterClearTemplate = (options) => {
+    if (!enableFilterClear) return null;
+    return (
+      <Button 
+        type="button" 
+        icon="pi pi-times" 
+        onClick={options.filterClearCallback} 
+        severity="secondary"
+        className="p-button-sm"
+      />
+    );
+  };
+
+  const filterApplyTemplate = (options) => {
+    if (!enableFilterApply) return null;
+    return (
+      <Button 
+        type="button" 
+        icon="pi pi-check" 
+        onClick={options.filterApplyCallback} 
+        severity="success"
+        className="p-button-sm"
+      />
+    );
+  };
+
+  const filterFooterTemplate = (column) => {
+    if (!enableFilterFooter) return null;
+    return (
+      <div className="px-3 pt-0 pb-3 text-center">
+        Filter by {column.title}
+      </div>
+    );
+  };
+
   // Toolbar components
   const leftToolbarTemplate = () => (
     <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
-      {enableSearch && (
-        <div style={{ position: "relative" }}>
-          <Search size={18} style={{ 
-            position: "absolute", 
-            left: "16px", 
-            top: "50%", 
-            transform: "translateY(-50%)",
-            color: "#6b7280"
-          }} />
+      {enableSearch && enableGlobalFilter && (
+        <IconField iconPosition="left" style={{ width: "300px" }}>
+          <InputIcon className="pi pi-search" />
           <InputText
-            placeholder="Search all data..."
-            value={searchTerm}
+            placeholder="Keyword Search"
+            value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
-            style={{
-              paddingLeft: "48px",
-              paddingRight: "16px",
-              width: "300px"
-            }}
+            style={{ width: "100%" }}
           />
-        </div>
-      )}
-      
-      {enableColumnFilter && (
-        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-          <CalendarIcon size={18} style={{ color: "#6b7280" }} />
-          <Dropdown
-            value={dateFilter.operator}
-            options={[
-              { label: 'On date', value: 'equals' },
-              { label: 'After date', value: 'after' },
-              { label: 'Before date', value: 'before' }
-            ]}
-            onChange={(e) => setDateFilter(prev => ({ ...prev, operator: e.value }))}
-            style={{ width: '120px' }}
-          />
-          <Calendar
-            value={dateFilter.value}
-            onChange={(e) => setDateFilter(prev => ({ ...prev, value: e.value }))}
-            showClear
-          />
-        </div>
+        </IconField>
       )}
 
-      {(searchTerm || dateFilter.value) && (
+      {globalFilterValue && (
         <Button
-          icon={<RotateCcw size={16} />}
+          icon="pi pi-filter-slash"
           label="Clear"
           onClick={clearAllFilters}
           className="p-button-outlined p-button-danger p-button-sm"
@@ -467,7 +543,7 @@ const PrimeDataTable = ({
 
       {enableColumnManagement && (
         <Button
-          icon={<Columns size={16} />}
+          icon="pi pi-columns"
           label="Columns"
           onClick={() => setShowColumnManager(!showColumnManager)}
           className="p-button-outlined p-button-sm"
@@ -476,7 +552,7 @@ const PrimeDataTable = ({
 
       {enableExport && (
         <Button
-          icon={<Download size={16} />}
+          icon="pi pi-download"
           label="Export"
           onClick={handleExport}
           className="p-button-outlined p-button-sm"
@@ -485,15 +561,34 @@ const PrimeDataTable = ({
 
       {enableRefresh && (
         <Button
-          icon={<RefreshCw size={16} className={isRefreshing ? "animate-spin" : ""} />}
+          icon="pi pi-refresh"
           label="Refresh"
           onClick={handleRefresh}
           disabled={isRefreshing}
           className="p-button-outlined p-button-sm"
+          loading={isRefreshing}
         />
       )}
     </div>
   );
+
+  // Get table size class
+  const getTableSizeClass = () => {
+    switch (tableSize) {
+      case 'small': return 'p-datatable-sm';
+      case 'large': return 'p-datatable-lg';
+      default: return '';
+    }
+  };
+
+  // Get table style class
+  const getTableStyleClass = () => {
+    switch (tableStyle) {
+      case 'compact': return 'p-datatable-compact';
+      case 'comfortable': return 'p-datatable-comfortable';
+      default: return '';
+    }
+  };
 
   // Loading and error states
   if (isLoading) {
@@ -548,8 +643,8 @@ const PrimeDataTable = ({
         value={tableData}
         loading={isLoading}
         filters={filters}
-        filterDisplay="menu"
-        globalFilter={searchTerm}
+        filterDisplay={filterDisplay}
+        globalFilterFields={globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key)}
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
@@ -564,17 +659,29 @@ const PrimeDataTable = ({
         onPage={handlePageChange}
         first={(localCurrentPage - 1) * localPageSize}
         totalRecords={tableData.length}
-        showGridlines
-        stripedRows
-        size="small"
+        showGridlines={enableGridLines}
+        stripedRows={enableStripedRows}
+        size={tableSize}
+        className={`${getTableSizeClass()} ${getTableStyleClass()}`}
         style={{ height: tableHeight }}
-        className="p-datatable-sm"
+        emptyMessage="No data found. Try adjusting your filters."
+        resizableColumns={enableResizableColumns}
+        reorderableColumns={enableReorderableColumns}
+        virtualScrollerOptions={enableVirtualScrolling ? { itemSize: 46 } : undefined}
+        lazy={enableLazyLoading}
+        rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
+        expandableRowGroups={enableRowGrouping}
+        rowExpansionTemplate={enableRowExpansion ? (data) => <div>Expanded content for {data.name}</div> : undefined}
+        frozenColumns={enableFrozenColumns ? 1 : undefined}
+        frozenRows={enableFrozenRows ? 1 : undefined}
+        showFilterMatchModes={showFilterMatchModes}
+        filterMenuStyle={filterMenuStyle}
       >
         {enableRowSelection && (
           <Column
             selectionMode="multiple"
             headerStyle={{ width: '50px' }}
-            frozen
+            frozen={enableFrozenColumns}
           />
         )}
 
@@ -590,12 +697,22 @@ const PrimeDataTable = ({
               filter={column.filterable && enableColumnFilter}
               filterPlaceholder={`Filter ${column.title}...`}
               filterElement={column.filterable && enableColumnFilter ? getFilterComponent(column) : undefined}
+              filterClear={enableFilterClear ? filterClearTemplate : undefined}
+              filterApply={enableFilterApply ? filterApplyTemplate : undefined}
+              filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
+              showFilterMatchModes={enableFilterMatchModes}
+              filterMenuStyle={filterMenuStyle}
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                     column.type === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
+                    column.type === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
+                    customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
-              style={{ width: column.width || 'auto' }}
-              showFilterMenu={false}
+              style={{ 
+                width: column.width || 'auto',
+                minWidth: column.minWidth || '150px'
+              }}
+              frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
           );
         })}
@@ -605,7 +722,7 @@ const PrimeDataTable = ({
             body={actionsBodyTemplate}
             header="Actions"
             style={{ width: '100px', textAlign: 'center' }}
-            frozen="right"
+            frozen={enableFrozenColumns ? "right" : undefined}
           />
         )}
       </DataTable>
