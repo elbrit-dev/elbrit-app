@@ -536,13 +536,13 @@ const PrimeDataTable = ({
   const leftToolbarTemplate = () => (
     <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
       {enableSearch && enableGlobalFilter && (
-        <IconField iconPosition="left" style={{ width: "300px" }}>
+        <IconField iconPosition="left" style={{ width: "180px" }}>
           <InputIcon className="pi pi-search" />
           <InputText
             placeholder="Keyword Search"
             value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
-            style={{ width: "100%" }}
+            style={{ width: "auto" }}
           />
         </IconField>
       )}
@@ -707,7 +707,7 @@ const PrimeDataTable = ({
         }
         
         .custom-datatable .p-column-filter-menu {
-          min-width: 200px !important;
+          min-width: 120px !important;
           padding: 8px !important;
           border: 1px solid #d1d5db !important;
           border-radius: 6px !important;
@@ -814,7 +814,7 @@ const PrimeDataTable = ({
               showFilterMatchModes={enableFilterMatchModes}
               filterMenuStyle={{
                 minWidth: '200px',
-                padding: '8px',
+                padding: '12px',
                 border: '1px solid #d1d5db',
                 borderRadius: '6px',
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
@@ -880,7 +880,7 @@ const PrimeDataTable = ({
           src={imageModalSrc}
           alt={imageModalAlt}
           style={{ 
-            width: '100%', 
+            width: '80%', 
             height: 'auto', 
             borderRadius: 8, 
             border: '1px solid #e5e7eb' 
@@ -893,7 +893,7 @@ const PrimeDataTable = ({
         visible={showColumnManager}
         onHide={() => setShowColumnManager(false)}
         header="Manage Columns"
-        style={{ width: '400px' }}
+        style={{ width: '250px' }}
         modal
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
