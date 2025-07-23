@@ -65,6 +65,8 @@ const PrimeDataTable = ({
   const [totalRecords, setTotalRecords] = useState(0);
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(null);
+  const [hiddenColumns, setHiddenColumns] = useState([]);
+  const [columnOrder, setColumnOrder] = useState([]);
 
   useEffect(() => {
     if (graphqlQuery && enableLazyLoading) {
@@ -105,7 +107,66 @@ const PrimeDataTable = ({
     }
   }, []);
 
-  const tableColumns = useMemo(() => selectedColumns.length ? selectedColumns : columns, [selectedColumns, columns]);
+  // Initialize with sample data if no data provided (for testing)
+  useEffect(() => {
+    if (data.length === 0 && columns.length === 0 && !graphqlQuery) {
+      const sampleData = [
+        { id: 1, name: 'John Doe', email: 'john@example.com', age: 30, department: 'Engineering', salary: 75000, active: true },
+        { id: 2, name: 'Jane Smith', email: 'jane@example.com', age: 28, department: 'Marketing', salary: 65000, active: true },
+        { id: 3, name: 'Bob Johnson', email: 'bob@example.com', age: 35, department: 'Sales', salary: 80000, active: false },
+        { id: 4, name: 'Alice Brown', email: 'alice@example.com', age: 32, department: 'Engineering', salary: 78000, active: true },
+        { id: 5, name: 'Charlie Wilson', email: 'charlie@example.com', age: 29, department: 'HR', salary: 60000, active: true }
+      ];
+      // Note: This is just for testing - in production, you would pass data as props
+      console.log('PrimeDataTable: No data provided, showing sample data for testing');
+    }
+  }, [data, columns, graphqlQuery]);
+
+  // Generate columns from data if no columns provided
+  const defaultColumns = useMemo(() => {
+    let cols = [];
+    if (columns.length > 0) {
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => columns.find(col => col.field === key)).filter(Boolean)
+        : columns;
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.field));
+    } else if (displayedData.length > 0) {
+      const sampleRow = displayedData[0];
+      const autoColumns = Object.keys(sampleRow).map(key => {
+        const value = sampleRow[key];
+        let type = 'text';
+        if (typeof value === 'number') {
+          type = 'number';
+        } else if (typeof value === 'boolean') {
+          type = 'boolean';
+        } else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
+          type = 'datetime';
+        } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+          type = 'date';
+        } else if (typeof value === 'string' && value.includes('@')) {
+          type = 'email';
+        }
+        
+        return {
+          field: key,
+          header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+          sortable: true,
+          filterable: true,
+          type,
+          filterType: type === 'number' ? 'number' : type === 'date' || type === 'datetime' ? 'calendar' : 'text',
+          minWidth: "120px",
+          align: type === 'number' ? 'right' : type === 'boolean' ? 'center' : 'left'
+        };
+      });
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => autoColumns.find(col => col.field === key)).filter(Boolean)
+        : autoColumns;
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.field));
+    }
+    return cols;
+  }, [columns, displayedData, hiddenColumns, columnOrder]);
+
+  const tableColumns = useMemo(() => selectedColumns.length ? selectedColumns : defaultColumns, [selectedColumns, defaultColumns]);
 
   const applyGlobalFilter = (e) => {
     const value = e.target.value;
@@ -205,7 +266,7 @@ const PrimeDataTable = ({
         }}
         totalRecords={graphqlQuery ? totalRecords : undefined}
         lazy={!!graphqlQuery}
-        globalFilterFields={columns.map(col => col.field)}
+        globalFilterFields={defaultColumns.map(col => col.field)}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={(e) => {
           setSelectedRows(e.value);
@@ -280,7 +341,7 @@ const PrimeDataTable = ({
         <div className="flex flex-column gap-3">
           <MultiSelect
             value={selectedColumns}
-            options={columns}
+            options={defaultColumns}
             optionLabel="header"
             onChange={(e) => setSelectedColumns(e.value)}
             placeholder="Select Columns"
