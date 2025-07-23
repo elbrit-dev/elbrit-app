@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
+import { ColumnGroup } from 'primereact/columngroup';
+import { Row } from 'primereact/row';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
 import { Dropdown } from 'primereact/dropdown';
@@ -78,6 +80,14 @@ const PrimeDataTable = ({
   tableSize = "normal", // small, normal, large
   tableStyle = "default", // default, compact, comfortable
   
+  // Cell styling props
+  cellWidth = "auto", // auto, fixed, or specific value like "150px"
+  cellHeight = "auto", // auto, fixed, or specific value like "50px"
+  cellMinWidth = "auto", // auto or specific value like "100px"
+  cellMinHeight = "auto", // auto or specific value like "40px"
+  cellMaxWidth = "none", // none or specific value like "300px"
+  cellMaxHeight = "none", // none or specific value like "100px"
+  
   // Event handlers
   onRowClick,
   onRowSelect,
@@ -103,7 +113,20 @@ const PrimeDataTable = ({
   // Custom templates
   customTemplates = {},
   customFilters = {},
-  customFormatters = {}
+  customFormatters = {},
+  
+  // Column grouping props
+  enableColumnGrouping = false,
+  headerColumnGroup = null,
+  footerColumnGroup = null,
+  columnGroups = [],
+  groupConfig = {
+    enableHeaderGroups: true,
+    enableFooterGroups: true,
+    groupStyle: {},
+    headerGroupStyle: {},
+    footerGroupStyle: {}
+  }
 }) => {
   // Local state
   const [selectedRows, setSelectedRows] = useState([]);
@@ -161,8 +184,12 @@ const PrimeDataTable = ({
           sortable: true,
           filterable: true,
           type,
-          width: 'auto',
-          minWidth: 'auto'
+          width: cellWidth,
+          minWidth: cellMinWidth,
+          maxWidth: cellMaxWidth,
+          height: cellHeight,
+          minHeight: cellMinHeight,
+          maxHeight: cellMaxHeight
         };
       });
       const orderedColumns = columnOrder.length > 0 
@@ -396,13 +423,7 @@ const PrimeDataTable = ({
     }
 
     const baseFilterStyle = {
-      width: '100%',
-      fontSize: '12px',
-      padding: '6px 8px',
-      border: '1px solid #d1d5db',
-      borderRadius: '4px',
-      backgroundColor: '#ffffff',
-      transition: 'border-color 0.2s ease-in-out'
+      width: '100%'
     };
 
     switch (column.type) {
@@ -410,7 +431,7 @@ const PrimeDataTable = ({
         return (
           <InputNumber
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter compact-filter"
+            className="p-column-filter"
             style={baseFilterStyle}
             showButtons={false}
             useGrouping={false}
@@ -422,7 +443,7 @@ const PrimeDataTable = ({
         return (
           <Calendar
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter compact-filter"
+            className="p-column-filter"
             style={baseFilterStyle}
             showTime={column.type === 'datetime'}
             showSeconds={false}
@@ -449,11 +470,8 @@ const PrimeDataTable = ({
         return (
           <MultiSelect
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter compact-filter"
-            style={{
-              ...baseFilterStyle,
-              minHeight: '32px'
-            }}
+            className="p-column-filter"
+            style={baseFilterStyle}
             options={uniqueValues.map(value => ({ label: String(value), value }))}
             showClear
             optionLabel="label"
@@ -466,7 +484,7 @@ const PrimeDataTable = ({
         return (
           <InputText
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter compact-filter"
+            className="p-column-filter"
             style={baseFilterStyle}
           />
         );
@@ -626,6 +644,102 @@ const PrimeDataTable = ({
     }
   };
 
+  // Generate column groups from configuration
+  const generateColumnGroups = useCallback(() => {
+    if (!enableColumnGrouping || !columnGroups.length) {
+      return null;
+    }
+
+    return (
+      <ColumnGroup>
+        {columnGroups.map((group, groupIndex) => (
+          <Row key={groupIndex}>
+            {group.columns.map((col, colIndex) => (
+              <Column
+                key={colIndex}
+                header={col.header}
+                field={col.field}
+                sortable={col.sortable}
+                colSpan={col.colSpan}
+                rowSpan={col.rowSpan}
+                style={col.style || groupConfig.groupStyle}
+                headerStyle={col.headerStyle || groupConfig.headerGroupStyle}
+                footerStyle={col.footerStyle || groupConfig.footerGroupStyle}
+                footer={col.footer}
+                body={col.body}
+                bodyTemplate={col.bodyTemplate}
+              />
+            ))}
+          </Row>
+        ))}
+      </ColumnGroup>
+    );
+  }, [enableColumnGrouping, columnGroups, groupConfig]);
+
+  // Generate footer groups from configuration
+  const generateFooterGroups = useCallback(() => {
+    if (!enableColumnGrouping || !groupConfig.enableFooterGroups) {
+      return null;
+    }
+
+    // If custom footer group is provided, use it
+    if (footerColumnGroup) {
+      return footerColumnGroup;
+    }
+
+    // Generate footer from column groups if available
+    if (columnGroups.length) {
+      return (
+        <ColumnGroup>
+          {columnGroups.map((group, groupIndex) => (
+            <Row key={groupIndex}>
+              {group.columns.map((col, colIndex) => (
+                <Column
+                  key={colIndex}
+                  footer={col.footer}
+                  colSpan={col.colSpan}
+                  rowSpan={col.rowSpan}
+                  style={col.style || groupConfig.groupStyle}
+                  footerStyle={col.footerStyle || groupConfig.footerGroupStyle}
+                />
+              ))}
+            </Row>
+          ))}
+        </ColumnGroup>
+      );
+    }
+
+    return null;
+    }, [enableColumnGrouping, footerColumnGroup, columnGroups, groupConfig]);
+
+  // Helper function to create column groups easily
+  const createColumnGroup = useCallback((groups) => {
+    return (
+      <ColumnGroup>
+        {groups.map((group, groupIndex) => (
+          <Row key={groupIndex}>
+            {group.columns.map((col, colIndex) => (
+              <Column
+                key={colIndex}
+                header={col.header}
+                field={col.field}
+                sortable={col.sortable}
+                colSpan={col.colSpan}
+                rowSpan={col.rowSpan}
+                style={col.style}
+                headerStyle={col.headerStyle}
+                footerStyle={col.footerStyle}
+                footer={col.footer}
+                body={col.body}
+                bodyTemplate={col.bodyTemplate}
+              />
+            ))}
+          </Row>
+        ))}
+      </ColumnGroup>
+    );
+  }, []);
+  
   // Loading and error states
   if (isLoading) {
     return (
@@ -663,73 +777,6 @@ const PrimeDataTable = ({
 
   return (
     <div className={className} style={style}>
-      {/* Custom Styles */}
-      <style jsx>{`
-        .custom-datatable .p-datatable-thead > tr > th {
-          background-color: #f8fafc !important;
-          color: #374151 !important;
-          font-weight: 600 !important;
-          font-size: 13px !important;
-          text-align: center !important;
-          padding: 12px 8px !important;
-          border-bottom: 2px solid #e5e7eb !important;
-          white-space: nowrap !important;
-          line-height: 1.4 !important;
-          width: auto !important;
-          height: auto !important;
-        }
-        
-        .custom-datatable .p-datatable-tbody > tr > td {
-          padding: 8px !important;
-          font-size: 13px !important;
-          border-bottom: 1px solid #f3f4f6 !important;
-          width: auto !important;
-          height: auto !important;
-        }
-        
-        .custom-datatable .p-column-filter-row > td {
-          padding: 4px 8px !important;
-          background-color: #fafbfc !important;
-        }
-        
-        .compact-filter {
-          font-size: 12px !important;
-          padding: 6px 8px !important;
-          border: 1px solid #d1d5db !important;
-          border-radius: 4px !important;
-          background-color: #ffffff !important;
-          transition: border-color 0.2s ease-in-out !important;
-        }
-        
-        .compact-filter:focus {
-          border-color: #3b82f6 !important;
-          box-shadow: 0 0 0 1px #3b82f6 !important;
-        }
-        
-        .custom-datatable .p-column-filter-menu {
-          min-width: 120px !important;
-          padding: 8px !important;
-          border: 1px solid #d1d5db !important;
-          border-radius: 6px !important;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-        }
-        
-        .custom-datatable .p-column-filter-menu .p-column-filter-element {
-          margin-bottom: 8px !important;
-        }
-        
-        .custom-datatable .p-sortable-column-icon {
-          color: #6b7280 !important;
-        }
-        
-        .custom-datatable .p-sortable-column:hover {
-          background-color: #f1f5f9 !important;
-        }
-        
-        .custom-datatable .p-datatable-tbody > tr:hover {
-          background-color: #f8fafc !important;
-        }
-      `}</style>
       
       {/* Toolbar */}
       <Toolbar
@@ -766,7 +813,7 @@ const PrimeDataTable = ({
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
-        className={`${getTableSizeClass()} ${getTableStyleClass()} custom-datatable`}
+        className={`${getTableSizeClass()} ${getTableStyleClass()}`}
         style={{
           height: tableHeight,
           '--header-bg': '#f8fafc',
@@ -787,6 +834,8 @@ const PrimeDataTable = ({
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
         filterMenuStyle={filterMenuStyle}
+        headerColumnGroup={enableColumnGrouping ? (headerColumnGroup || generateColumnGroups()) : undefined}
+        footerColumnGroup={enableColumnGrouping ? (footerColumnGroup || generateFooterGroups()) : undefined}
       >
         {enableRowSelection && (
           <Column
@@ -812,34 +861,24 @@ const PrimeDataTable = ({
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              filterMenuStyle={{
-                minWidth: '200px',
-                padding: '12px',
-                border: '1px solid #d1d5db',
-                borderRadius: '6px',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                ...filterMenuStyle
-              }}
+              filterMenuStyle={filterMenuStyle}
               headerStyle={{
-                backgroundColor: '#f8fafc',
-                color: '#374151',
-                fontWeight: '600',
-                fontSize: '13px',
-                textAlign: 'center',
-                padding: '12px 8px',
-                borderBottom: '2px solid #e5e7eb',
-                whiteSpace: 'nowrap',
-                lineHeight: '1.4',
-                width: 'auto',
-                height: 'auto',
+                width: cellWidth,
+                minWidth: cellMinWidth,
+                maxWidth: cellMaxWidth,
+                height: cellHeight,
+                minHeight: cellMinHeight,
+                maxHeight: cellMaxHeight,
                 ...column.headerStyle
               }}
               bodyStyle={{
                 textAlign: column.type === 'number' ? 'right' : column.type === 'boolean' ? 'center' : 'left',
-                padding: '8px',
-                fontSize: '13px',
-                width: 'auto',
-                height: 'auto',
+                width: cellWidth,
+                minWidth: cellMinWidth,
+                maxWidth: cellMaxWidth,
+                height: cellHeight,
+                minHeight: cellMinHeight,
+                maxHeight: cellMaxHeight,
                 ...column.bodyStyle
               }}
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
@@ -849,8 +888,12 @@ const PrimeDataTable = ({
                     customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
               style={{
-                width: 'auto',
-                minWidth: 'auto'
+                width: cellWidth,
+                minWidth: cellMinWidth,
+                maxWidth: cellMaxWidth,
+                height: cellHeight,
+                minHeight: cellMinHeight,
+                maxHeight: cellMaxHeight
               }}
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />

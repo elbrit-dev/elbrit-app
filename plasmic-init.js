@@ -206,6 +206,71 @@ PLASMIC.registerComponent(AdvancedTable, {
       defaultValue: "default"
     },
     
+    // Cell styling props
+    cellWidth: {
+      type: "string",
+      description: "Width of table cells (auto, fixed, or specific value like '150px')",
+      defaultValue: "auto"
+    },
+    cellHeight: {
+      type: "string",
+      description: "Height of table cells (auto, fixed, or specific value like '50px')",
+      defaultValue: "auto"
+    },
+    cellMinWidth: {
+      type: "string",
+      description: "Minimum width of table cells (auto or specific value like '100px')",
+      defaultValue: "auto"
+    },
+    cellMinHeight: {
+      type: "string",
+      description: "Minimum height of table cells (auto or specific value like '40px')",
+      defaultValue: "auto"
+    },
+    cellMaxWidth: {
+      type: "string",
+      description: "Maximum width of table cells (none or specific value like '300px')",
+      defaultValue: "none"
+    },
+    cellMaxHeight: {
+      type: "string",
+      description: "Maximum height of table cells (none or specific value like '100px')",
+      defaultValue: "none"
+    },
+    
+    // Column grouping props
+    enableColumnGrouping: {
+      type: "boolean",
+      description: "Enable column grouping functionality",
+      defaultValue: false
+    },
+    headerColumnGroup: {
+      type: "object",
+      description: "Custom header column group component",
+      defaultValue: null
+    },
+    footerColumnGroup: {
+      type: "object",
+      description: "Custom footer column group component",
+      defaultValue: null
+    },
+    columnGroups: {
+      type: "object",
+      description: "Array of column group configurations",
+      defaultValue: []
+    },
+    groupConfig: {
+      type: "object",
+      description: "Configuration for column grouping styling and behavior",
+      defaultValue: {
+        enableHeaderGroups: true,
+        enableFooterGroups: true,
+        groupStyle: {},
+        headerGroupStyle: {},
+        footerGroupStyle: {}
+      }
+    },
+    
     // Event handlers
     onRowClick: {
       type: "eventHandler",
