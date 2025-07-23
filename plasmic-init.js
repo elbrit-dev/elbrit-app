@@ -284,25 +284,6 @@ PLASMIC.registerComponent(AdvancedTable, {
       }
     },
     
-    // Footer totals props
-    enableFooterTotals: {
-      type: "boolean",
-      description: "Enable footer totals for numeric columns",
-      defaultValue: false
-    },
-    footerTotalsConfig: {
-      type: "object",
-      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
-      defaultValue: {
-        showTotals: true,
-        showAverages: false,
-        showCounts: true,
-        numberFormat: 'en-US',
-        currency: 'USD',
-        precision: 2
-      }
-    },
-    
     // Event handlers
     onRowClick: {
       type: "eventHandler",
@@ -895,6 +876,25 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "object",
       description: "Custom formatters for specific columns",
       defaultValue: {}
+    },
+    
+    // Footer totals props
+    enableFooterTotals: {
+      type: "boolean",
+      description: "Enable footer totals for numeric columns",
+      defaultValue: false
+    },
+    footerTotalsConfig: {
+      type: "object",
+      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
+      defaultValue: {
+        showTotals: true,
+        showAverages: false,
+        showCounts: true,
+        numberFormat: 'en-US',
+        currency: 'USD',
+        precision: 2
+      }
     }
   },
   
