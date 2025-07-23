@@ -395,16 +395,25 @@ const PrimeDataTable = ({
       return customFilters[column.key];
     }
 
+    const baseFilterStyle = {
+      width: '100%',
+      fontSize: '12px',
+      padding: '6px 8px',
+      border: '1px solid #d1d5db',
+      borderRadius: '4px',
+      backgroundColor: '#ffffff',
+      transition: 'border-color 0.2s ease-in-out'
+    };
+
     switch (column.type) {
       case 'number':
         return (
           <InputNumber
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={{ width: '100%' }}
-            mode="currency"
-            currency="USD"
-            locale="en-US"
+            className="p-column-filter compact-filter"
+            style={baseFilterStyle}
+            showButtons={false}
+            useGrouping={false}
           />
         );
       
@@ -413,25 +422,24 @@ const PrimeDataTable = ({
         return (
           <Calendar
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={{ width: '100%' }}
+            className="p-column-filter compact-filter"
+            style={baseFilterStyle}
             showTime={column.type === 'datetime'}
-            showSeconds={column.type === 'datetime'}
+            showSeconds={false}
             dateFormat="mm/dd/yy"
-            mask="99/99/9999"
+            showIcon
+            iconPos="right"
           />
         );
       
       case 'boolean':
         return (
-          <div className="flex align-items-center gap-2">
-            <label htmlFor={`${column.key}-filter`} className="font-bold">
-              {column.title}
-            </label>
-            <TriStateCheckbox 
-              inputId={`${column.key}-filter`} 
-              value={null} 
-              onChange={(e) => {}} 
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
+            <TriStateCheckbox
+              inputId={`${column.key}-filter`}
+              value={null}
+              onChange={(e) => {}}
+              style={{ transform: 'scale(0.9)' }}
             />
           </div>
         );
@@ -441,11 +449,16 @@ const PrimeDataTable = ({
         return (
           <MultiSelect
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={{ width: '100%' }}
+            className="p-column-filter compact-filter"
+            style={{
+              ...baseFilterStyle,
+              minHeight: '32px'
+            }}
             options={uniqueValues.map(value => ({ label: String(value), value }))}
             showClear
             optionLabel="label"
+            display="chip"
+            maxSelectedLabels={2}
           />
         );
       
@@ -453,8 +466,8 @@ const PrimeDataTable = ({
         return (
           <InputText
             placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={{ width: '100%' }}
+            className="p-column-filter compact-filter"
+            style={baseFilterStyle}
           />
         );
     }
@@ -464,12 +477,20 @@ const PrimeDataTable = ({
   const filterClearTemplate = (options) => {
     if (!enableFilterClear) return null;
     return (
-      <Button 
-        type="button" 
-        icon="pi pi-times" 
-        onClick={options.filterClearCallback} 
+      <Button
+        type="button"
+        icon="pi pi-times"
+        onClick={options.filterClearCallback}
         severity="secondary"
-        className="p-button-sm"
+        className="p-button-sm p-button-text"
+        style={{
+          width: '28px',
+          height: '28px',
+          padding: '4px',
+          fontSize: '11px'
+        }}
+        tooltip="Clear filter"
+        tooltipOptions={{ position: 'top' }}
       />
     );
   };
@@ -477,12 +498,20 @@ const PrimeDataTable = ({
   const filterApplyTemplate = (options) => {
     if (!enableFilterApply) return null;
     return (
-      <Button 
-        type="button" 
-        icon="pi pi-check" 
-        onClick={options.filterApplyCallback} 
+      <Button
+        type="button"
+        icon="pi pi-check"
+        onClick={options.filterApplyCallback}
         severity="success"
-        className="p-button-sm"
+        className="p-button-sm p-button-text"
+        style={{
+          width: '28px',
+          height: '28px',
+          padding: '4px',
+          fontSize: '11px'
+        }}
+        tooltip="Apply filter"
+        tooltipOptions={{ position: 'top' }}
       />
     );
   };
@@ -490,7 +519,14 @@ const PrimeDataTable = ({
   const filterFooterTemplate = (column) => {
     if (!enableFilterFooter) return null;
     return (
-      <div className="px-3 pt-0 pb-3 text-center">
+      <div style={{
+        padding: '6px 8px',
+        textAlign: 'center',
+        fontSize: '11px',
+        color: '#6b7280',
+        borderTop: '1px solid #f3f4f6',
+        backgroundColor: '#fafbfc'
+      }}>
         Filter by {column.title}
       </div>
     );
@@ -627,12 +663,76 @@ const PrimeDataTable = ({
 
   return (
     <div className={className} style={style}>
+      {/* Custom Styles */}
+      <style jsx>{`
+        .custom-datatable .p-datatable-thead > tr > th {
+          background-color: #f8fafc !important;
+          color: #374151 !important;
+          font-weight: 600 !important;
+          font-size: 13px !important;
+          text-align: center !important;
+          padding: 12px 8px !important;
+          border-bottom: 2px solid #e5e7eb !important;
+          white-space: nowrap !important;
+          line-height: 1.4 !important;
+        }
+        
+        .custom-datatable .p-datatable-tbody > tr > td {
+          padding: 8px !important;
+          font-size: 13px !important;
+          border-bottom: 1px solid #f3f4f6 !important;
+        }
+        
+        .custom-datatable .p-column-filter-row > td {
+          padding: 4px 8px !important;
+          background-color: #fafbfc !important;
+        }
+        
+        .compact-filter {
+          font-size: 12px !important;
+          padding: 6px 8px !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 4px !important;
+          background-color: #ffffff !important;
+          transition: border-color 0.2s ease-in-out !important;
+        }
+        
+        .compact-filter:focus {
+          border-color: #3b82f6 !important;
+          box-shadow: 0 0 0 1px #3b82f6 !important;
+        }
+        
+        .custom-datatable .p-column-filter-menu {
+          min-width: 200px !important;
+          padding: 8px !important;
+          border: 1px solid #d1d5db !important;
+          border-radius: 6px !important;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+        }
+        
+        .custom-datatable .p-column-filter-menu .p-column-filter-element {
+          margin-bottom: 8px !important;
+        }
+        
+        .custom-datatable .p-sortable-column-icon {
+          color: #6b7280 !important;
+        }
+        
+        .custom-datatable .p-sortable-column:hover {
+          background-color: #f1f5f9 !important;
+        }
+        
+        .custom-datatable .p-datatable-tbody > tr:hover {
+          background-color: #f8fafc !important;
+        }
+      `}</style>
+      
       {/* Toolbar */}
       <Toolbar
         left={leftToolbarTemplate}
         right={rightToolbarTemplate}
-        style={{ 
-          padding: "20px 24px", 
+        style={{
+          padding: "20px 24px",
           borderBottom: "1px solid #e5e7eb",
           backgroundColor: "#f9fafb"
         }}
@@ -662,8 +762,15 @@ const PrimeDataTable = ({
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
-        className={`${getTableSizeClass()} ${getTableStyleClass()}`}
-        style={{ height: tableHeight }}
+        className={`${getTableSizeClass()} ${getTableStyleClass()} custom-datatable`}
+        style={{
+          height: tableHeight,
+          '--header-bg': '#f8fafc',
+          '--header-color': '#374151',
+          '--header-border': '#e5e7eb',
+          '--filter-bg': '#ffffff',
+          '--filter-border': '#d1d5db'
+        }}
         emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
         reorderableColumns={enableReorderableColumns}
@@ -701,16 +808,41 @@ const PrimeDataTable = ({
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              filterMenuStyle={filterMenuStyle}
+              filterMenuStyle={{
+                minWidth: '200px',
+                padding: '8px',
+                border: '1px solid #d1d5db',
+                borderRadius: '6px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                ...filterMenuStyle
+              }}
+              headerStyle={{
+                backgroundColor: '#f8fafc',
+                color: '#374151',
+                fontWeight: '600',
+                fontSize: '13px',
+                textAlign: 'center',
+                padding: '12px 8px',
+                borderBottom: '2px solid #e5e7eb',
+                whiteSpace: 'nowrap',
+                lineHeight: '1.4',
+                ...column.headerStyle
+              }}
+              bodyStyle={{
+                textAlign: column.type === 'number' ? 'right' : column.type === 'boolean' ? 'center' : 'left',
+                padding: '8px',
+                fontSize: '13px',
+                ...column.bodyStyle
+              }}
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                     column.type === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
                     column.type === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
                     customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
-              style={{ 
+              style={{
                 width: column.width || 'auto',
-                minWidth: column.minWidth || '150px'
+                minWidth: column.minWidth || '120px'
               }}
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
