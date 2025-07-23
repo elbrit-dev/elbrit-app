@@ -5,6 +5,7 @@ import AdvancedTable from "./components/AdvancedTable";
 import PrimeDataTable from "./components/PrimeDataTable";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
+import PrimeDataTab from "./components/pimereact";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -881,3 +882,66 @@ PLASMIC.registerComponent(PrimeDataTable, {
   importPath: "./components/PrimeDataTable"
 });
 
+PLASMIC.registerComponent(PrimeDataTab, {
+  name: "PrimeDataTab",
+  displayName: "Prime Data Table",
+  props: {
+    data: {
+      type: "array",
+      description: "Array of rows to display in the table",
+    },
+    columns: {
+      type: "array",
+      description: "Column definitions (field, header, filterType, etc.)",
+    },
+    enableSearch: {
+      type: "boolean",
+      defaultValue: true,
+    },
+    enableExport: {
+      type: "boolean",
+      defaultValue: true,
+    },
+    enableColumnManagement: {
+      type: "boolean",
+      defaultValue: true,
+    },
+    enableRowSelection: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    enableRowActions: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    enableRowExpansion: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    enableEditable: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    footerTotals: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    enablePagination: {
+      type: "boolean",
+      defaultValue: true,
+    },
+    pageSize: {
+      type: "number",
+      defaultValue: 10,
+    },
+    loading: {
+      type: "boolean",
+      defaultValue: false,
+    },
+    // Optional: for GraphQL lazy load
+    graphqlQuery: {
+      type: "string",
+      description: "GraphQL query for lazy data (optional)",
+    },
+  },
+});
