@@ -161,8 +161,8 @@ const PrimeDataTable = ({
           sortable: true,
           filterable: true,
           type,
-          width: type === 'email' ? '200px' : type === 'date' ? '120px' : 'auto',
-          minWidth: type === 'email' ? '200px' : type === 'date' ? '120px' : '150px'
+          width: 'auto',
+          minWidth: 'auto'
         };
       });
       const orderedColumns = columnOrder.length > 0 
@@ -675,12 +675,16 @@ const PrimeDataTable = ({
           border-bottom: 2px solid #e5e7eb !important;
           white-space: nowrap !important;
           line-height: 1.4 !important;
+          width: auto !important;
+          height: auto !important;
         }
         
         .custom-datatable .p-datatable-tbody > tr > td {
           padding: 8px !important;
           font-size: 13px !important;
           border-bottom: 1px solid #f3f4f6 !important;
+          width: auto !important;
+          height: auto !important;
         }
         
         .custom-datatable .p-column-filter-row > td {
@@ -826,12 +830,16 @@ const PrimeDataTable = ({
                 borderBottom: '2px solid #e5e7eb',
                 whiteSpace: 'nowrap',
                 lineHeight: '1.4',
+                width: 'auto',
+                height: 'auto',
                 ...column.headerStyle
               }}
               bodyStyle={{
                 textAlign: column.type === 'number' ? 'right' : column.type === 'boolean' ? 'center' : 'left',
                 padding: '8px',
                 fontSize: '13px',
+                width: 'auto',
+                height: 'auto',
                 ...column.bodyStyle
               }}
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
@@ -841,8 +849,8 @@ const PrimeDataTable = ({
                     customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
               style={{
-                width: column.width || 'auto',
-                minWidth: column.minWidth || '120px'
+                width: 'auto',
+                minWidth: 'auto'
               }}
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
