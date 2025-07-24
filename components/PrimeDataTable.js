@@ -404,12 +404,18 @@ const PrimeDataTable = ({
 
   const clearAllFilters = useCallback(() => {
     setGlobalFilterValue("");
-    setFilters({
+    const clearedFilters = {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    });
+    };
+    setFilters(clearedFilters);
     setSortField(null);
     setSortOrder(1);
-  }, []);
+    
+    // Reset filtered data for totals to show all data
+    if (enableFooterTotals) {
+      setFilteredDataForTotals(tableData);
+    }
+  }, [enableFooterTotals, tableData]);
 
   const handleRowSelect = useCallback((event) => {
     setSelectedRows(event.value);
@@ -766,10 +772,12 @@ const PrimeDataTable = ({
     return { totals, averages, counts };
   }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
 
-  // Update filtered data when filters change
+  // Update filtered data when filters or tableData change
   useEffect(() => {
-    setFilteredDataForTotals(tableData);
-  }, [tableData]);
+    // Apply current filters to get filtered data for totals
+    const filteredData = applyFiltersToData(tableData, filters);
+    setFilteredDataForTotals(filteredData);
+  }, [tableData, filters, applyFiltersToData]);
 
   // Apply filters to data manually when PrimeReact doesn't provide filtered data
   const applyFiltersToData = useCallback((data, filters) => {
@@ -778,7 +786,7 @@ const PrimeDataTable = ({
     return data.filter(row => {
       // Check global filter
       if (filters.global && filters.global.value) {
-        const globalValue = filters.global.value.toLowerCase();
+        const globalValue = String(filters.global.value).toLowerCase();
         const globalMatch = defaultColumns.some(col => {
           const cellValue = String(row[col.key] || '').toLowerCase();
           return cellValue.includes(globalValue);
@@ -791,12 +799,11 @@ const PrimeDataTable = ({
         if (columnKey === 'global') continue;
         
         const cellValue = row[columnKey];
-        if (cellValue === null || cellValue === undefined) continue;
         
         // Handle advanced filter structure
         if (filterConfig.operator && filterConfig.constraints) {
           const constraintResults = filterConfig.constraints.map(constraint => {
-            if (!constraint.value) return true;
+            if (!constraint.value && constraint.value !== 0 && constraint.value !== false) return true;
             
             const constraintValue = constraint.value;
             const matchMode = constraint.matchMode || FilterMatchMode.CONTAINS;
@@ -804,14 +811,14 @@ const PrimeDataTable = ({
             return matchFilterValue(cellValue, constraintValue, matchMode);
           });
           
-          const result = filterConfig.operator === FilterOperator.AND 
+          const result = filterConfig.operator === FilterOperator.AND
             ? constraintResults.every(Boolean)
             : constraintResults.some(Boolean);
             
           if (!result) return false;
         } else {
           // Handle simple filter structure
-          if (filterConfig.value) {
+          if (filterConfig.value !== null && filterConfig.value !== undefined && filterConfig.value !== '') {
             const matchMode = filterConfig.matchMode || FilterMatchMode.CONTAINS;
             if (!matchFilterValue(cellValue, filterConfig.value, matchMode)) {
               return false;
@@ -826,6 +833,32 @@ const PrimeDataTable = ({
 
   // Helper function to match filter values
   const matchFilterValue = (cellValue, filterValue, matchMode) => {
+    // Handle null/undefined values
+    if (cellValue === null || cellValue === undefined) {
+      return filterValue === null || filterValue === undefined || filterValue === '';
+    }
+    
+    // Handle exact matches for non-string types
+    if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
+      switch (matchMode) {
+        case FilterMatchMode.EQUALS:
+          return cellValue === filterValue;
+        case FilterMatchMode.NOT_EQUALS:
+          return cellValue !== filterValue;
+        case FilterMatchMode.LESS_THAN:
+          return cellValue < filterValue;
+        case FilterMatchMode.LESS_THAN_OR_EQUAL_TO:
+          return cellValue <= filterValue;
+        case FilterMatchMode.GREATER_THAN:
+          return cellValue > filterValue;
+        case FilterMatchMode.GREATER_THAN_OR_EQUAL_TO:
+          return cellValue >= filterValue;
+        default:
+          return cellValue === filterValue;
+      }
+    }
+    
+    // Handle string comparisons
     const cellStr = String(cellValue).toLowerCase();
     const filterStr = String(filterValue).toLowerCase();
     
@@ -1160,27 +1193,28 @@ const PrimeDataTable = ({
         sortOrder={sortOrder}
         onSort={handleSort}
         onFilter={(e) => {
+          // Update filters first
+          handleFilter(e);
+          
+          // Update filtered data for totals calculation
           if (enableFooterTotals) {
-            // Get the filtered data from PrimeReact
-            // Try different properties that might contain the filtered data
+            // Get the filtered data from PrimeReact event
             let filteredRows = tableData;
             
+            // Try to get filtered data from various event properties
             if (e.filteredValue && Array.isArray(e.filteredValue)) {
               filteredRows = e.filteredValue;
             } else if (e.value && Array.isArray(e.value)) {
               filteredRows = e.value;
             } else if (e.data && Array.isArray(e.data)) {
               filteredRows = e.data;
-            }
-            
-            // If we still don't have filtered data, apply filters manually
-            if (filteredRows === tableData && e.filters) {
+            } else {
+              // Apply filters manually using the updated filters
               filteredRows = applyFiltersToData(tableData, e.filters);
             }
             
             setFilteredDataForTotals(filteredRows);
           }
-          handleFilter(e);
         }}
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
