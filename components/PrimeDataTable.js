@@ -17,6 +17,8 @@ import { InputIcon } from 'primereact/inputicon';
 import { InputNumber } from 'primereact/inputnumber';
 import { TriStateCheckbox } from 'primereact/tristatecheckbox';
 import { classNames } from 'primereact/utils';
+import "primereact/resources/themes/lara-light-cyan/theme.css";
+
 import { 
   RefreshCw,
   X,
