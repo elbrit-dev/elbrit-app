@@ -5,18 +5,10 @@ import { ColumnGroup } from 'primereact/columngroup';
 import { Row } from 'primereact/row';
 import { InputText } from 'primereact/inputtext';
 import { Button } from 'primereact/button';
-import { Dropdown } from 'primereact/dropdown';
-import { Calendar } from 'primereact/calendar';
-import { MultiSelect } from 'primereact/multiselect';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
 import { Toolbar } from 'primereact/toolbar';
-import { FilterMatchMode, FilterOperator } from 'primereact/api';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
-import { InputNumber } from 'primereact/inputnumber';
-import { TriStateCheckbox } from 'primereact/tristatecheckbox';
-import { classNames } from 'primereact/utils';
+import { FilterMatchMode } from 'primereact/api';
 
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import { 
@@ -117,7 +109,6 @@ const PrimeDataTable = ({
   
   // Custom templates
   customTemplates = {},
-  customFilters = {},
   customFormatters = {},
   
   // Column grouping props
@@ -317,17 +308,10 @@ const PrimeDataTable = ({
   const handleSearch = useCallback((value) => {
     setGlobalFilterValue(value);
     
-    let _filters = { ...filters };
-    if (!_filters['global']) {
-      _filters['global'] = { value: null, matchMode: FilterMatchMode.CONTAINS };
-    }
-    _filters['global'].value = value;
-    setFilters(_filters);
-    
     if (onSearch) {
       onSearch(value);
     }
-  }, [onSearch, filters]);
+  }, [onSearch]);
 
   const handleBulkAction = useCallback((action) => {
     if (onBulkAction) {
@@ -543,80 +527,7 @@ const PrimeDataTable = ({
   };
 
   // Advanced filter components
-  const getFilterComponent = (column) => {
-    // Check for custom filter template
-    if (customFilters[column.key]) {
-      return customFilters[column.key];
-    }
 
-    const baseFilterStyle = {
-      width: '100%'
-    };
-
-    switch (column.type) {
-      case 'number':
-        return (
-          <InputNumber
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={baseFilterStyle}
-            showButtons={false}
-            useGrouping={false}
-          />
-        );
-      
-      case 'date':
-      case 'datetime':
-        return (
-          <Calendar
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={baseFilterStyle}
-            showTime={column.type === 'datetime'}
-            showSeconds={false}
-            dateFormat="mm/dd/yy"
-            showIcon
-            iconPos="right"
-          />
-        );
-      
-      case 'boolean':
-        return (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px' }}>
-            <TriStateCheckbox
-              inputId={`${column.key}-filter`}
-              value={null}
-              onChange={(e) => {}}
-              style={{ transform: 'scale(0.9)' }}
-            />
-          </div>
-        );
-      
-      case 'select':
-        const uniqueValues = [...new Set(tableData.map(row => row[column.key]))];
-        return (
-          <MultiSelect
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={baseFilterStyle}
-            options={uniqueValues.map(value => ({ label: String(value), value }))}
-            showClear
-            optionLabel="label"
-            display="chip"
-            maxSelectedLabels={2}
-          />
-        );
-      
-      default:
-        return (
-          <InputText
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-            style={baseFilterStyle}
-          />
-        );
-    }
-  };
 
   // Filter templates - Using native PrimeReact design
   const filterClearTemplate = (options) => {
