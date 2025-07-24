@@ -537,12 +537,7 @@ const PrimeDataTable = ({
     setFilters(clearedFilters);
     setSortField(null);
     setSortOrder(1);
-    
-    // Reset filtered data for totals to show all data
-    if (enableFooterTotals) {
-      setFilteredDataForTotals(tableData);
-    }
-  }, [enableFooterTotals, tableData]);
+  }, []);
 
   const handleRowSelect = useCallback((event) => {
     setSelectedRows(event.value);
@@ -702,13 +697,6 @@ const PrimeDataTable = ({
     );
   };
 
-  // Debug function to check if customFormatters are working
-  const debugCustomFormatters = () => {
-    console.log('Original Custom Formatters:', customFormatters);
-    console.log('Parsed Custom Formatters:', parsedCustomFormatters);
-    console.log('Custom Formatters Keys:', Object.keys(customFormatters));
-  };
-
   // Parse customFormatters from strings to functions
   const parseCustomFormatters = useCallback(() => {
     const parsedFormatters = {};
@@ -770,6 +758,13 @@ const PrimeDataTable = ({
   }, [customFormatters]);
 
   const parsedCustomFormatters = parseCustomFormatters();
+
+  // Debug function to check if customFormatters are working
+  const debugCustomFormatters = () => {
+    console.log('Original Custom Formatters:', customFormatters);
+    console.log('Parsed Custom Formatters:', parsedCustomFormatters);
+    console.log('Custom Formatters Keys:', Object.keys(customFormatters));
+  };
 
   const dateBodyTemplate = (rowData, column) => {
     const value = rowData[column.key];
@@ -863,48 +858,51 @@ const PrimeDataTable = ({
   // State to store filtered data for footer totals
   const [filteredDataForTotals, setFilteredDataForTotals] = useState(tableData);
 
-  // Calculate footer totals for numeric columns based on filtered data
-  const calculateFooterTotals = useMemo(() => {
-    if (!enableFooterTotals || !filteredDataForTotals.length) return {};
+  // Helper function to match filter values
+  const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
+    // Handle null/undefined values
+    if (cellValue === null || cellValue === undefined) {
+      return filterValue === null || filterValue === undefined || filterValue === '';
+    }
     
-    const totals = {};
-    const averages = {};
-    const counts = {};
-    
-    defaultColumns.forEach(column => {
-      if (column.type === 'number') {
-        const values = filteredDataForTotals
-          .map(row => {
-            const value = row[column.key];
-            return typeof value === 'number' ? value : 0;
-          })
-          .filter(val => val !== null && val !== undefined);
-        
-        if (values.length > 0) {
-          if (footerTotalsConfig.showTotals) {
-            totals[column.key] = values.reduce((sum, val) => sum + val, 0);
-          }
-          
-          if (footerTotalsConfig.showAverages) {
-            averages[column.key] = values.reduce((sum, val) => sum + val, 0) / values.length;
-          }
-          
-          if (footerTotalsConfig.showCounts) {
-            counts[column.key] = values.length;
-          }
-        }
+    // Handle exact matches for non-string types
+    if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
+      switch (matchMode) {
+        case FilterMatchMode.EQUALS:
+          return cellValue === filterValue;
+        case FilterMatchMode.NOT_EQUALS:
+          return cellValue !== filterValue;
+        case FilterMatchMode.LESS_THAN:
+          return cellValue < filterValue;
+        case FilterMatchMode.LESS_THAN_OR_EQUAL_TO:
+          return cellValue <= filterValue;
+        case FilterMatchMode.GREATER_THAN:
+          return cellValue > filterValue;
+        case FilterMatchMode.GREATER_THAN_OR_EQUAL_TO:
+          return cellValue >= filterValue;
+        default:
+          return cellValue === filterValue;
       }
-    });
+    }
     
-    return { totals, averages, counts };
-  }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
-
-  // Update filtered data when filters or tableData change
-  useEffect(() => {
-    // Apply current filters to get filtered data for totals
-    const filteredData = applyFiltersToData(tableData, filters);
-    setFilteredDataForTotals(filteredData);
-  }, [tableData, filters, applyFiltersToData]);
+    // Handle string comparisons
+    const cellStr = String(cellValue).toLowerCase();
+    const filterStr = String(filterValue).toLowerCase();
+    
+    switch (matchMode) {
+      case FilterMatchMode.STARTS_WITH:
+        return cellStr.startsWith(filterStr);
+      case FilterMatchMode.ENDS_WITH:
+        return cellStr.endsWith(filterStr);
+      case FilterMatchMode.EQUALS:
+        return cellStr === filterStr;
+      case FilterMatchMode.NOT_EQUALS:
+        return cellStr !== filterStr;
+      case FilterMatchMode.CONTAINS:
+      default:
+        return cellStr.includes(filterStr);
+    }
+  }, []);
 
   // Apply filters to data manually when PrimeReact doesn't provide filtered data
   const applyFiltersToData = useCallback((data, filters) => {
@@ -956,53 +954,51 @@ const PrimeDataTable = ({
       
       return true;
     });
-  }, [defaultColumns]);
+  }, [defaultColumns, matchFilterValue]);
 
-  // Helper function to match filter values
-  const matchFilterValue = (cellValue, filterValue, matchMode) => {
-    // Handle null/undefined values
-    if (cellValue === null || cellValue === undefined) {
-      return filterValue === null || filterValue === undefined || filterValue === '';
-    }
+  // Update filtered data when filters or tableData change
+  useEffect(() => {
+    // Apply current filters to get filtered data for totals
+    const filteredData = applyFiltersToData(tableData, filters);
+    setFilteredDataForTotals(filteredData);
+  }, [tableData, filters, applyFiltersToData]);
+
+  // Calculate footer totals for numeric columns based on filtered data
+  const calculateFooterTotals = useMemo(() => {
+    if (!enableFooterTotals || !filteredDataForTotals.length) return {};
     
-    // Handle exact matches for non-string types
-    if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
-      switch (matchMode) {
-        case FilterMatchMode.EQUALS:
-          return cellValue === filterValue;
-        case FilterMatchMode.NOT_EQUALS:
-          return cellValue !== filterValue;
-        case FilterMatchMode.LESS_THAN:
-          return cellValue < filterValue;
-        case FilterMatchMode.LESS_THAN_OR_EQUAL_TO:
-          return cellValue <= filterValue;
-        case FilterMatchMode.GREATER_THAN:
-          return cellValue > filterValue;
-        case FilterMatchMode.GREATER_THAN_OR_EQUAL_TO:
-          return cellValue >= filterValue;
-        default:
-          return cellValue === filterValue;
+    const totals = {};
+    const averages = {};
+    const counts = {};
+    
+    defaultColumns.forEach(column => {
+      if (column.type === 'number') {
+        const values = filteredDataForTotals
+          .map(row => {
+            const value = row[column.key];
+            return typeof value === 'number' ? value : 0;
+          })
+          .filter(val => val !== null && val !== undefined);
+        
+        if (values.length > 0) {
+          if (footerTotalsConfig.showTotals) {
+            totals[column.key] = values.reduce((sum, val) => sum + val, 0);
+          }
+          
+          if (footerTotalsConfig.showAverages) {
+            averages[column.key] = values.reduce((sum, val) => sum + val, 0) / values.length;
+          }
+          
+          if (footerTotalsConfig.showCounts) {
+            counts[column.key] = values.length;
+          }
+        }
       }
-    }
+    });
     
-    // Handle string comparisons
-    const cellStr = String(cellValue).toLowerCase();
-    const filterStr = String(filterValue).toLowerCase();
-    
-    switch (matchMode) {
-      case FilterMatchMode.STARTS_WITH:
-        return cellStr.startsWith(filterStr);
-      case FilterMatchMode.ENDS_WITH:
-        return cellStr.endsWith(filterStr);
-      case FilterMatchMode.EQUALS:
-        return cellStr === filterStr;
-      case FilterMatchMode.NOT_EQUALS:
-        return cellStr !== filterStr;
-      case FilterMatchMode.CONTAINS:
-      default:
-        return cellStr.includes(filterStr);
-    }
-  };
+    return { totals, averages, counts };
+  }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+
 
   // Generate filter options for categorical columns
   const generateFilterOptions = useCallback((column) => {
