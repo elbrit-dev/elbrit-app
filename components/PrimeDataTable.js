@@ -6,6 +6,28 @@ const getUniqueValues = (data, key) => {
 
 // Function to generate the correct filter UI for a column
 const getColumnFilterElement = (column, tableData, filterValue, filterCallback) => {
+  // Categorical detection
+  const uniqueValues = getUniqueValues(tableData, column.key);
+  const isCategorical = (
+    (uniqueValues.length > 0 && uniqueValues.length <= 20) ||
+    column.type === 'dropdown' ||
+    column.type === 'select' ||
+    column.isCategorical
+  );
+  if (isCategorical) {
+    return (
+      <select
+        value={filterValue || ''}
+        onChange={e => filterCallback(e.target.value || null)}
+        style={{ width: '100%' }}
+      >
+        <option value="">All</option>
+        {uniqueValues.map(val => (
+          <option key={val} value={val}>{val}</option>
+        ))}
+      </select>
+    );
+  }
   switch (column.type) {
     case 'number':
       return (
@@ -44,23 +66,6 @@ const getColumnFilterElement = (column, tableData, filterValue, filterCallback) 
         />
       );
     default:
-      // For categorical columns, use dropdown
-      const uniqueValues = getUniqueValues(tableData, column.key);
-      if ((uniqueValues.length > 0 && uniqueValues.length <= 20) || column.type === 'dropdown' || column.type === 'select' || column.isCategorical) {
-        return (
-          <select
-            value={filterValue || ''}
-            onChange={e => filterCallback(e.target.value || null)}
-            style={{ width: '100%' }}
-          >
-            <option value="">All</option>
-            {uniqueValues.map(val => (
-              <option key={val} value={val}>{val}</option>
-            ))}
-          </select>
-        );
-      }
-      // Default: text input
       return (
         <InputText
           value={filterValue || ''}
@@ -1227,6 +1232,14 @@ const PrimeDataTable = ({
 
         {defaultColumns.map(column => {
           const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
+          // Categorical detection for filterMatchMode
+          const uniqueValues = getUniqueValues(tableData, column.key);
+          const isCategorical = (
+            (uniqueValues.length > 0 && uniqueValues.length <= 20) ||
+            column.type === 'dropdown' ||
+            column.type === 'select' ||
+            column.isCategorical
+          );
           return (
             <Column
               key={column.key}
@@ -1246,7 +1259,7 @@ const PrimeDataTable = ({
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              filterMatchMode={column.filterMatchMode || FilterMatchMode.CONTAINS}
+              filterMatchMode={isCategorical ? FilterMatchMode.EQUALS : (column.filterMatchMode || FilterMatchMode.CONTAINS)}
               filterMaxLength={column.filterMaxLength}
               filterMinLength={column.filterMinLength}
               filterOptions={generateFilterOptions(column)}
