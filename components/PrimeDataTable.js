@@ -137,14 +137,12 @@ const PrimeDataTable = ({
   footerTotalsConfig = {
     showTotals: true,
     showAverages: false,
-    showCounts: false,
-    numberFormat: 'en-IN',
-    currency: null, // null = no currency, or 'INR', 'USD', etc.
-    precision: 0,
-    maxDecimalPlaces: 2,
-    formatType: 'decimal', // 'decimal', 'currency', 'percent', 'scientific'
-    includeColumns: [], // Specific columns to include (empty = all numeric)
-    excludeColumns: []  // Specific columns to exclude
+    showCounts: true,
+    numberFormat: 'en-US',
+    currency: null, // null = no currency, or 'USD', 'INR', etc.
+    precision: 2,
+    formatStyle: 'decimal', // 'decimal', 'currency', 'percent', 'unit'
+    includeColumns: [] // Specific columns to include (empty = all numeric)
   }
 }) => {
   // Local state
@@ -682,18 +680,7 @@ const PrimeDataTable = ({
     const counts = {};
     
     defaultColumns.forEach(column => {
-      // Check if this column should be included/excluded
-      if (footerTotalsConfig.includeColumns.length > 0 && !footerTotalsConfig.includeColumns.includes(column.key)) {
-        return;
-      }
-      if (footerTotalsConfig.excludeColumns.includes(column.key)) {
-        return;
-      }
-      
-      // Check if column is numeric (either by type or by data)
-      const isNumeric = column.type === 'number' || typeof tableData[0]?.[column.key] === 'number';
-      
-      if (isNumeric) {
+      if (column.type === 'number') {
         const values = tableData
           .map(row => {
             const value = row[column.key];
@@ -717,24 +704,22 @@ const PrimeDataTable = ({
       }
     });
     
-    // Debug logging
-    if (enableFooterTotals && Object.keys(totals).length > 0) {
-      console.log('Footer Totals Calculated:', { totals, averages, counts });
-    }
-    
     return { totals, averages, counts };
   }, [tableData, defaultColumns, enableFooterTotals, footerTotalsConfig]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
-    if (!enableFooterTotals) return null;
+    if (!enableFooterTotals || column.type !== 'number') return null;
     
-    // Check if column should show footer totals
-    const shouldShowFooter = column.type === 'number' || 
-                           (footerTotalsConfig.includeColumns.length > 0 && footerTotalsConfig.includeColumns.includes(column.key)) ||
-                           (footerTotalsConfig.includeColumns.length === 0 && typeof tableData[0]?.[column.key] === 'number');
+    // If includeColumns is empty, show no totals
+    if (footerTotalsConfig.includeColumns.length === 0) {
+      return null;
+    }
     
-    if (!shouldShowFooter) return null;
+    // Check if this column should be included
+    if (!footerTotalsConfig.includeColumns.includes(column.key)) {
+      return null;
+    }
     
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
@@ -746,30 +731,35 @@ const PrimeDataTable = ({
     const formatNumber = (value) => {
       if (typeof value !== 'number') return '';
       
-      // Handle scientific notation separately
-      if (footerTotalsConfig.formatType === 'scientific') {
-        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
-      }
-      
-      const options = {
+      const formatOptions = {
         minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.maxDecimalPlaces
+        maximumFractionDigits: footerTotalsConfig.precision
       };
       
-      // Set style based on formatType and currency
-      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency && footerTotalsConfig.currency !== null) {
-        options.style = 'currency';
-        options.currency = footerTotalsConfig.currency;
-      } else if (footerTotalsConfig.formatType === 'percent') {
-        options.style = 'percent';
-        options.minimumFractionDigits = footerTotalsConfig.precision;
-        options.maximumFractionDigits = footerTotalsConfig.maxDecimalPlaces;
-      } else {
-        // Default to decimal format (no currency)
-        options.style = 'decimal';
+      // Determine the style based on configuration
+      let style = footerTotalsConfig.formatStyle;
+      
+      // If currency is specified, override style to currency
+      if (footerTotalsConfig.currency) {
+        style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
       }
       
-      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, options).format(value);
+      // Apply the style
+      if (style === 'currency' && footerTotalsConfig.currency) {
+        formatOptions.style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
+      } else if (style === 'percent') {
+        formatOptions.style = 'percent';
+      } else if (style === 'unit') {
+        formatOptions.style = 'unit';
+        formatOptions.unit = footerTotalsConfig.unit || 'number';
+      } else {
+        // Default to decimal
+        formatOptions.style = 'decimal';
+      }
+      
+      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, formatOptions).format(value);
     };
     
     return (

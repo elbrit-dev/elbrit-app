@@ -27,12 +27,10 @@ const PrimeDataTable = ({
     showAverages: false,
     showCounts: false,
     numberFormat: 'en-IN',
-    currency: null, // null = no currency, or 'INR', 'USD', etc.
+    currency: null, // null = no currency, or 'USD', 'INR', etc.
     precision: 0,
-    maxDecimalPlaces: 2,
-    formatType: 'decimal', // 'decimal', 'currency', 'percent', 'scientific'
-    includeColumns: [], // Specific columns to include (empty = all numeric)
-    excludeColumns: []  // Specific columns to exclude
+    formatStyle: 'decimal', // 'decimal', 'currency', 'percent', 'unit'
+    includeColumns: [] // Specific columns to include (empty = all numeric)
   },
   enableSearch = true,
   enableExport = true,
@@ -202,11 +200,13 @@ const PrimeDataTable = ({
       const field = col.field || col.key;
       if (!field) return;
       
-      // Check if this column should be included/excluded
-      if (footerTotalsConfig.includeColumns.length > 0 && !footerTotalsConfig.includeColumns.includes(field)) {
+      // If includeColumns is empty, show no totals
+      if (footerTotalsConfig.includeColumns.length === 0) {
         return;
       }
-      if (footerTotalsConfig.excludeColumns.includes(field)) {
+      
+      // Check if this column should be included
+      if (!footerTotalsConfig.includeColumns.includes(field)) {
         return;
       }
       
@@ -235,43 +235,82 @@ const PrimeDataTable = ({
     const field = col.field || col.key;
     if (!field) return null;
     
+    // If includeColumns is empty, show no totals
+    if (footerTotalsConfig.includeColumns.length === 0) {
+      return null;
+    }
+    
+    // Check if this column should be included
+    if (!footerTotalsConfig.includeColumns.includes(field)) {
+      return null;
+    }
+    
     const { totals, averages, counts } = totalRow;
     const parts = [];
     
-    const formatNumber = (value) => {
-      // Handle scientific notation separately
-      if (footerTotalsConfig.formatType === 'scientific') {
-        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
-      }
-      
-      const options = {
+    if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
+      const formatOptions = {
         minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.maxDecimalPlaces
+        maximumFractionDigits: footerTotalsConfig.precision
       };
       
-      // Set style based on formatType and currency
-      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency && footerTotalsConfig.currency !== null) {
-        options.style = 'currency';
-        options.currency = footerTotalsConfig.currency;
-      } else if (footerTotalsConfig.formatType === 'percent') {
-        options.style = 'percent';
-        options.minimumFractionDigits = footerTotalsConfig.precision;
-        options.maximumFractionDigits = footerTotalsConfig.maxDecimalPlaces;
-      } else {
-        // Default to decimal format (no currency)
-        options.style = 'decimal';
+      // Determine the style based on configuration
+      let style = footerTotalsConfig.formatStyle;
+      
+      // If currency is specified, override style to currency
+      if (footerTotalsConfig.currency) {
+        style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
       }
       
-      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, options).format(value);
-    };
-    
-    if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
-      const formattedTotal = formatNumber(totals[field]);
+      // Apply the style
+      if (style === 'currency' && footerTotalsConfig.currency) {
+        formatOptions.style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
+      } else if (style === 'percent') {
+        formatOptions.style = 'percent';
+      } else if (style === 'unit') {
+        formatOptions.style = 'unit';
+        formatOptions.unit = footerTotalsConfig.unit || 'number';
+      } else {
+        // Default to decimal
+        formatOptions.style = 'decimal';
+      }
+      
+      const formattedTotal = new Intl.NumberFormat(footerTotalsConfig.numberFormat, formatOptions).format(totals[field]);
       parts.push(`Total: ${formattedTotal}`);
     }
     
     if (footerTotalsConfig.showAverages && averages[field] !== undefined) {
-      const formattedAvg = formatNumber(averages[field]);
+      const formatOptions = {
+        minimumFractionDigits: footerTotalsConfig.precision,
+        maximumFractionDigits: footerTotalsConfig.precision
+      };
+      
+      // Determine the style based on configuration
+      let style = footerTotalsConfig.formatStyle;
+      
+      // If currency is specified, override style to currency
+      if (footerTotalsConfig.currency) {
+        style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
+      }
+      
+      // Apply the style
+      if (style === 'currency' && footerTotalsConfig.currency) {
+        formatOptions.style = 'currency';
+        formatOptions.currency = footerTotalsConfig.currency;
+      } else if (style === 'percent') {
+        formatOptions.style = 'percent';
+      } else if (style === 'unit') {
+        formatOptions.style = 'unit';
+        formatOptions.unit = footerTotalsConfig.unit || 'number';
+      } else {
+        // Default to decimal
+        formatOptions.style = 'decimal';
+      }
+      
+      const formattedAvg = new Intl.NumberFormat(footerTotalsConfig.numberFormat, formatOptions).format(averages[field]);
       parts.push(`Avg: ${formattedAvg}`);
     }
     
