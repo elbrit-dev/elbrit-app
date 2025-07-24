@@ -425,6 +425,7 @@ const PrimeDataTable = ({
     let cols = [];
 
     if (columns.length > 0) {
+      // ✅ Normalize keys from field/header if missing
       const normalizedColumns = columns.map(col => {
         const key = col.key || col.field || col.header || col.name;
         return {
@@ -434,7 +435,7 @@ const PrimeDataTable = ({
           filterable: col.filterable !== false,
           type: col.type || 'text',
           ...col,
-          key // ensure all logic below works
+          key // override or re-add key to make sure it's set
         };
       });
 
@@ -444,7 +445,6 @@ const PrimeDataTable = ({
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (tableData.length > 0) {
-      // Auto-generate from sample row
       const sampleRow = tableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
@@ -470,12 +470,13 @@ const PrimeDataTable = ({
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     }
 
-    if (fields?.length > 0) {
+    if (fields && Array.isArray(fields) && fields.length > 0) {
       cols = cols.filter(col => fields.includes(col.key));
     }
 
     return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
+
 
   // Initialize filters based on columns
   useEffect(() => {
