@@ -690,7 +690,10 @@ const PrimeDataTable = ({
         return;
       }
       
-      if (column.type === 'number') {
+      // Check if column is numeric (either by type or by data)
+      const isNumeric = column.type === 'number' || typeof tableData[0]?.[column.key] === 'number';
+      
+      if (isNumeric) {
         const values = tableData
           .map(row => {
             const value = row[column.key];
@@ -714,12 +717,24 @@ const PrimeDataTable = ({
       }
     });
     
+    // Debug logging
+    if (enableFooterTotals && Object.keys(totals).length > 0) {
+      console.log('Footer Totals Calculated:', { totals, averages, counts });
+    }
+    
     return { totals, averages, counts };
   }, [tableData, defaultColumns, enableFooterTotals, footerTotalsConfig]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
-    if (!enableFooterTotals || column.type !== 'number') return null;
+    if (!enableFooterTotals) return null;
+    
+    // Check if column should show footer totals
+    const shouldShowFooter = column.type === 'number' || 
+                           (footerTotalsConfig.includeColumns.length > 0 && footerTotalsConfig.includeColumns.includes(column.key)) ||
+                           (footerTotalsConfig.includeColumns.length === 0 && typeof tableData[0]?.[column.key] === 'number');
+    
+    if (!shouldShowFooter) return null;
     
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
