@@ -975,39 +975,39 @@ const PrimeDataTable = ({
   // Calculate footer totals for numeric columns based on filtered data
   const calculateFooterTotals = useMemo(() => {
     if (!enableFooterTotals || !filteredDataForTotals.length) return {};
-    
+
     const totals = {};
     const averages = {};
     const counts = {};
-    
+
     defaultColumns.forEach(column => {
       if (column.type === 'number') {
         const values = filteredDataForTotals
-          .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
+          .filter(row => row && typeof row === 'object' && column.key in row)
           .map(row => {
-            const value = row[column.key];
-            return typeof value === 'number' ? value : 0;
-          })
-          .filter(val => val !== null && val !== undefined);
-        
+            const value = row?.[column.key];
+            return typeof value === 'number' && !isNaN(value) ? value : 0;
+          });
+
         if (values.length > 0) {
           if (footerTotalsConfig.showTotals) {
             totals[column.key] = values.reduce((sum, val) => sum + val, 0);
           }
-          
+
           if (footerTotalsConfig.showAverages) {
             averages[column.key] = values.reduce((sum, val) => sum + val, 0) / values.length;
           }
-          
+
           if (footerTotalsConfig.showCounts) {
             counts[column.key] = values.length;
           }
         }
       }
     });
-    
+
     return { totals, averages, counts };
   }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+
 
 
   // Generate filter options for categorical columns
