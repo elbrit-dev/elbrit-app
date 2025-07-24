@@ -8,7 +8,9 @@ import { Button } from 'primereact/button';
 import { Checkbox } from 'primereact/checkbox';
 import { Dialog } from 'primereact/dialog';
 import { Toolbar } from 'primereact/toolbar';
-import { FilterMatchMode } from 'primereact/api';
+import { FilterMatchMode, FilterOperator } from 'primereact/api';
+import { IconField } from 'primereact/iconfield';
+import { InputIcon } from 'primereact/inputicon';
 
 import "primereact/resources/themes/lara-light-cyan/theme.css";
 import { 
@@ -249,32 +251,11 @@ const PrimeDataTable = ({
     
     defaultColumns.forEach(col => {
       if (col.filterable && enableColumnFilter) {
-        switch (col.type) {
-          case 'number':
-            initialFilters[col.key] = { 
-              value: null, 
-              matchMode: FilterMatchMode.EQUALS 
-            };
-            break;
-          case 'date':
-          case 'datetime':
-            initialFilters[col.key] = { 
-              value: null, 
-              matchMode: FilterMatchMode.DATE_IS 
-            };
-            break;
-          case 'boolean':
-            initialFilters[col.key] = { 
-              value: null, 
-              matchMode: FilterMatchMode.EQUALS 
-            };
-            break;
-          default:
-            initialFilters[col.key] = { 
-              value: null, 
-              matchMode: FilterMatchMode.CONTAINS 
-            };
-        }
+        // Use advanced filter structure for all columns to match official PrimeReact design
+        initialFilters[col.key] = { 
+          operator: FilterOperator.AND, 
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+        };
       }
     });
     setFilters(initialFilters);
