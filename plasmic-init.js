@@ -886,16 +886,14 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     footerTotalsConfig: {
       type: "object",
-      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision, formatStyle, includeColumns)",
+      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
       defaultValue: {
         showTotals: true,
         showAverages: false,
         showCounts: true,
         numberFormat: 'en-US',
-        currency: null,
-        precision: 2,
-        formatStyle: 'decimal',
-        includeColumns: []
+        currency: 'USD',
+        precision: 2
       }
     }
   },
@@ -995,16 +993,16 @@ PLASMIC.registerComponent(PrimeDataTab, {
     },
     footerTotalsConfig: {
       type: "object",
-      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision, formatStyle, includeColumns)",
+      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision, includeColumns, excludeColumns)",
       defaultValue: {
         showTotals: true,
         showAverages: false,
         showCounts: false,
         numberFormat: 'en-IN',
-        currency: null,
+        currency: 'INR',
         precision: 0,
-        formatStyle: 'decimal',
-        includeColumns: []
+        includeColumns: [],
+        excludeColumns: []
       }
     },
     

@@ -139,10 +139,8 @@ const PrimeDataTable = ({
     showAverages: false,
     showCounts: true,
     numberFormat: 'en-US',
-    currency: null, // null = no currency, or 'USD', 'INR', etc.
-    precision: 2,
-    formatStyle: 'decimal', // 'decimal', 'currency', 'percent', 'unit'
-    includeColumns: [] // Specific columns to include (empty = all numeric)
+    currency: 'USD',
+    precision: 2
   }
 }) => {
   // Local state
@@ -711,16 +709,6 @@ const PrimeDataTable = ({
   const footerTemplate = (column) => {
     if (!enableFooterTotals || column.type !== 'number') return null;
     
-    // If includeColumns is empty, show no totals
-    if (footerTotalsConfig.includeColumns.length === 0) {
-      return null;
-    }
-    
-    // Check if this column should be included
-    if (!footerTotalsConfig.includeColumns.includes(column.key)) {
-      return null;
-    }
-    
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
     const average = averages[column.key];
@@ -731,35 +719,21 @@ const PrimeDataTable = ({
     const formatNumber = (value) => {
       if (typeof value !== 'number') return '';
       
-      const formatOptions = {
+      // Check if it's currency
+      if (column.isCurrency || column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('cost') || column.key.toLowerCase().includes('amount')) {
+        return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+          style: 'currency',
+          currency: footerTotalsConfig.currency,
+          minimumFractionDigits: footerTotalsConfig.precision,
+          maximumFractionDigits: footerTotalsConfig.precision
+        }).format(value);
+      }
+      
+      // Regular number formatting
+      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
         minimumFractionDigits: footerTotalsConfig.precision,
         maximumFractionDigits: footerTotalsConfig.precision
-      };
-      
-      // Determine the style based on configuration
-      let style = footerTotalsConfig.formatStyle;
-      
-      // If currency is specified, override style to currency
-      if (footerTotalsConfig.currency) {
-        style = 'currency';
-        formatOptions.currency = footerTotalsConfig.currency;
-      }
-      
-      // Apply the style
-      if (style === 'currency' && footerTotalsConfig.currency) {
-        formatOptions.style = 'currency';
-        formatOptions.currency = footerTotalsConfig.currency;
-      } else if (style === 'percent') {
-        formatOptions.style = 'percent';
-      } else if (style === 'unit') {
-        formatOptions.style = 'unit';
-        formatOptions.unit = footerTotalsConfig.unit || 'number';
-      } else {
-        // Default to decimal
-        formatOptions.style = 'decimal';
-      }
-      
-      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, formatOptions).format(value);
+      }).format(value);
     };
     
     return (
