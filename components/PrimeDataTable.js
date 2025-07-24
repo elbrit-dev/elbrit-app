@@ -680,6 +680,25 @@ const PrimeDataTable = ({
     setFilteredDataForTotals(tableData);
   }, [tableData]);
 
+  // Generate filter options for categorical columns
+  const generateFilterOptions = useCallback((column) => {
+    if (!column.filterable || !enableColumnFilter) return undefined;
+    
+    // If column has predefined options, use them
+    if (column.filterOptions) return column.filterOptions;
+    
+    // For categorical columns, generate options from unique values
+    if (column.isCategorical || column.type === 'select' || column.type === 'dropdown' || column.type === 'categorical') {
+      const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+      return uniqueValues.map(value => ({
+        label: value,
+        value: value
+      }));
+    }
+    
+    return undefined;
+  }, [tableData, enableColumnFilter]);
+
   // Footer template for column totals
   const footerTemplate = (column) => {
     if (!enableFooterTotals || column.type !== 'number') return null;
@@ -1030,19 +1049,56 @@ const PrimeDataTable = ({
         {defaultColumns.map(column => {
           const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
           
+          // Determine filter type based on column type
+          const getFilterType = () => {
+            if (!column.filterable || !enableColumnFilter) return false;
+            
+            switch (column.type) {
+              case 'date':
+              case 'datetime':
+                return 'date';
+              case 'number':
+                return 'numeric';
+              case 'boolean':
+                return 'boolean';
+              case 'select':
+              case 'dropdown':
+              case 'categorical':
+                return 'dropdown';
+              default:
+                // For string/text columns, check if it has limited unique values (categorical)
+                if (column.isCategorical || column.uniqueValues) {
+                  return 'dropdown';
+                }
+                return 'text';
+            }
+          };
+          
+          const filterType = getFilterType();
+          
           return (
             <Column
               key={column.key}
               field={column.key}
               header={column.title}
               sortable={column.sortable && enableSorting}
-              filter={column.filterable && enableColumnFilter}
+              filter={filterType}
               filterPlaceholder={`Filter ${column.title}...`}
               filterClear={enableFilterClear ? filterClearTemplate : undefined}
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
+              filterMatchMode={column.filterMatchMode || FilterMatchMode.CONTAINS}
+              filterMaxLength={column.filterMaxLength}
+              filterMinLength={column.filterMinLength}
+              filterOptions={generateFilterOptions(column)}
+              filterOptionLabel={column.filterOptionLabel || 'label'}
+              filterOptionValue={column.filterOptionValue || 'value'}
+              filterShowClear={enableFilterClear}
+              filterShowApply={enableFilterApply}
+              filterShowMenu={enableFilterMenu}
+              filterShowMatchModes={enableFilterMatchModes}
 
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
