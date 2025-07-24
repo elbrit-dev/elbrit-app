@@ -16,7 +16,6 @@ import { Dropdown } from 'primereact/dropdown';
 import { Calendar } from 'primereact/calendar';
 import { MultiSelect } from 'primereact/multiselect';
 import { InputNumber } from 'primereact/inputnumber';
-import { Slider } from 'primereact/slider';
 
 
 
@@ -272,7 +271,7 @@ const PrimeDataTable = ({
           case 'number':
             initialFilters[col.key] = { 
               operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.BETWEEN }] 
+              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
             };
             break;
             
@@ -774,40 +773,19 @@ const PrimeDataTable = ({
       case 'number':
         return function NumberFilter(options) {
           return (
-            <div className="flex flex-col gap-2">
-              <InputNumber
-                value={options.value?.[0]}
-                onChange={(e) => {
-                  const newValue = [e.value, options.value?.[1]];
-                  options.filterCallback(newValue);
-                }}
-                placeholder="Min"
-                showButtons
-                buttonLayout="horizontal"
-                spinnerMode="horizontal"
-                step={1}
-                decrementButtonClassName="p-button-secondary"
-                incrementButtonClassName="p-button-secondary"
-                incrementButtonIcon="pi pi-plus"
-                decrementButtonIcon="pi pi-minus"
-              />
-              <InputNumber
-                value={options.value?.[1]}
-                onChange={(e) => {
-                  const newValue = [options.value?.[0], e.value];
-                  options.filterCallback(newValue);
-                }}
-                placeholder="Max"
-                showButtons
-                buttonLayout="horizontal"
-                spinnerMode="horizontal"
-                step={1}
-                decrementButtonClassName="p-button-secondary"
-                incrementButtonClassName="p-button-secondary"
-                incrementButtonIcon="pi pi-plus"
-                decrementButtonIcon="pi pi-minus"
-              />
-            </div>
+            <InputNumber
+              value={options.value}
+              onChange={(e) => options.filterCallback(e.value)}
+              placeholder="Enter number"
+              showButtons
+              buttonLayout="horizontal"
+              spinnerMode="horizontal"
+              step={1}
+              decrementButtonClassName="p-button-secondary"
+              incrementButtonClassName="p-button-secondary"
+              incrementButtonIcon="pi pi-plus"
+              decrementButtonIcon="pi pi-minus"
+            />
           );
         };
         
@@ -832,15 +810,12 @@ const PrimeDataTable = ({
         const uniqueValues = getUniqueValues(column.key);
         return function CategoricalFilter(options) {
           return (
-            <MultiSelect
+            <Dropdown
               value={options.value}
               onChange={(e) => options.filterCallback(e.value)}
               options={uniqueValues.map(val => ({ label: val, value: val }))}
-              placeholder="Select values"
+              placeholder="Select value"
               showClear
-              filter
-              maxSelectedLabels={3}
-              selectedItemsLabel={`{0} items selected`}
             />
           );
         };
