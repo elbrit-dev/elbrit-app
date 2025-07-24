@@ -27,8 +27,10 @@ const PrimeDataTable = ({
     showAverages: false,
     showCounts: false,
     numberFormat: 'en-IN',
-    currency: 'INR',
+    currency: null, // null = no currency, or 'INR', 'USD', etc.
     precision: 0,
+    maxDecimalPlaces: 2,
+    formatType: 'decimal', // 'decimal', 'currency', 'percent', 'scientific'
     includeColumns: [], // Specific columns to include (empty = all numeric)
     excludeColumns: []  // Specific columns to exclude
   },
@@ -236,23 +238,36 @@ const PrimeDataTable = ({
     const { totals, averages, counts } = totalRow;
     const parts = [];
     
-    if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
-      const formattedTotal = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
-        currency: footerTotalsConfig.currency,
+    const formatNumber = (value) => {
+      const options = {
         minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(totals[field]);
+        maximumFractionDigits: footerTotalsConfig.maxDecimalPlaces
+      };
+      
+      // Set style based on formatType and currency
+      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency) {
+        options.style = 'currency';
+        options.currency = footerTotalsConfig.currency;
+      } else if (footerTotalsConfig.formatType === 'percent') {
+        options.style = 'percent';
+        options.minimumFractionDigits = footerTotalsConfig.precision;
+        options.maximumFractionDigits = footerTotalsConfig.maxDecimalPlaces;
+      } else if (footerTotalsConfig.formatType === 'scientific') {
+        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
+      } else {
+        options.style = 'decimal';
+      }
+      
+      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, options).format(value);
+    };
+    
+    if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
+      const formattedTotal = formatNumber(totals[field]);
       parts.push(`Total: ${formattedTotal}`);
     }
     
     if (footerTotalsConfig.showAverages && averages[field] !== undefined) {
-      const formattedAvg = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
-        currency: footerTotalsConfig.currency,
-        minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(averages[field]);
+      const formattedAvg = formatNumber(averages[field]);
       parts.push(`Avg: ${formattedAvg}`);
     }
     
