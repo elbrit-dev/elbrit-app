@@ -239,22 +239,26 @@ const PrimeDataTable = ({
     const parts = [];
     
     const formatNumber = (value) => {
+      // Handle scientific notation separately
+      if (footerTotalsConfig.formatType === 'scientific') {
+        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
+      }
+      
       const options = {
         minimumFractionDigits: footerTotalsConfig.precision,
         maximumFractionDigits: footerTotalsConfig.maxDecimalPlaces
       };
       
       // Set style based on formatType and currency
-      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency) {
+      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency && footerTotalsConfig.currency !== null) {
         options.style = 'currency';
         options.currency = footerTotalsConfig.currency;
       } else if (footerTotalsConfig.formatType === 'percent') {
         options.style = 'percent';
         options.minimumFractionDigits = footerTotalsConfig.precision;
         options.maximumFractionDigits = footerTotalsConfig.maxDecimalPlaces;
-      } else if (footerTotalsConfig.formatType === 'scientific') {
-        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
       } else {
+        // Default to decimal format (no currency)
         options.style = 'decimal';
       }
       
