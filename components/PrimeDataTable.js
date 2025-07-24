@@ -17,8 +17,8 @@ import { InputIcon } from 'primereact/inputicon';
 import { InputNumber } from 'primereact/inputnumber';
 import { TriStateCheckbox } from 'primereact/tristatecheckbox';
 import { classNames } from 'primereact/utils';
-import "primereact/resources/themes/lara-light-cyan/theme.css";
 
+import "primereact/resources/themes/lara-light-cyan/theme.css";
 import { 
   RefreshCw,
   X,
@@ -156,7 +156,9 @@ const PrimeDataTable = ({
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageModalSrc, setImageModalSrc] = useState("");
   const [imageModalAlt, setImageModalAlt] = useState("");
-  const [filters, setFilters] = useState({});
+  const [filters, setFilters] = useState({
+    global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+  });
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(1);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
@@ -252,7 +254,7 @@ const PrimeDataTable = ({
   // Initialize filters based on columns
   useEffect(() => {
     const initialFilters = {
-      global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      global: { value: globalFilterValue, matchMode: FilterMatchMode.CONTAINS }
     };
     
     defaultColumns.forEach(col => {
@@ -260,15 +262,15 @@ const PrimeDataTable = ({
         switch (col.type) {
           case 'number':
             initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
+              value: null, 
+              matchMode: FilterMatchMode.EQUALS 
             };
             break;
           case 'date':
           case 'datetime':
             initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }] 
+              value: null, 
+              matchMode: FilterMatchMode.DATE_IS 
             };
             break;
           case 'boolean':
@@ -279,14 +281,14 @@ const PrimeDataTable = ({
             break;
           default:
             initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+              value: null, 
+              matchMode: FilterMatchMode.CONTAINS 
             };
         }
       }
     });
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue]);
 
   // Debug customFormatters
   useEffect(() => {
@@ -317,6 +319,9 @@ const PrimeDataTable = ({
     setGlobalFilterValue(value);
     
     let _filters = { ...filters };
+    if (!_filters['global']) {
+      _filters['global'] = { value: null, matchMode: FilterMatchMode.CONTAINS };
+    }
     _filters['global'].value = value;
     setFilters(_filters);
     
@@ -333,7 +338,9 @@ const PrimeDataTable = ({
 
   const clearAllFilters = useCallback(() => {
     setGlobalFilterValue("");
-    setFilters({});
+    setFilters({
+      global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+    });
     setSortField(null);
     setSortOrder(1);
   }, []);
@@ -1281,7 +1288,6 @@ const PrimeDataTable = ({
               sortable={column.sortable && enableSorting}
               filter={column.filterable && enableColumnFilter}
               filterPlaceholder={`Filter ${column.title}...`}
-              filterElement={column.filterable && enableColumnFilter ? getFilterComponent(column) : undefined}
               filterClear={enableFilterClear ? filterClearTemplate : undefined}
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}

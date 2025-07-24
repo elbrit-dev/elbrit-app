@@ -3,7 +3,7 @@ import '../styles/globals.css';
 import '../plasmic-init'; // Import Plasmic configuration
 
 // PrimeReact CSS imports
-import 'primereact/resources/themes/lara-light-blue/theme.css';
+import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
 
