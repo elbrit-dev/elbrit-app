@@ -137,10 +137,14 @@ const PrimeDataTable = ({
   footerTotalsConfig = {
     showTotals: true,
     showAverages: false,
-    showCounts: true,
-    numberFormat: 'en-US',
-    currency: 'USD',
-    precision: 2
+    showCounts: false,
+    numberFormat: 'en-IN',
+    currency: null, // null = no currency, or 'INR', 'USD', etc.
+    precision: 0,
+    maxDecimalPlaces: 2,
+    formatType: 'decimal', // 'decimal', 'currency', 'percent', 'scientific'
+    includeColumns: [], // Specific columns to include (empty = all numeric)
+    excludeColumns: []  // Specific columns to exclude
   }
 }) => {
   // Local state
@@ -678,6 +682,14 @@ const PrimeDataTable = ({
     const counts = {};
     
     defaultColumns.forEach(column => {
+      // Check if this column should be included/excluded
+      if (footerTotalsConfig.includeColumns.length > 0 && !footerTotalsConfig.includeColumns.includes(column.key)) {
+        return;
+      }
+      if (footerTotalsConfig.excludeColumns.includes(column.key)) {
+        return;
+      }
+      
       if (column.type === 'number') {
         const values = tableData
           .map(row => {
@@ -719,21 +731,30 @@ const PrimeDataTable = ({
     const formatNumber = (value) => {
       if (typeof value !== 'number') return '';
       
-      // Check if it's currency
-      if (column.isCurrency || column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('cost') || column.key.toLowerCase().includes('amount')) {
-        return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-          style: 'currency',
-          currency: footerTotalsConfig.currency,
-          minimumFractionDigits: footerTotalsConfig.precision,
-          maximumFractionDigits: footerTotalsConfig.precision
-        }).format(value);
+      // Handle scientific notation separately
+      if (footerTotalsConfig.formatType === 'scientific') {
+        return value.toExponential(footerTotalsConfig.maxDecimalPlaces);
       }
       
-      // Regular number formatting
-      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
+      const options = {
         minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(value);
+        maximumFractionDigits: footerTotalsConfig.maxDecimalPlaces
+      };
+      
+      // Set style based on formatType and currency
+      if (footerTotalsConfig.formatType === 'currency' && footerTotalsConfig.currency && footerTotalsConfig.currency !== null) {
+        options.style = 'currency';
+        options.currency = footerTotalsConfig.currency;
+      } else if (footerTotalsConfig.formatType === 'percent') {
+        options.style = 'percent';
+        options.minimumFractionDigits = footerTotalsConfig.precision;
+        options.maximumFractionDigits = footerTotalsConfig.maxDecimalPlaces;
+      } else {
+        // Default to decimal format (no currency)
+        options.style = 'decimal';
+      }
+      
+      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, options).format(value);
     };
     
     return (
