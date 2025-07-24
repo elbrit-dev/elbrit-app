@@ -12,7 +12,7 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 
-import "primereact/resources/themes/lara-light-cyan/theme.css";
+
 import { 
   RefreshCw,
   X,
@@ -71,10 +71,10 @@ const PrimeDataTable = ({
   // Styling
   className = "",
   style = {},
-  tableHeight = "600px",
-  theme = "default", // default, dark, minimal
+
+
   tableSize = "normal", // small, normal, large
-  tableStyle = "default", // default, compact, comfortable
+
   
 
   
@@ -200,7 +200,7 @@ const PrimeDataTable = ({
       cols = cols.filter(col => fields.includes(col.key));
     }
     return cols;
-  }, [columns, tableData, hiddenColumns, columnOrder, fields, cellWidth, cellMinWidth, cellMaxWidth, cellHeight, cellMinHeight, cellMaxHeight, defaultHeaderStyle, defaultBodyStyle]);
+  }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
   // Initialize filters based on columns
   useEffect(() => {
@@ -332,13 +332,7 @@ const PrimeDataTable = ({
       <img
         src={value}
         alt={column.key}
-        style={{ 
-          maxWidth: 64, 
-          maxHeight: 64, 
-          cursor: isPopup ? 'pointer' : 'default', 
-          border: '1px solid #e5e7eb', 
-          borderRadius: 4 
-        }}
+
         onClick={isPopup ? () => { 
           setImageModalSrc(value); 
           setImageModalAlt(column.key); 
@@ -447,7 +441,7 @@ const PrimeDataTable = ({
 
   const actionsBodyTemplate = (rowData) => {
     return (
-      <div style={{ display: "flex", gap: "4px", justifyContent: "center" }}>
+      <div>
         {rowActions.map((action, actionIndex) => (
           <Button
             key={actionIndex}
@@ -459,7 +453,6 @@ const PrimeDataTable = ({
             tooltip={action.title}
             tooltipOptions={{ position: 'top' }}
             className="p-button-text p-button-sm"
-            style={{ color: action.color || "#6b7280" }}
           />
         ))}
       </div>
@@ -575,15 +568,7 @@ const PrimeDataTable = ({
     };
     
     return (
-      <div style={{
-        padding: '8px',
-        textAlign: 'right',
-        fontWeight: '600',
-        fontSize: '13px',
-        backgroundColor: '#f8fafc',
-        borderTop: '2px solid #e5e7eb',
-        color: '#374151'
-      }}>
+      <div>
         {footerTotalsConfig.showTotals && total !== undefined && (
           <div>Total: {formatNumber(total)}</div>
         )}
@@ -599,15 +584,14 @@ const PrimeDataTable = ({
 
   // Toolbar components
   const leftToolbarTemplate = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+    <div>
       {enableSearch && enableGlobalFilter && (
-        <IconField iconPosition="left" style={{ width: "180px" }}>
+        <IconField iconPosition="left">
           <InputIcon className="pi pi-search" />
           <InputText
             placeholder="Keyword Search"
             value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
-            style={{ width: "auto" }}
           />
         </IconField>
       )}
@@ -624,10 +608,10 @@ const PrimeDataTable = ({
   );
 
   const rightToolbarTemplate = () => (
-    <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+    <div>
       {selectedRows.length > 0 && enableBulkActions && bulkActions.length > 0 && (
-        <div style={{ display: "flex", gap: "8px" }}>
-          <span style={{ fontSize: "14px", color: "#6b7280", padding: "8px 12px" }}>
+        <div>
+          <span>
             {selectedRows.length} selected
           </span>
           {bulkActions.map((action, index) => (
@@ -636,7 +620,6 @@ const PrimeDataTable = ({
               label={action.title}
               onClick={() => handleBulkAction(action)}
               className="p-button-sm"
-              style={{ backgroundColor: action.color || "#3b82f6" }}
             />
           ))}
         </div>
@@ -673,29 +656,6 @@ const PrimeDataTable = ({
     </div>
   );
 
-  // Get table size class
-  const getTableSizeClass = () => {
-    switch (tableSize) {
-      case 'small': return 'p-datatable-sm';
-      case 'large': return 'p-datatable-lg';
-      default: return '';
-    }
-  };
-
-  // Get table style class
-  const getTableStyleClass = () => {
-    switch (tableStyle) {
-      case 'compact': return 'p-datatable-compact';
-      case 'comfortable': return 'p-datatable-comfortable';
-      default: return '';
-    }
-  };
-
-  // Theme system implementation
-
-
-
-
   // Generate column groups from configuration
   const generateColumnGroups = useCallback(() => {
     if (!enableColumnGrouping || !columnGroups.length) {
@@ -714,9 +674,7 @@ const PrimeDataTable = ({
                 sortable={col.sortable}
                 colSpan={col.colSpan}
                 rowSpan={col.rowSpan}
-                style={col.style || groupConfig.groupStyle}
-                headerStyle={col.headerStyle || groupConfig.headerGroupStyle}
-                footerStyle={col.footerStyle || groupConfig.footerGroupStyle}
+
                 footer={col.footer}
                 body={col.body}
                 bodyTemplate={col.bodyTemplate}
@@ -751,8 +709,7 @@ const PrimeDataTable = ({
                   footer={col.footer}
                   colSpan={col.colSpan}
                   rowSpan={col.rowSpan}
-                  style={col.style || groupConfig.groupStyle}
-                  footerStyle={col.footerStyle || groupConfig.footerGroupStyle}
+
                 />
               ))}
             </Row>
@@ -778,9 +735,7 @@ const PrimeDataTable = ({
                 sortable={col.sortable}
                 colSpan={col.colSpan}
                 rowSpan={col.rowSpan}
-                style={col.style}
-                headerStyle={col.headerStyle}
-                footerStyle={col.footerStyle}
+
                 footer={col.footer}
                 body={col.body}
                 bodyTemplate={col.bodyTemplate}
@@ -796,14 +751,8 @@ const PrimeDataTable = ({
   if (isLoading) {
     return (
       <div className={className} style={style}>
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center",
-          padding: "64px",
-          color: "#6b7280"
-        }}>
-          <RefreshCw size={24} className="animate-spin" style={{ marginRight: "12px" }} />
+        <div>
+          <RefreshCw size={24} className="animate-spin" />
           Loading data...
         </div>
       </div>
@@ -813,14 +762,8 @@ const PrimeDataTable = ({
   if (tableError) {
     return (
       <div className={className} style={style}>
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          justifyContent: "center",
-          padding: "64px",
-          color: "#dc2626"
-        }}>
-          <X size={24} style={{ marginRight: "12px" }} />
+        <div>
+          <X size={24} />
           Error: {tableError}
         </div>
       </div>
@@ -828,33 +771,23 @@ const PrimeDataTable = ({
   }
 
   return (
-    <div className={className} style={{
-      ...themeStyles.container,
-      ...style
-    }}>
+    <div className={className} style={style}>
       {/* Debug Info - Remove this in production */}
       {process.env.NODE_ENV === 'development' && (
-        <div style={{ 
-          padding: '8px', 
-          margin: '8px', 
-          backgroundColor: '#f3f4f6', 
-          border: '1px solid #d1d5db', 
-          borderRadius: '4px',
-          fontSize: '12px'
-        }}>
+        <div>
           <strong>Debug Info:</strong><br/>
           <strong>Data:</strong> {data.length} rows<br/>
           <strong>Columns:</strong> {columns.length} custom, {defaultColumns.length} total<br/>
           <strong>Custom Formatters:</strong> {Object.keys(customFormatters).length}<br/>
           <strong>Custom Templates:</strong> {Object.keys(customTemplates).length}<br/>
-          <strong>Custom Filters:</strong> {Object.keys(customFilters).length}<br/>
+
           <strong>Row Actions:</strong> {rowActions.length}<br/>
           <strong>Bulk Actions:</strong> {bulkActions.length}<br/>
           <strong>Column Groups:</strong> {columnGroups.length}<br/>
           <strong>Features:</strong> Search:{enableSearch ? '✓' : '✗'} | Filter:{enableColumnFilter ? '✓' : '✗'} | Sort:{enableSorting ? '✓' : '✗'} | Pagination:{enablePagination ? '✓' : '✗'}<br/>
           <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
-          <strong>Theme:</strong> {theme} | Size: {tableSize} | Style: {tableStyle}<br/>
-          <strong>Theme Colors:</strong> BG: {themeStyles.container.backgroundColor} | Text: {themeStyles.container.color}
+          <strong>Size:</strong> {tableSize}<br/>
+          <strong>Theme:</strong> Native PrimeReact
         </div>
       )}
       
@@ -891,10 +824,8 @@ const PrimeDataTable = ({
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
-        className={`${getTableSizeClass()} ${getTableStyleClass()}`}
-        style={{
-          height: tableHeight
-        }}
+
+
         emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
         reorderableColumns={enableReorderableColumns}
@@ -912,7 +843,7 @@ const PrimeDataTable = ({
         {enableRowSelection && (
           <Column
             selectionMode="multiple"
-            headerStyle={{ width: '50px' }}
+
             frozen={enableFrozenColumns}
           />
         )}
@@ -933,8 +864,7 @@ const PrimeDataTable = ({
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              headerStyle={column.headerStyle}
-              bodyStyle={column.style}
+
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                     column.type === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
@@ -942,7 +872,7 @@ const PrimeDataTable = ({
                     parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
                     customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                     column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
-              style={column.style}
+
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
           );
@@ -952,7 +882,7 @@ const PrimeDataTable = ({
           <Column
             body={actionsBodyTemplate}
             header="Actions"
-            style={{ width: '100px', textAlign: 'center' }}
+
             frozen={enableFrozenColumns ? "right" : undefined}
           />
         )}
@@ -963,19 +893,14 @@ const PrimeDataTable = ({
         visible={showImageModal}
         onHide={() => setShowImageModal(false)}
         header={imageModalAlt}
-        style={{ width: '80vw', maxWidth: '800px' }}
+
         modal
         className="p-fluid"
       >
         <img
           src={imageModalSrc}
           alt={imageModalAlt}
-          style={{ 
-            width: '80%', 
-            height: 'auto', 
-            borderRadius: 8, 
-            border: '1px solid #e5e7eb' 
-          }}
+
         />
       </Dialog>
 
@@ -984,12 +909,12 @@ const PrimeDataTable = ({
         visible={showColumnManager}
         onHide={() => setShowColumnManager(false)}
         header="Manage Columns"
-        style={{ width: '250px' }}
+
         modal
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div>
           {defaultColumns.map(column => (
-            <div key={column.key} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div key={column.key}>
               <Checkbox
                 checked={!hiddenColumns.includes(column.key)}
                 onChange={(e) => {

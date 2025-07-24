@@ -572,17 +572,8 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Inline styles for the table container",
       defaultValue: {}
     },
-    tableHeight: {
-      type: "string",
-      description: "Height of the table container",
-      defaultValue: "600px"
-    },
-    theme: {
-      type: "choice",
-      options: ["default", "dark", "minimal"],
-      description: "Theme for the table styling",
-      defaultValue: "default"
-    },
+
+
     
     // Event handlers
     onRowClick: {
@@ -841,11 +832,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Show filter match modes",
       defaultValue: true
     },
-    filterMenuStyle: {
-      type: "object",
-      description: "Custom styles for filter menus",
-      defaultValue: {}
-    },
+
     
     // Table styling options
     tableSize: {
@@ -854,12 +841,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Size of the table",
       defaultValue: "normal"
     },
-    tableStyle: {
-      type: "choice",
-      options: ["default", "compact", "comfortable"],
-      description: "Style of the table",
-      defaultValue: "default"
-    },
+
     
     // Custom templates
     customTemplates: {
@@ -867,11 +849,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Custom cell templates for specific columns",
       defaultValue: {}
     },
-    customFilters: {
-      type: "object",
-      description: "Custom filter components for specific columns",
-      defaultValue: {}
-    },
+
     customFormatters: {
       type: "object",
       description: "Custom formatters for specific columns",
