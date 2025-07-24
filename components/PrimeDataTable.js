@@ -423,30 +423,37 @@ const PrimeDataTable = ({
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
     let cols = [];
+
     if (columns.length > 0) {
+      const normalizedColumns = columns.map(col => {
+        const key = col.key || col.field || col.header || col.name;
+        return {
+          key,
+          title: col.title || col.header || key,
+          sortable: col.sortable !== false,
+          filterable: col.filterable !== false,
+          type: col.type || 'text',
+          ...col,
+          key // ensure all logic below works
+        };
+      });
+
       const orderedColumns = columnOrder.length > 0 
-        ? columnOrder.map(key => columns.find(col => col.key === key)).filter(Boolean)
-        : columns;
+        ? columnOrder.map(key => normalizedColumns.find(col => col.key === key)).filter(Boolean)
+        : normalizedColumns;
+
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (tableData.length > 0) {
+      // Auto-generate from sample row
       const sampleRow = tableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
         let type = 'text';
-        if (typeof value === 'number') {
-          type = 'number';
-        } else if (typeof value === 'boolean') {
-          type = 'boolean';
-        } else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) {
-          type = 'datetime';
-        } else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
-          type = 'date';
-        } else if (typeof value === 'string' && value.includes('@')) {
-          type = 'email';
-        }
-        
+        if (typeof value === 'number') type = 'number';
+        else if (typeof value === 'boolean') type = 'boolean';
+        else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) type = 'date';
+        else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) type = 'datetime';
 
-        
         return {
           key,
           title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
@@ -455,15 +462,18 @@ const PrimeDataTable = ({
           type
         };
       });
+
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
         : autoColumns;
+
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     }
-    // Filter by fields prop if provided
-    if (fields && Array.isArray(fields) && fields.length > 0) {
+
+    if (fields?.length > 0) {
       cols = cols.filter(col => fields.includes(col.key));
     }
+
     return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
