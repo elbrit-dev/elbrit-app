@@ -12,6 +12,11 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { ContextMenu } from 'primereact/contextmenu';
+import { Dropdown } from 'primereact/dropdown';
+import { Calendar } from 'primereact/calendar';
+import { MultiSelect } from 'primereact/multiselect';
+import { InputNumber } from 'primereact/inputnumber';
+import { Slider } from 'primereact/slider';
 
 
 
@@ -254,15 +259,48 @@ const PrimeDataTable = ({
     
     defaultColumns.forEach(col => {
       if (col.filterable && enableColumnFilter) {
-        // Use advanced filter structure for all columns to match official PrimeReact design
-        initialFilters[col.key] = { 
-          operator: FilterOperator.AND, 
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
-        };
+        const filterType = getFilterType(col);
+        
+        switch (filterType) {
+          case 'date':
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }] 
+            };
+            break;
+            
+          case 'number':
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.BETWEEN }] 
+            };
+            break;
+            
+          case 'boolean':
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
+            };
+            break;
+            
+          case 'categorical':
+            initialFilters[col.key] = { 
+              operator: FilterOperator.OR, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.IN }] 
+            };
+            break;
+            
+          default: // text
+            initialFilters[col.key] = { 
+              operator: FilterOperator.AND, 
+              constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+            };
+            break;
+        }
       }
     });
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue, getFilterType]);
 
   // Debug customFormatters
   useEffect(() => {
@@ -636,9 +674,12 @@ const PrimeDataTable = ({
     );
   };
 
-  // Calculate footer totals for numeric columns
+  // State to store filtered data for footer totals
+  const [filteredDataForTotals, setFilteredDataForTotals] = useState(tableData);
+
+  // Calculate footer totals for numeric columns based on filtered data
   const calculateFooterTotals = useMemo(() => {
-    if (!enableFooterTotals || !tableData.length) return {};
+    if (!enableFooterTotals || !filteredDataForTotals.length) return {};
     
     const totals = {};
     const averages = {};
@@ -646,7 +687,7 @@ const PrimeDataTable = ({
     
     defaultColumns.forEach(column => {
       if (column.type === 'number') {
-        const values = tableData
+        const values = filteredDataForTotals
           .map(row => {
             const value = row[column.key];
             return typeof value === 'number' ? value : 0;
@@ -670,7 +711,153 @@ const PrimeDataTable = ({
     });
     
     return { totals, averages, counts };
-  }, [tableData, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+  }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+
+  // Update filtered data when filters change
+  useEffect(() => {
+    setFilteredDataForTotals(tableData);
+  }, [tableData]);
+
+  // Intelligent filter type detection
+  const getFilterType = useCallback((column) => {
+    // If column has explicit filter type, use it
+    if (column.filterType) {
+      return column.filterType;
+    }
+
+    // Detect based on column type
+    if (column.type === 'date' || column.type === 'datetime') {
+      return 'date';
+    }
+    
+    if (column.type === 'number') {
+      return 'number';
+    }
+    
+    if (column.type === 'boolean') {
+      return 'boolean';
+    }
+
+    // Detect categorical data (like Sales Team) - if unique values are less than 20
+    const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+    if (uniqueValues.length <= 20 && uniqueValues.length > 1) {
+      return 'categorical';
+    }
+
+    // Default to text filter
+    return 'text';
+  }, [tableData]);
+
+  // Get unique values for categorical filters
+  const getUniqueValues = useCallback((columnKey) => {
+    return [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))].sort();
+  }, [tableData]);
+
+  // Generate filter element based on type
+  const generateFilterElement = useCallback((column) => {
+    const filterType = getFilterType(column);
+    
+    switch (filterType) {
+      case 'date':
+        return function DateFilter(options) {
+          return (
+            <Calendar
+              value={options.value}
+              onChange={(e) => options.filterCallback(e.value)}
+              dateFormat="dd/mm/yy"
+              placeholder="Select Date"
+              showClear
+            />
+          );
+        };
+        
+      case 'number':
+        return function NumberFilter(options) {
+          return (
+            <div className="flex flex-col gap-2">
+              <InputNumber
+                value={options.value?.[0]}
+                onChange={(e) => {
+                  const newValue = [e.value, options.value?.[1]];
+                  options.filterCallback(newValue);
+                }}
+                placeholder="Min"
+                showButtons
+                buttonLayout="horizontal"
+                spinnerMode="horizontal"
+                step={1}
+                decrementButtonClassName="p-button-secondary"
+                incrementButtonClassName="p-button-secondary"
+                incrementButtonIcon="pi pi-plus"
+                decrementButtonIcon="pi pi-minus"
+              />
+              <InputNumber
+                value={options.value?.[1]}
+                onChange={(e) => {
+                  const newValue = [options.value?.[0], e.value];
+                  options.filterCallback(newValue);
+                }}
+                placeholder="Max"
+                showButtons
+                buttonLayout="horizontal"
+                spinnerMode="horizontal"
+                step={1}
+                decrementButtonClassName="p-button-secondary"
+                incrementButtonClassName="p-button-secondary"
+                incrementButtonIcon="pi pi-plus"
+                decrementButtonIcon="pi pi-minus"
+              />
+            </div>
+          );
+        };
+        
+      case 'boolean':
+        return function BooleanFilter(options) {
+          return (
+            <Dropdown
+              value={options.value}
+              onChange={(e) => options.filterCallback(e.value)}
+              options={[
+                { label: 'All', value: null },
+                { label: 'Yes', value: true },
+                { label: 'No', value: false }
+              ]}
+              placeholder="Select"
+              showClear
+            />
+          );
+        };
+        
+      case 'categorical':
+        const uniqueValues = getUniqueValues(column.key);
+        return function CategoricalFilter(options) {
+          return (
+            <MultiSelect
+              value={options.value}
+              onChange={(e) => options.filterCallback(e.value)}
+              options={uniqueValues.map(val => ({ label: val, value: val }))}
+              placeholder="Select values"
+              showClear
+              filter
+              maxSelectedLabels={3}
+              selectedItemsLabel={`{0} items selected`}
+            />
+          );
+        };
+        
+      default: // text
+        return function TextFilter(options) {
+          return (
+            <InputText
+              value={options.value}
+              onChange={(e) => options.filterCallback(e.target.value)}
+              placeholder={`Search ${column.title}...`}
+              className="p-column-filter"
+            />
+          );
+        };
+    }
+  }, [getFilterType, getUniqueValues]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
@@ -946,7 +1133,14 @@ const PrimeDataTable = ({
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
-        onFilter={handleFilter}
+        onFilter={(e) => {
+          if (enableFooterTotals) {
+            // Get the filtered data from PrimeReact
+            const filteredRows = e.filteredValue || e.value || tableData;
+            setFilteredDataForTotals(filteredRows);
+          }
+          handleFilter(e);
+        }}
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
@@ -979,7 +1173,7 @@ const PrimeDataTable = ({
         onRowEditInit={enableInlineEditing ? handleRowEditInit : undefined}
         onEditingRowsChange={enableInlineEditing ? handleEditingRowsChange : undefined}
         
-        // Context menu
+
         contextMenu={enableContextMenu ? contextMenu : undefined}
         contextMenuSelection={enableContextMenu ? localContextMenuSelection : undefined}
         onContextMenuSelectionChange={enableContextMenu ? handleContextMenuSelectionChange : undefined}
@@ -1028,6 +1222,7 @@ const PrimeDataTable = ({
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
+              filterElement={column.filterable && enableColumnFilter ? generateFilterElement(column) : undefined}
 
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
