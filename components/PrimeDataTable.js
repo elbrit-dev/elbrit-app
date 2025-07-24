@@ -23,7 +23,10 @@ import {
 
 // Helper to get unique values for a column
 const getUniqueValues = (data, key) => {
-  return [...new Set(data.map(row => row[key]).filter(val => val !== null && val !== undefined))];
+  return [...new Set(data
+    .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
+    .map(row => row[key])
+    .filter(val => val !== null && val !== undefined))];
 };
 
 /**
@@ -856,7 +859,9 @@ const PrimeDataTable = ({
   };
 
   // State to store filtered data for footer totals
-  const [filteredDataForTotals, setFilteredDataForTotals] = useState(tableData);
+  const [filteredDataForTotals, setFilteredDataForTotals] = useState(() =>
+    tableData.filter(row => row && typeof row === 'object')
+  );
 
   // Helper function to match filter values
   const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
@@ -909,6 +914,8 @@ const PrimeDataTable = ({
     if (!filters || Object.keys(filters).length === 0) return data;
     
     return data.filter(row => {
+      // Ensure row is not null or undefined
+      if (!row || typeof row !== 'object') return false;
       // Check global filter
       if (filters.global && filters.global.value) {
         const globalValue = String(filters.global.value).toLowerCase();
@@ -960,7 +967,9 @@ const PrimeDataTable = ({
   useEffect(() => {
     // Apply current filters to get filtered data for totals
     const filteredData = applyFiltersToData(tableData, filters);
-    setFilteredDataForTotals(filteredData);
+    // Ensure filtered data contains only valid objects
+    const validFilteredData = filteredData.filter(row => row && typeof row === 'object');
+    setFilteredDataForTotals(validFilteredData);
   }, [tableData, filters, applyFiltersToData]);
 
   // Calculate footer totals for numeric columns based on filtered data
@@ -974,6 +983,7 @@ const PrimeDataTable = ({
     defaultColumns.forEach(column => {
       if (column.type === 'number') {
         const values = filteredDataForTotals
+          .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
           .map(row => {
             const value = row[column.key];
             return typeof value === 'number' ? value : 0;
@@ -1352,7 +1362,9 @@ const PrimeDataTable = ({
               filteredRows = applyFiltersToData(tableData, e.filters);
             }
             
-            setFilteredDataForTotals(filteredRows);
+            // Ensure filtered rows are valid objects
+            const validFilteredRows = filteredRows.filter(row => row && typeof row === 'object');
+            setFilteredDataForTotals(validFilteredRows);
           }
         }}
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
