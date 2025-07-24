@@ -26,6 +26,50 @@ const getUniqueValues = (data, key) => {
   return [...new Set(data.map(row => row[key]).filter(val => val !== null && val !== undefined))];
 };
 
+/**
+ * PrimeDataTable Component with Configurable Column Filters
+ *
+ * Filter Configuration Props:
+ * - dropdownFilterColumns: Array of column keys that should use dropdown filters
+ *   Example: ["salesteam", "status", "category"]
+ *
+ * - datePickerFilterColumns: Array of column keys that should use date picker filters
+ *   Example: ["createdDate", "updatedDate", "dueDate"]
+ *
+ * - numberFilterColumns: Array of column keys that should use number filters
+ *   Example: ["amount", "quantity", "price"]
+ *
+ * - textFilterColumns: Array of column keys that should use text filters
+ *   Example: ["name", "description", "notes"]
+ *
+ * - booleanFilterColumns: Array of column keys that should use boolean filters
+ *   Example: ["isActive", "isCompleted", "isPublished"]
+ *
+ * - customFilterOptions: Object with column keys as keys and array of options as values
+ *   Example: {
+ *     "salesteam": [
+ *       { label: "All", value: null },
+ *       { label: "Team A", value: "team_a" },
+ *       { label: "Team B", value: "team_b" }
+ *     ]
+ *   }
+ *
+ * Usage Example:
+ * <PrimeDataTable
+ *   data={salesData}
+ *   dropdownFilterColumns={["salesteam", "status"]}
+ *   datePickerFilterColumns={["createdDate"]}
+ *   numberFilterColumns={["amount"]}
+ *   customFilterOptions={{
+ *     "salesteam": [
+ *       { label: "All Teams", value: null },
+ *       { label: "Sales Team A", value: "team_a" },
+ *       { label: "Sales Team B", value: "team_b" }
+ *     ]
+ *   }}
+ * />
+ */
+
 const PrimeDataTable = ({
   // Data props
   data = [],
@@ -35,6 +79,14 @@ const PrimeDataTable = ({
   fields = [],
   imageFields = [],
   popupImageFields = [],
+  
+  // Filter configuration props
+  dropdownFilterColumns = [], // Array of column keys that should use dropdown filters
+  datePickerFilterColumns = [], // Array of column keys that should use date picker filters
+  numberFilterColumns = [], // Array of column keys that should use number filters
+  textFilterColumns = [], // Array of column keys that should use text filters
+  booleanFilterColumns = [], // Array of column keys that should use boolean filters
+  customFilterOptions = {}, // Object with column keys as keys and array of options as values
   
   // GraphQL props
   graphqlQuery = null,
@@ -206,8 +258,83 @@ const PrimeDataTable = ({
 
   // Function to generate the correct filter UI for a column based on its type and data
   const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
-    // Get unique values for categorical detection
-    const uniqueValues = getUniqueValues(tableData, column.key);
+    const columnKey = column.key;
+    
+    // Check if column is explicitly configured for specific filter types
+    if (dropdownFilterColumns.includes(columnKey)) {
+      // Use custom options if provided, otherwise get unique values
+      const options = customFilterOptions[columnKey] || [
+        { label: 'All', value: null },
+        ...getUniqueValues(tableData, columnKey).map(val => ({ label: String(val), value: val }))
+      ];
+      
+      return (
+        <Dropdown
+          value={filterValue}
+          options={options}
+          onChange={(e) => filterCallback(e.value)}
+          placeholder="Select..."
+          className="p-column-filter"
+          showClear
+        />
+      );
+    }
+    
+    if (datePickerFilterColumns.includes(columnKey)) {
+      return (
+        <InputText
+          type="date"
+          value={filterValue || ''}
+          onChange={(e) => filterCallback(e.target.value || null)}
+          placeholder={`Filter ${column.title}...`}
+          className="p-column-filter"
+        />
+      );
+    }
+    
+    if (numberFilterColumns.includes(columnKey)) {
+      return (
+        <InputText
+          type="number"
+          value={filterValue || ''}
+          onChange={(e) => filterCallback(e.target.value || null)}
+          placeholder={`Filter ${column.title}...`}
+          className="p-column-filter"
+        />
+      );
+    }
+    
+    if (booleanFilterColumns.includes(columnKey)) {
+      const booleanOptions = [
+        { label: 'All', value: null },
+        { label: 'True', value: true },
+        { label: 'False', value: false }
+      ];
+      return (
+        <Dropdown
+          value={filterValue}
+          options={booleanOptions}
+          onChange={(e) => filterCallback(e.value)}
+          placeholder="Select..."
+          className="p-column-filter"
+          showClear
+        />
+      );
+    }
+    
+    if (textFilterColumns.includes(columnKey)) {
+      return (
+        <InputText
+          value={filterValue || ''}
+          onChange={(e) => filterCallback(e.target.value || null)}
+          placeholder={`Filter ${column.title}...`}
+          className="p-column-filter"
+        />
+      );
+    }
+
+    // Auto-detection logic (fallback when no explicit configuration)
+    const uniqueValues = getUniqueValues(tableData, columnKey);
     const isCategorical = (
       (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
       column.type === 'dropdown' ||
@@ -288,7 +415,7 @@ const PrimeDataTable = ({
           />
         );
     }
-  }, [tableData]);
+  }, [tableData, dropdownFilterColumns, datePickerFilterColumns, numberFilterColumns, textFilterColumns, booleanFilterColumns, customFilterOptions]);
 
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
@@ -881,25 +1008,41 @@ const PrimeDataTable = ({
   const generateFilterOptions = useCallback((column) => {
     if (!column.filterable || !enableColumnFilter) return undefined;
     
+    const columnKey = column.key;
+    
+    // Check if custom filter options are provided for this column
+    if (customFilterOptions[columnKey]) {
+      return customFilterOptions[columnKey];
+    }
+    
     // If column has predefined options, use them
     if (column.filterOptions) return column.filterOptions;
     
+    // Check if column is explicitly configured as dropdown
+    if (dropdownFilterColumns.includes(columnKey)) {
+      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+      return uniqueValues.map(value => ({
+        label: String(value),
+        value: value
+      }));
+    }
+    
     // For categorical columns, generate options from unique values
     if (column.isCategorical || column.type === 'select' || column.type === 'dropdown' || column.type === 'categorical') {
-      const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
       return uniqueValues.map(value => ({
-        label: value,
+        label: String(value),
         value: value
       }));
     }
     
     // Auto-detect categorical columns based on data analysis
-    const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+    const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
     
     // If column has limited unique values (categorical data)
     if (uniqueValues.length > 0 && uniqueValues.length <= 30) {
       return uniqueValues.map(value => ({
-        label: value,
+        label: String(value),
         value: value
       }));
     }
@@ -909,14 +1052,14 @@ const PrimeDataTable = ({
       const allStrings = uniqueValues.every(val => typeof val === 'string' && !isNaN(val) === false);
       if (allStrings) {
         return uniqueValues.map(value => ({
-          label: value,
+          label: String(value),
           value: value
         }));
       }
     }
     
     return undefined;
-  }, [tableData, enableColumnFilter]);
+  }, [tableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
@@ -1283,9 +1426,12 @@ const PrimeDataTable = ({
 
         {defaultColumns.map(column => {
           const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
-          // Categorical detection for filterMatchMode
-          const uniqueValues = getUniqueValues(tableData, column.key);
+          const columnKey = column.key;
+          
+          // Enhanced categorical detection including explicit configuration
+          const uniqueValues = getUniqueValues(tableData, columnKey);
           const isCategorical = (
+            dropdownFilterColumns.includes(columnKey) ||
             (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
             column.type === 'dropdown' ||
             column.type === 'select' ||
