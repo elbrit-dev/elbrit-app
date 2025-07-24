@@ -114,7 +114,6 @@ const PrimeDataTable = ({
   filterDisplay = "menu", // menu, row
   globalFilterFields = [],
   showFilterMatchModes = true,
-  filterMenuStyle = {},
   
   // Custom templates
   customTemplates = {},
@@ -619,7 +618,7 @@ const PrimeDataTable = ({
     }
   };
 
-  // Filter templates
+  // Filter templates - Using native PrimeReact design
   const filterClearTemplate = (options) => {
     if (!enableFilterClear) return null;
     return (
@@ -627,14 +626,7 @@ const PrimeDataTable = ({
         type="button"
         icon="pi pi-times"
         onClick={options.filterClearCallback}
-        severity="secondary"
-        className="p-button-sm p-button-text"
-        style={{
-          width: '28px',
-          height: '28px',
-          padding: '4px',
-          fontSize: '11px'
-        }}
+        className="p-button-text p-button-sm"
         tooltip="Clear filter"
         tooltipOptions={{ position: 'top' }}
       />
@@ -648,14 +640,7 @@ const PrimeDataTable = ({
         type="button"
         icon="pi pi-check"
         onClick={options.filterApplyCallback}
-        severity="success"
-        className="p-button-sm p-button-text"
-        style={{
-          width: '28px',
-          height: '28px',
-          padding: '4px',
-          fontSize: '11px'
-        }}
+        className="p-button-text p-button-sm"
         tooltip="Apply filter"
         tooltipOptions={{ position: 'top' }}
       />
@@ -665,14 +650,7 @@ const PrimeDataTable = ({
   const filterFooterTemplate = (column) => {
     if (!enableFilterFooter) return null;
     return (
-      <div style={{
-        padding: '6px 8px',
-        textAlign: 'center',
-        fontSize: '11px',
-        color: '#6b7280',
-        borderTop: '1px solid #f3f4f6',
-        backgroundColor: '#fafbfc'
-      }}>
+      <div className="p-column-filter-footer">
         Filter by {column.title}
       </div>
     );
@@ -895,11 +873,7 @@ const PrimeDataTable = ({
           rowStriped: {
             backgroundColor: '#374151'
           },
-          filter: {
-            backgroundColor: '#374151',
-            border: '1px solid #4b5563',
-            color: '#f9fafb'
-          },
+
           button: {
             backgroundColor: '#374151',
             color: '#f9fafb',
@@ -940,11 +914,7 @@ const PrimeDataTable = ({
           rowStriped: {
             backgroundColor: '#f9fafb'
           },
-          filter: {
-            backgroundColor: '#ffffff',
-            border: '1px solid #e5e7eb',
-            color: '#111827'
-          },
+
           button: {
             backgroundColor: '#ffffff',
             color: '#111827',
@@ -985,11 +955,7 @@ const PrimeDataTable = ({
           rowStriped: {
             backgroundColor: '#f9fafb'
           },
-          filter: {
-            backgroundColor: '#ffffff',
-            border: '1px solid #d1d5db',
-            color: '#111827'
-          },
+
           button: {
             backgroundColor: '#ffffff',
             color: '#111827',
@@ -1248,8 +1214,6 @@ const PrimeDataTable = ({
           '--header-bg': themeStyles.header.backgroundColor,
           '--header-color': themeStyles.header.color,
           '--header-border': themeStyles.header.borderBottom,
-          '--filter-bg': themeStyles.filter.backgroundColor,
-          '--filter-border': themeStyles.filter.border,
           '--row-bg': themeStyles.row.backgroundColor,
           '--row-hover-bg': themeStyles.rowHover.backgroundColor,
           '--row-striped-bg': themeStyles.rowStriped.backgroundColor
@@ -1265,7 +1229,6 @@ const PrimeDataTable = ({
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
-        filterMenuStyle={filterMenuStyle}
         headerColumnGroup={enableColumnGrouping ? (headerColumnGroup || generateColumnGroups()) : undefined}
         footerColumnGroup={enableColumnGrouping ? (footerColumnGroup || generateFooterGroups()) : undefined}
       >
@@ -1293,7 +1256,6 @@ const PrimeDataTable = ({
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              filterMenuStyle={filterMenuStyle}
               headerStyle={{
                 ...themeStyles.header,
                 ...column.headerStyle
