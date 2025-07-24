@@ -728,6 +728,38 @@ PLASMIC.registerComponent(PrimeDataTable, {
       defaultValue: []
     },
     
+    // Filter configuration props
+    dropdownFilterColumns: {
+      type: "object",
+      description: "Array of column keys that should use dropdown filters. Example: ['salesteam', 'status', 'category']",
+      defaultValue: []
+    },
+    datePickerFilterColumns: {
+      type: "object",
+      description: "Array of column keys that should use date picker filters. Example: ['createdDate', 'updatedDate', 'dueDate']",
+      defaultValue: []
+    },
+    numberFilterColumns: {
+      type: "object",
+      description: "Array of column keys that should use number filters. Example: ['amount', 'quantity', 'price']",
+      defaultValue: []
+    },
+    textFilterColumns: {
+      type: "object",
+      description: "Array of column keys that should use text filters. Example: ['name', 'description', 'notes']",
+      defaultValue: []
+    },
+    booleanFilterColumns: {
+      type: "object",
+      description: "Array of column keys that should use boolean filters. Example: ['isActive', 'isCompleted', 'isPublished']",
+      defaultValue: []
+    },
+    customFilterOptions: {
+      type: "object",
+      description: "Object with column keys as keys and array of filter options as values. Example: { 'salesteam': [{ label: 'All', value: null }, { label: 'Team A', value: 'team_a' }] }",
+      defaultValue: {}
+    },
+    
     // Advanced toggle features
     enableGlobalFilter: {
       type: "boolean",
