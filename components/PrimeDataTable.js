@@ -696,6 +696,28 @@ const PrimeDataTable = ({
       }));
     }
     
+    // Auto-detect categorical columns based on data analysis
+    const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+    
+    // If column has limited unique values (categorical data)
+    if (uniqueValues.length > 0 && uniqueValues.length <= 20) {
+      return uniqueValues.map(value => ({
+        label: value,
+        value: value
+      }));
+    }
+    
+    // If column has many unique values but they're all strings (not numbers), it might still be categorical
+    if (uniqueValues.length > 20 && uniqueValues.length <= 50) {
+      const allStrings = uniqueValues.every(val => typeof val === 'string' && !isNaN(val) === false);
+      if (allStrings) {
+        return uniqueValues.map(value => ({
+          label: value,
+          value: value
+        }));
+      }
+    }
+    
     return undefined;
   }, [tableData, enableColumnFilter]);
 
@@ -1070,6 +1092,23 @@ const PrimeDataTable = ({
                 if (column.isCategorical || column.uniqueValues) {
                   return 'dropdown';
                 }
+                
+                // Auto-detect categorical columns based on data analysis
+                const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
+                
+                // If column has limited unique values (categorical data)
+                if (uniqueValues.length > 0 && uniqueValues.length <= 20) {
+                  return 'dropdown';
+                }
+                
+                // If column has many unique values but they're all strings (not numbers), it might still be categorical
+                if (uniqueValues.length > 20 && uniqueValues.length <= 50) {
+                  const allStrings = uniqueValues.every(val => typeof val === 'string' && !isNaN(val) === false);
+                  if (allStrings) {
+                    return 'dropdown';
+                  }
+                }
+                
                 return 'text';
             }
           };
