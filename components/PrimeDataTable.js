@@ -680,6 +680,79 @@ const PrimeDataTable = ({
     setFilteredDataForTotals(tableData);
   }, [tableData]);
 
+  // Apply filters to data manually when PrimeReact doesn't provide filtered data
+  const applyFiltersToData = useCallback((data, filters) => {
+    if (!filters || Object.keys(filters).length === 0) return data;
+    
+    return data.filter(row => {
+      // Check global filter
+      if (filters.global && filters.global.value) {
+        const globalValue = filters.global.value.toLowerCase();
+        const globalMatch = defaultColumns.some(col => {
+          const cellValue = String(row[col.key] || '').toLowerCase();
+          return cellValue.includes(globalValue);
+        });
+        if (!globalMatch) return false;
+      }
+      
+      // Check column filters
+      for (const [columnKey, filterConfig] of Object.entries(filters)) {
+        if (columnKey === 'global') continue;
+        
+        const cellValue = row[columnKey];
+        if (cellValue === null || cellValue === undefined) continue;
+        
+        // Handle advanced filter structure
+        if (filterConfig.operator && filterConfig.constraints) {
+          const constraintResults = filterConfig.constraints.map(constraint => {
+            if (!constraint.value) return true;
+            
+            const constraintValue = constraint.value;
+            const matchMode = constraint.matchMode || FilterMatchMode.CONTAINS;
+            
+            return matchFilterValue(cellValue, constraintValue, matchMode);
+          });
+          
+          const result = filterConfig.operator === FilterOperator.AND 
+            ? constraintResults.every(Boolean)
+            : constraintResults.some(Boolean);
+            
+          if (!result) return false;
+        } else {
+          // Handle simple filter structure
+          if (filterConfig.value) {
+            const matchMode = filterConfig.matchMode || FilterMatchMode.CONTAINS;
+            if (!matchFilterValue(cellValue, filterConfig.value, matchMode)) {
+              return false;
+            }
+          }
+        }
+      }
+      
+      return true;
+    });
+  }, [defaultColumns]);
+
+  // Helper function to match filter values
+  const matchFilterValue = (cellValue, filterValue, matchMode) => {
+    const cellStr = String(cellValue).toLowerCase();
+    const filterStr = String(filterValue).toLowerCase();
+    
+    switch (matchMode) {
+      case FilterMatchMode.STARTS_WITH:
+        return cellStr.startsWith(filterStr);
+      case FilterMatchMode.ENDS_WITH:
+        return cellStr.endsWith(filterStr);
+      case FilterMatchMode.EQUALS:
+        return cellStr === filterStr;
+      case FilterMatchMode.NOT_EQUALS:
+        return cellStr !== filterStr;
+      case FilterMatchMode.CONTAINS:
+      default:
+        return cellStr.includes(filterStr);
+    }
+  };
+
   // Generate filter options for categorical columns
   const generateFilterOptions = useCallback((column) => {
     if (!column.filterable || !enableColumnFilter) return undefined;
@@ -998,7 +1071,22 @@ const PrimeDataTable = ({
         onFilter={(e) => {
           if (enableFooterTotals) {
             // Get the filtered data from PrimeReact
-            const filteredRows = e.filteredValue || e.value || tableData;
+            // Try different properties that might contain the filtered data
+            let filteredRows = tableData;
+            
+            if (e.filteredValue && Array.isArray(e.filteredValue)) {
+              filteredRows = e.filteredValue;
+            } else if (e.value && Array.isArray(e.value)) {
+              filteredRows = e.value;
+            } else if (e.data && Array.isArray(e.data)) {
+              filteredRows = e.data;
+            }
+            
+            // If we still don't have filtered data, apply filters manually
+            if (filteredRows === tableData && e.filters) {
+              filteredRows = applyFiltersToData(tableData, e.filters);
+            }
+            
             setFilteredDataForTotals(filteredRows);
           }
           handleFilter(e);
