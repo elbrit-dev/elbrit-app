@@ -1,4 +1,75 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+// Helper to get unique values for a column
+const getUniqueValues = (data, key) => {
+  return [...new Set(data.map(row => row[key]).filter(val => val !== null && val !== undefined))];
+};
+
+// Function to generate the correct filter UI for a column
+const getColumnFilterElement = (column, tableData, filterValue, filterCallback) => {
+  switch (column.type) {
+    case 'number':
+      return (
+        <InputText
+          type="number"
+          value={filterValue || ''}
+          onChange={e => filterCallback(e.target.value)}
+          placeholder={`Filter ${column.title}...`}
+        />
+      );
+    case 'boolean':
+      return (
+        <div>
+          <Checkbox
+            inputId={`${column.key}-true`}
+            checked={filterValue === true}
+            onChange={e => filterCallback(e.checked ? true : null)}
+          />
+          <label htmlFor={`${column.key}-true`} style={{ marginLeft: 4, marginRight: 8 }}>True</label>
+          <Checkbox
+            inputId={`${column.key}-false`}
+            checked={filterValue === false}
+            onChange={e => filterCallback(e.checked ? false : null)}
+          />
+          <label htmlFor={`${column.key}-false`} style={{ marginLeft: 4 }}>False</label>
+        </div>
+      );
+    case 'date':
+    case 'datetime':
+      return (
+        <InputText
+          type="date"
+          value={filterValue || ''}
+          onChange={e => filterCallback(e.target.value)}
+          placeholder={`Filter ${column.title}...`}
+        />
+      );
+    default:
+      // For categorical columns, use dropdown
+      const uniqueValues = getUniqueValues(tableData, column.key);
+      if ((uniqueValues.length > 0 && uniqueValues.length <= 20) || column.type === 'dropdown' || column.type === 'select' || column.isCategorical) {
+        return (
+          <select
+            value={filterValue || ''}
+            onChange={e => filterCallback(e.target.value || null)}
+            style={{ width: '100%' }}
+          >
+            <option value="">All</option>
+            {uniqueValues.map(val => (
+              <option key={val} value={val}>{val}</option>
+            ))}
+          </select>
+        );
+      }
+      // Default: text input
+      return (
+        <InputText
+          value={filterValue || ''}
+          onChange={e => filterCallback(e.target.value)}
+          placeholder={`Filter ${column.title}...`}
+        />
+      );
+  }
+};
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { ColumnGroup } from 'primereact/columngroup';
@@ -12,8 +83,6 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { ContextMenu } from 'primereact/contextmenu';
-
-
 
 import { 
   RefreshCw,
@@ -1158,58 +1227,19 @@ const PrimeDataTable = ({
 
         {defaultColumns.map(column => {
           const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
-          
-          // Determine filter type based on column type
-          const getFilterType = () => {
-            if (!column.filterable || !enableColumnFilter) return false;
-            
-            switch (column.type) {
-              case 'date':
-              case 'datetime':
-                return 'date';
-              case 'number':
-                return 'numeric';
-              case 'boolean':
-                return 'boolean';
-              case 'select':
-              case 'dropdown':
-              case 'categorical':
-                return 'dropdown';
-              default:
-                // For string/text columns, check if it has limited unique values (categorical)
-                if (column.isCategorical || column.uniqueValues) {
-                  return 'dropdown';
-                }
-                
-                // Auto-detect categorical columns based on data analysis
-                const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
-                
-                // If column has limited unique values (categorical data)
-                if (uniqueValues.length > 0 && uniqueValues.length <= 20) {
-                  return 'dropdown';
-                }
-                
-                // If column has many unique values but they're all strings (not numbers), it might still be categorical
-                if (uniqueValues.length > 20 && uniqueValues.length <= 50) {
-                  const allStrings = uniqueValues.every(val => typeof val === 'string' && !isNaN(val) === false);
-                  if (allStrings) {
-                    return 'dropdown';
-                  }
-                }
-                
-                return 'text';
-            }
-          };
-          
-          const filterType = getFilterType();
-          
           return (
             <Column
               key={column.key}
               field={column.key}
               header={column.title}
               sortable={column.sortable && enableSorting}
-              filter={filterType}
+              filter={column.filterable && enableColumnFilter}
+              filterElement={(options) => getColumnFilterElement(
+                column,
+                tableData,
+                options.value,
+                options.filterCallback
+              )}
               filterPlaceholder={`Filter ${column.title}...`}
               filterClear={enableFilterClear ? filterClearTemplate : undefined}
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
