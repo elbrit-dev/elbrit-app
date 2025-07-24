@@ -62,6 +62,33 @@ a {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  background: var(--primary-color, #3b82f6);
+  border: 1px solid var(--primary-color, #3b82f6);
+  color: var(--primary-color-text, #ffffff);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  line-height: 1;
+}
+
+.p-button:hover {
+  background: var(--primary-600, #2563eb);
+  border-color: var(--primary-600, #2563eb);
+  color: var(--primary-color-text, #ffffff);
+}
+
+.p-button:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--primary-200, #bfdbfe);
+}
+
+.p-button:active {
+  background: var(--primary-700, #1d4ed8);
+  border-color: var(--primary-700, #1d4ed8);
 }
 
 /* Ensure proper input styling */
@@ -187,6 +214,40 @@ a {
 /* Fix button spacing */
 .p-button + .p-button {
   margin-left: 0.5rem;
+}
+
+/* Button variants */
+.p-button.p-button-outlined {
+  background: transparent;
+  color: var(--primary-color, #3b82f6);
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.p-button.p-button-outlined:hover {
+  background: var(--primary-color, #3b82f6);
+  color: var(--primary-color-text, #ffffff);
+}
+
+.p-button.p-button-text {
+  background: transparent;
+  color: var(--primary-color, #3b82f6);
+  border-color: transparent;
+}
+
+.p-button.p-button-text:hover {
+  background: var(--primary-50, #eff6ff);
+  color: var(--primary-color, #3b82f6);
+}
+
+/* Button sizes */
+.p-button.p-button-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.75rem;
+}
+
+.p-button.p-button-lg {
+  padding: 1rem 2rem;
+  font-size: 1rem;
 }
 
 /* Fix input spacing */
