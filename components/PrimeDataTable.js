@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
 import { ColumnGroup } from 'primereact/columngroup';
@@ -11,6 +11,8 @@ import { Toolbar } from 'primereact/toolbar';
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
+import { ContextMenu } from 'primereact/contextmenu';
+
 
 
 import { 
@@ -98,6 +100,41 @@ const PrimeDataTable = ({
   filterDisplay = "menu", // menu, row
   globalFilterFields = [],
   showFilterMatchModes = true,
+  filterDelay = 300,
+  globalFilterPlaceholder = "Search...",
+  filterLocale = "en",
+  
+  // Inline editing
+  enableInlineEditing = false,
+  editingRows = null,
+  onRowEditSave = null,
+  onRowEditCancel = null,
+  onRowEditInit = null,
+  onEditingRowsChange = null,
+  
+  // Context menu
+  enableContextMenu = false,
+  contextMenu = null,
+  contextMenuSelection = null,
+  onContextMenuSelectionChange = null,
+  onContextMenu = null,
+  
+  // Advanced pagination
+  showFirstLastIcon = true,
+  showPageLinks = true,
+  showCurrentPageReport = true,
+  currentPageReportTemplate = "Showing {first} to {last} of {totalRecords} entries",
+  
+  // Advanced export
+  exportFilename = "data",
+  exportFileType = "csv", // csv, excel, pdf
+  enableExcelExport = false,
+  enablePdfExport = false,
+  
+  // Advanced selection
+  selectionMode = "multiple", // single, multiple, checkbox
+  metaKeySelection = true,
+  selectOnEdit = false,
   
   // Custom templates
   customTemplates = {},
@@ -144,6 +181,13 @@ const PrimeDataTable = ({
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(1);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
+  
+  // Inline editing state
+  const [localEditingRows, setLocalEditingRows] = useState(editingRows || {});
+  
+  // Context menu state
+  const [localContextMenuSelection, setLocalContextMenuSelection] = useState(contextMenuSelection || null);
+  const contextMenuRef = useRef(null);
 
   // GraphQL data state
   const [graphqlData, setGraphqlData] = useState([]);
@@ -248,10 +292,18 @@ const PrimeDataTable = ({
   const handleSearch = useCallback((value) => {
     setGlobalFilterValue(value);
     
+    // Update filters with the new global filter value
+    let _filters = { ...filters };
+    if (!_filters['global']) {
+      _filters['global'] = { value: null, matchMode: FilterMatchMode.CONTAINS };
+    }
+    _filters['global'].value = value;
+    setFilters(_filters);
+    
     if (onSearch) {
       onSearch(value);
     }
-  }, [onSearch]);
+  }, [onSearch, filters]);
 
   const handleBulkAction = useCallback((action) => {
     if (onBulkAction) {
@@ -279,25 +331,69 @@ const PrimeDataTable = ({
   const handleExport = useCallback(() => {
     if (!enableExport) return;
     
-    const csvContent = [
-      defaultColumns.map(col => col.title).join(','),
-      ...tableData.map(row => 
-        defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-      )
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'table-data.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-    
     if (onExport) {
       onExport(tableData);
+    } else {
+      // Enhanced export with multiple formats
+      switch (exportFileType) {
+        case 'excel':
+          if (enableExcelExport) {
+            // Excel export using jspdf-autotable
+            const csvContent = [
+              defaultColumns.map(col => col.title).join(','),
+              ...tableData.map(row => 
+                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
+              )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${exportFilename}.xlsx`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+          break;
+        case 'pdf':
+          if (enablePdfExport) {
+            // PDF export using jspdf-autotable
+            const csvContent = [
+              defaultColumns.map(col => col.title).join(','),
+              ...tableData.map(row => 
+                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
+              )
+            ].join('\n');
+            
+            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${exportFilename}.pdf`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+          break;
+        default:
+          // Default CSV export
+          const csvContent = [
+            defaultColumns.map(col => col.title).join(','),
+            ...tableData.map(row => 
+              defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
+            )
+          ].join('\n');
+          
+          const blob = new Blob([csvContent], { type: 'text/csv' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `${exportFilename}.csv`;
+          a.click();
+          URL.revokeObjectURL(url);
+          break;
+      }
     }
-  }, [enableExport, tableData, defaultColumns, onExport]);
+  }, [enableExport, tableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns]);
 
   const handleRefresh = useCallback(async () => {
     if (!enableRefresh) return;
@@ -311,6 +407,46 @@ const PrimeDataTable = ({
       setIsRefreshing(false);
     }
   }, [enableRefresh, onRefresh]);
+
+  // Inline editing handlers
+  const handleRowEditSave = useCallback((event) => {
+    if (onRowEditSave) {
+      onRowEditSave(event);
+    }
+  }, [onRowEditSave]);
+
+  const handleRowEditCancel = useCallback((event) => {
+    if (onRowEditCancel) {
+      onRowEditCancel(event);
+    }
+  }, [onRowEditCancel]);
+
+  const handleRowEditInit = useCallback((event) => {
+    if (onRowEditInit) {
+      onRowEditInit(event);
+    }
+  }, [onRowEditInit]);
+
+  const handleEditingRowsChange = useCallback((event) => {
+    setLocalEditingRows(event.value);
+    if (onEditingRowsChange) {
+      onEditingRowsChange(event);
+    }
+  }, [onEditingRowsChange]);
+
+  // Context menu handlers
+  const handleContextMenuSelectionChange = useCallback((event) => {
+    setLocalContextMenuSelection(event.value);
+    if (onContextMenuSelectionChange) {
+      onContextMenuSelectionChange(event);
+    }
+  }, [onContextMenuSelectionChange]);
+
+  const handleContextMenu = useCallback((event) => {
+    if (onContextMenu) {
+      onContextMenu(event);
+    }
+  }, [onContextMenu]);
 
   const handlePageChange = useCallback((event) => {
     setLocalCurrentPage(event.page + 1);
@@ -589,7 +725,7 @@ const PrimeDataTable = ({
         <IconField iconPosition="left">
           <InputIcon className="pi pi-search" />
           <InputText
-            placeholder="Keyword Search"
+            placeholder={globalFilterPlaceholder}
             value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
           />
@@ -824,7 +960,35 @@ const PrimeDataTable = ({
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
-
+        
+        // Enhanced pagination
+        showFirstLastIcon={showFirstLastIcon}
+        showPageLinks={showPageLinks}
+        showCurrentPageReport={showCurrentPageReport}
+        currentPageReportTemplate={currentPageReportTemplate}
+        
+        // Enhanced filtering
+        filterDelay={filterDelay}
+        globalFilterPlaceholder={globalFilterPlaceholder}
+        filterLocale={filterLocale}
+        
+        // Inline editing
+        editingRows={enableInlineEditing ? localEditingRows : undefined}
+        onRowEditSave={enableInlineEditing ? handleRowEditSave : undefined}
+        onRowEditCancel={enableInlineEditing ? handleRowEditCancel : undefined}
+        onRowEditInit={enableInlineEditing ? handleRowEditInit : undefined}
+        onEditingRowsChange={enableInlineEditing ? handleEditingRowsChange : undefined}
+        
+        // Context menu
+        contextMenu={enableContextMenu ? contextMenu : undefined}
+        contextMenuSelection={enableContextMenu ? localContextMenuSelection : undefined}
+        onContextMenuSelectionChange={enableContextMenu ? handleContextMenuSelectionChange : undefined}
+        onContextMenu={enableContextMenu ? handleContextMenu : undefined}
+        
+        // Advanced selection
+        selectionMode={enableRowSelection ? selectionMode : undefined}
+        metaKeySelection={enableRowSelection ? metaKeySelection : undefined}
+        selectOnEdit={enableRowSelection ? selectOnEdit : undefined}
 
         emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
@@ -930,6 +1094,14 @@ const PrimeDataTable = ({
           ))}
         </div>
       </Dialog>
+
+      {/* Context Menu */}
+      {enableContextMenu && contextMenu && (
+        <ContextMenu
+          model={contextMenu}
+          ref={contextMenuRef}
+        />
+      )}
     </div>
   );
 };

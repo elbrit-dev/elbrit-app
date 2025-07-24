@@ -873,6 +873,181 @@ PLASMIC.registerComponent(PrimeDataTable, {
         currency: 'USD',
         precision: 2
       }
+    },
+    
+    // Advanced filter options
+    filterDelay: {
+      type: "number",
+      description: "Delay in milliseconds before applying filter",
+      defaultValue: 300
+    },
+    globalFilterPlaceholder: {
+      type: "string",
+      description: "Placeholder text for global search input",
+      defaultValue: "Search..."
+    },
+    filterLocale: {
+      type: "string",
+      description: "Locale for filter formatting",
+      defaultValue: "en"
+    },
+    
+    // Inline editing
+    enableInlineEditing: {
+      type: "boolean",
+      description: "Enable inline row editing",
+      defaultValue: false
+    },
+    editingRows: {
+      type: "object",
+      description: "Currently editing rows",
+      defaultValue: null
+    },
+    onRowEditSave: {
+      type: "eventHandler",
+      description: "Called when row edit is saved",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Row edit save event"
+        }
+      ]
+    },
+    onRowEditCancel: {
+      type: "eventHandler",
+      description: "Called when row edit is cancelled",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Row edit cancel event"
+        }
+      ]
+    },
+    onRowEditInit: {
+      type: "eventHandler",
+      description: "Called when row edit is initialized",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Row edit init event"
+        }
+      ]
+    },
+    onEditingRowsChange: {
+      type: "eventHandler",
+      description: "Called when editing rows change",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Editing rows change event"
+        }
+      ]
+    },
+    
+    // Context menu
+    enableContextMenu: {
+      type: "boolean",
+      description: "Enable context menu on right-click",
+      defaultValue: false
+    },
+    contextMenu: {
+      type: "object",
+      description: "Context menu items configuration",
+      defaultValue: null
+    },
+    contextMenuSelection: {
+      type: "object",
+      description: "Currently selected context menu item",
+      defaultValue: null
+    },
+    onContextMenuSelectionChange: {
+      type: "eventHandler",
+      description: "Called when context menu selection changes",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Context menu selection change event"
+        }
+      ]
+    },
+    onContextMenu: {
+      type: "eventHandler",
+      description: "Called when context menu is triggered",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Context menu event"
+        }
+      ]
+    },
+    
+    // Advanced pagination
+    showFirstLastIcon: {
+      type: "boolean",
+      description: "Show first/last page icons in pagination",
+      defaultValue: true
+    },
+    showPageLinks: {
+      type: "boolean",
+      description: "Show page number links in pagination",
+      defaultValue: true
+    },
+    showCurrentPageReport: {
+      type: "boolean",
+      description: "Show current page report in pagination",
+      defaultValue: true
+    },
+    currentPageReportTemplate: {
+      type: "string",
+      description: "Template for current page report",
+      defaultValue: "Showing {first} to {last} of {totalRecords} entries"
+    },
+    
+    // Advanced export
+    exportFilename: {
+      type: "string",
+      description: "Filename for exported data",
+      defaultValue: "data"
+    },
+    exportFileType: {
+      type: "choice",
+      options: ["csv", "excel", "pdf"],
+      description: "File type for export",
+      defaultValue: "csv"
+    },
+    enableExcelExport: {
+      type: "boolean",
+      description: "Enable Excel export functionality",
+      defaultValue: false
+    },
+    enablePdfExport: {
+      type: "boolean",
+      description: "Enable PDF export functionality",
+      defaultValue: false
+    },
+    
+    // Advanced selection
+    selectionMode: {
+      type: "choice",
+      options: ["single", "multiple", "checkbox"],
+      description: "Selection mode for rows",
+      defaultValue: "multiple"
+    },
+    metaKeySelection: {
+      type: "boolean",
+      description: "Enable meta key selection",
+      defaultValue: true
+    },
+    selectOnEdit: {
+      type: "boolean",
+      description: "Select row when editing",
+      defaultValue: false
     }
   },
   
