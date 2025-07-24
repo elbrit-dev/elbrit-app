@@ -12,10 +12,6 @@ import { FilterMatchMode, FilterOperator } from 'primereact/api';
 import { IconField } from 'primereact/iconfield';
 import { InputIcon } from 'primereact/inputicon';
 import { ContextMenu } from 'primereact/contextmenu';
-import { Dropdown } from 'primereact/dropdown';
-import { Calendar } from 'primereact/calendar';
-import { MultiSelect } from 'primereact/multiselect';
-import { InputNumber } from 'primereact/inputnumber';
 
 
 
@@ -258,48 +254,15 @@ const PrimeDataTable = ({
     
     defaultColumns.forEach(col => {
       if (col.filterable && enableColumnFilter) {
-        const filterType = getFilterType(col);
-        
-        switch (filterType) {
-          case 'date':
-            initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.DATE_IS }] 
-            };
-            break;
-            
-          case 'number':
-            initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
-            };
-            break;
-            
-          case 'boolean':
-            initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.EQUALS }] 
-            };
-            break;
-            
-          case 'categorical':
-            initialFilters[col.key] = { 
-              operator: FilterOperator.OR, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.IN }] 
-            };
-            break;
-            
-          default: // text
-            initialFilters[col.key] = { 
-              operator: FilterOperator.AND, 
-              constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
-            };
-            break;
-        }
+        // Use advanced filter structure for all columns to match official PrimeReact design
+        initialFilters[col.key] = { 
+          operator: FilterOperator.AND, 
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+        };
       }
     });
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue, getFilterType]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue]);
 
   // Debug customFormatters
   useEffect(() => {
@@ -717,123 +680,6 @@ const PrimeDataTable = ({
     setFilteredDataForTotals(tableData);
   }, [tableData]);
 
-  // Intelligent filter type detection
-  const getFilterType = useCallback((column) => {
-    // If column has explicit filter type, use it
-    if (column.filterType) {
-      return column.filterType;
-    }
-
-    // Detect based on column type
-    if (column.type === 'date' || column.type === 'datetime') {
-      return 'date';
-    }
-    
-    if (column.type === 'number') {
-      return 'number';
-    }
-    
-    if (column.type === 'boolean') {
-      return 'boolean';
-    }
-
-    // Detect categorical data (like Sales Team) - if unique values are less than 20
-    const uniqueValues = [...new Set(tableData.map(row => row[column.key]).filter(val => val !== null && val !== undefined))];
-    if (uniqueValues.length <= 20 && uniqueValues.length > 1) {
-      return 'categorical';
-    }
-
-    // Default to text filter
-    return 'text';
-  }, [tableData]);
-
-  // Get unique values for categorical filters
-  const getUniqueValues = useCallback((columnKey) => {
-    return [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))].sort();
-  }, [tableData]);
-
-  // Generate filter element based on type
-  const generateFilterElement = useCallback((column) => {
-    const filterType = getFilterType(column);
-    
-    switch (filterType) {
-      case 'date':
-        return function DateFilter(options) {
-          return (
-            <Calendar
-              value={options.value}
-              onChange={(e) => options.filterCallback(e.value)}
-              dateFormat="dd/mm/yy"
-              placeholder="Select Date"
-              showClear
-            />
-          );
-        };
-        
-      case 'number':
-        return function NumberFilter(options) {
-          return (
-            <InputNumber
-              value={options.value}
-              onChange={(e) => options.filterCallback(e.value)}
-              placeholder="Enter number"
-              showButtons
-              buttonLayout="horizontal"
-              spinnerMode="horizontal"
-              step={1}
-              decrementButtonClassName="p-button-secondary"
-              incrementButtonClassName="p-button-secondary"
-              incrementButtonIcon="pi pi-plus"
-              decrementButtonIcon="pi pi-minus"
-            />
-          );
-        };
-        
-      case 'boolean':
-        return function BooleanFilter(options) {
-          return (
-            <Dropdown
-              value={options.value}
-              onChange={(e) => options.filterCallback(e.value)}
-              options={[
-                { label: 'All', value: null },
-                { label: 'Yes', value: true },
-                { label: 'No', value: false }
-              ]}
-              placeholder="Select"
-              showClear
-            />
-          );
-        };
-        
-      case 'categorical':
-        const uniqueValues = getUniqueValues(column.key);
-        return function CategoricalFilter(options) {
-          return (
-            <Dropdown
-              value={options.value}
-              onChange={(e) => options.filterCallback(e.value)}
-              options={uniqueValues.map(val => ({ label: val, value: val }))}
-              placeholder="Select value"
-              showClear
-            />
-          );
-        };
-        
-      default: // text
-        return function TextFilter(options) {
-          return (
-            <InputText
-              value={options.value}
-              onChange={(e) => options.filterCallback(e.target.value)}
-              placeholder={`Search ${column.title}...`}
-              className="p-column-filter"
-            />
-          );
-        };
-    }
-  }, [getFilterType, getUniqueValues]);
-
   // Footer template for column totals
   const footerTemplate = (column) => {
     if (!enableFooterTotals || column.type !== 'number') return null;
@@ -1197,7 +1043,6 @@ const PrimeDataTable = ({
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
               showFilterMatchModes={enableFilterMatchModes}
-              filterElement={column.filterable && enableColumnFilter ? generateFilterElement(column) : undefined}
 
               body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                     column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
