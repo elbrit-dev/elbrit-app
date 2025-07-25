@@ -280,6 +280,86 @@ a {
   animation: spin 1s linear infinite;
 }
 
+/* ✨ Organized PrimeReact Filter Panel Styling ✨ */
+
+.p-column-filter-menu {
+  padding: 1rem;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Match mode & rules area */
+.p-column-filter-menu .p-column-filter-constraint {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.p-column-filter-menu .p-column-filter-operator {
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+/* Input dropdown / calendar / text */
+.p-column-filter-menu .p-dropdown,
+.p-column-filter-menu .p-inputtext,
+.p-column-filter-menu .p-calendar,
+.p-column-filter-menu .p-inputnumber {
+  min-width: 100%;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* Rule control buttons */
+.p-column-filter-menu .p-column-filter-add-rule {
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+.p-column-filter-menu .p-column-filter-remove-rule {
+  margin-top: 0.25rem;
+  align-self: flex-end;
+}
+
+/* Better spacing between rule blocks */
+.p-column-filter-menu .p-column-filter-constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+/* Fix dropdown list height + spacing */
+.p-dropdown-panel .p-dropdown-items {
+  max-height: 200px;
+  padding: 0.5rem;
+}
+
+.p-dropdown-item {
+  padding: 0.5rem 0.75rem;
+  border-radius: 4px;
+}
+
+.p-dropdown-item:hover {
+  background-color: #f3f4f6;
+}
+
+/* Clean separator under 'Match All' */
+.p-column-filter-operator + .p-column-filter-constraints::before {
+  content: "";
+  display: block;
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0.25rem 0 0.5rem;
+}
+
 
 /* Enhanced PrimeDataTable styles - REMOVED CUSTOM OVERRIDES */
 /* Native PrimeReact theme will be used instead */
