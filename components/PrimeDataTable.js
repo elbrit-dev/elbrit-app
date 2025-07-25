@@ -1093,11 +1093,10 @@ const PrimeDataTable = ({
     
     if (total === undefined && average === undefined && count === undefined) return null;
     
-    const formatNumber = (value) => {
+    const formatNumber = (value, column) => {
       if (typeof value !== 'number') return '';
-      
-      // Check if it's currency
-      if (column.isCurrency || column.key.toLowerCase().includes('price') || column.key.toLowerCase().includes('cost') || column.key.toLowerCase().includes('amount')) {
+
+      if (currencyColumns.includes(column.key)) {
         return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
           style: 'currency',
           currency: footerTotalsConfig.currency,
@@ -1105,13 +1104,13 @@ const PrimeDataTable = ({
           maximumFractionDigits: footerTotalsConfig.precision
         }).format(value);
       }
-      
-      // Regular number formatting
+
       return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
         minimumFractionDigits: footerTotalsConfig.precision,
         maximumFractionDigits: footerTotalsConfig.precision
       }).format(value);
     };
+
     
     return (
       <div>
