@@ -223,8 +223,7 @@ const PrimeDataTable = ({
     numberFormat: 'en-US',
     currency: 'USD',
     precision: 2
-  },
-  currencyColumns = [] // Array of column keys that should be formatted as currency in footer totals
+  }
 }) => {
   // Local state
   const [selectedRows, setSelectedRows] = useState([]);
