@@ -847,28 +847,6 @@ PLASMIC.registerComponent(PrimeDataTable, {
       defaultValue: false
     },
 
-    enableFooterTotals: {
-      type: "boolean",
-      description: "Enable footer totals for numeric columns",
-      defaultValue: false
-    },
-    footerTotalsConfig: {
-      type: "object",
-      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
-      defaultValue: {
-        showTotals: true,
-        showAverages: false,
-        showCounts: true,
-        numberFormat: 'en-US',
-        currency: 'USD',
-        precision: 2
-      }
-    },
-    currencyColumns: {
-      type: "object",
-      description: "Array of column keys to be formatted as currency in footer totals",
-      defaultValue: []
-    },
 
     
     // Advanced filter options
