@@ -1116,10 +1116,10 @@ const PrimeDataTable = ({
     return (
       <div>
         {footerTotalsConfig.showTotals && total !== undefined && (
-          <div>Total: {formatNumber(total)}</div>
+          <div>Total: {formatNumber(total, column)}</div> // ✅ pass column
         )}
         {footerTotalsConfig.showAverages && average !== undefined && (
-          <div>Avg: {formatNumber(average)}</div>
+          <div>Avg: {formatNumber(average, column)}</div> // ✅ pass column
         )}
         {footerTotalsConfig.showCounts && count !== undefined && (
           <div>Count: {count}</div>
