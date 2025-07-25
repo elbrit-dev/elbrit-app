@@ -483,13 +483,31 @@ const PrimeDataTable = ({
 
   const clearAllFilters = useCallback(() => {
     setGlobalFilterValue("");
+    
+    // Reset all filters to default state
     const clearedFilters = {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     };
+    
+    // Reset column filters to default state
+    defaultColumns.forEach(col => {
+      if (col.filterable && enableColumnFilter) {
+        clearedFilters[col.key] = { 
+          operator: FilterOperator.AND, 
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+        };
+      }
+    });
+    
     setFilters(clearedFilters);
     setSortField(null);
     setSortOrder(1);
-  }, []);
+    
+    // Clear filtered data for totals
+    if (enableFooterTotals) {
+      setFilteredDataForTotals(tableData.filter(row => row && typeof row === 'object'));
+    }
+  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData]);
 
   const handleRowSelect = useCallback((event) => {
     setSelectedRows(event.value);
@@ -1114,6 +1132,18 @@ const PrimeDataTable = ({
           label="Columns"
           onClick={() => setShowColumnManager(!showColumnManager)}
           className="p-button-outlined p-button-sm"
+        />
+      )}
+
+      {/* Clear Filters Button - Always show when column filtering is enabled */}
+      {enableColumnFilter && (
+        <Button
+          icon="pi pi-filter-slash"
+          label="Clear Filters"
+          onClick={clearAllFilters}
+          className="p-button-outlined p-button-warning p-button-sm"
+          tooltip="Clear all column filters and search"
+          tooltipOptions={{ position: 'top' }}
         />
       )}
 
