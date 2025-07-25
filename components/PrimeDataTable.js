@@ -263,128 +263,99 @@ const PrimeDataTable = ({
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
+  const getColumnType = (column) => {
+    const key = column.key;
+
+    if (dropdownFilterColumns?.includes(key)) return 'dropdown';
+    if (numberFilterColumns?.includes(key)) return 'number';
+    if (datePickerFilterColumns?.includes(key)) return 'date';
+    if (booleanFilterColumns?.includes(key)) return 'boolean';
+    if (textFilterColumns?.includes(key)) return 'text';
+
+    return column.type || 'text'; // fallback
+  };
+
   // Function to generate the correct filter UI for a column based on its type and data
   const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
+    const columnType = getColumnType(column);
     const columnKey = column.key;
 
-    // 1. Dropdown
-    if (dropdownFilterColumns.includes(columnKey)) {
-      const options = customFilterOptions[columnKey] || [
-        { label: 'All', value: null },
-        ...getUniqueValues(tableData, columnKey).map(val => ({ label: String(val), value: val }))
-      ];
+    switch (columnType) {
+      case 'dropdown':
+      case 'select':
+      case 'categorical': {
+        const uniqueValues = getUniqueValues(tableData, columnKey);
+        const options = [
+          { label: 'All', value: null },
+          ...uniqueValues.map(val => ({ label: String(val), value: val }))
+        ];
+        return (
+          <Dropdown
+            value={filterValue}
+            options={options}
+            onChange={(e) => filterCallback(e.value)}
+            placeholder="Select..."
+            className="p-column-filter"
+            showClear
+          />
+        );
+      }
 
-      return (
-        <Dropdown
-          value={filterValue}
-          options={options}
-          onChange={(e) => filterCallback(e.value)}
-          placeholder="Select..."
-          className="p-column-filter"
-          showClear
-        />
-      );
+      case 'date':
+      case 'datetime':
+        return (
+          <Calendar
+            value={filterValue || null}
+            onChange={(e) => filterCallback(e.value)}
+            placeholder="Select date range"
+            className="p-column-filter"
+            dateFormat="yy-mm-dd"
+            selectionMode="range"
+            showIcon
+          />
+        );
+
+      case 'number':
+        return (
+          <InputNumber
+            value={filterValue || null}
+            onValueChange={(e) => filterCallback(e.value)}
+            placeholder={`Enter ${column.title}`}
+            className="p-column-filter"
+            inputStyle={{ width: '100%' }}
+          />
+        );
+
+      case 'boolean':
+        return (
+          <Dropdown
+            value={filterValue}
+            options={[
+              { label: 'All', value: null },
+              { label: 'True', value: true },
+              { label: 'False', value: false }
+            ]}
+            onChange={(e) => filterCallback(e.value)}
+            placeholder="Select..."
+            className="p-column-filter"
+            showClear
+          />
+        );
+
+      default:
+        return (
+          <InputText
+            value={filterValue || ''}
+            onChange={(e) => filterCallback(e.target.value || null)}
+            placeholder={`Filter ${column.title}...`}
+            className="p-column-filter"
+          />
+        );
     }
+  }, [tableData, dropdownFilterColumns, datePickerFilterColumns, numberFilterColumns, textFilterColumns, booleanFilterColumns]);
 
-    // 2. Date
-    if (datePickerFilterColumns.includes(columnKey) || column.type === 'date' || column.type === 'datetime') {
-      return (
-        <Calendar
-          value={filterValue || null}
-          onChange={(e) => filterCallback(e.value)}
-          placeholder="Select date"
-          className="p-column-filter"
-          dateFormat="yy-mm-dd"
-          showIcon
-        />
-      );
-    }
 
-    // 3. Number
-    if (numberFilterColumns.includes(columnKey) || column.type === 'number') {
-      return (
-        <InputNumber
-          value={filterValue || null}
-          onValueChange={(e) => filterCallback(e.value)}
-          placeholder={`Enter ${column.title}`}
-          className="p-column-filter"
-          inputStyle={{ width: '100%' }}
-        />
-      );
-    }
 
-    // 4. Boolean
-    if (booleanFilterColumns.includes(columnKey) || column.type === 'boolean') {
-      return (
-        <Dropdown
-          value={filterValue}
-          options={[
-            { label: 'All', value: null },
-            { label: 'True', value: true },
-            { label: 'False', value: false }
-          ]}
-          onChange={(e) => filterCallback(e.value)}
-          placeholder="Select..."
-          className="p-column-filter"
-          showClear
-        />
-      );
-    }
-
-    // 5. Text
-    if (textFilterColumns.includes(columnKey) || column.type === 'text') {
-      return (
-        <InputText
-          value={filterValue || ''}
-          onChange={(e) => filterCallback(e.target.value || null)}
-          placeholder={`Filter ${column.title}...`}
-          className="p-column-filter"
-        />
-      );
-    }
-
-    // 6. Fallback: smart detection (<=30 unique values → dropdown)
-    const uniqueValues = getUniqueValues(tableData, columnKey);
-    const isCategorical =
-      uniqueValues.length > 0 &&
-      uniqueValues.length <= 30 &&
-      typeof uniqueValues[0] !== 'object';
-
-    if (isCategorical) {
-      const options = [
-        { label: 'All', value: null },
-        ...uniqueValues.map(val => ({ label: String(val), value: val }))
-      ];
-      return (
-        <Dropdown
-          value={filterValue}
-          options={options}
-          onChange={(e) => filterCallback(e.value)}
-          placeholder="Select..."
-          className="p-column-filter"
-          showClear
-        />
-      );
-    }
-
-    // Final fallback: generic text input
-    return (
-      <InputText
-        value={filterValue || ''}
-        onChange={(e) => filterCallback(e.target.value || null)}
-        placeholder={`Filter ${column.title}...`}
-        className="p-column-filter"
-      />
-    );
-  }, [
-    tableData,
-    dropdownFilterColumns,
-    datePickerFilterColumns,
-    numberFilterColumns,
-    textFilterColumns,
-    booleanFilterColumns,
-    customFilterOptions
-  ]);
 
 
   // Enhanced column generation with data type detection
@@ -1416,6 +1387,7 @@ const PrimeDataTable = ({
         {defaultColumns.map(column => {
           const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
           const columnKey = column.key;
+          const columnType = getColumnType(column);
           
           // Enhanced categorical detection including explicit configuration
           const uniqueValues = getUniqueValues(tableData, columnKey);
@@ -1443,8 +1415,24 @@ const PrimeDataTable = ({
               filterApply={enableFilterApply ? filterApplyTemplate : undefined}
               filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
               footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
-              showFilterMatchModes={enableFilterMatchModes}
-              filterMatchMode={isCategorical ? FilterMatchMode.EQUALS : (column.filterMatchMode || FilterMatchMode.CONTAINS)}
+
+              showFilterMatchModes={
+                !['dropdown', 'select', 'categorical', 'date', 'datetime', 'number', 'boolean'].includes(columnType)
+              }
+              filterMatchMode={
+                column.filterMatchMode || (
+                  ['dropdown', 'select', 'categorical'].includes(columnType)
+                    ? FilterMatchMode.EQUALS
+                    : ['date', 'datetime'].includes(columnType)
+                    ? FilterMatchMode.BETWEEN
+                    : columnType === 'number'
+                    ? FilterMatchMode.EQUALS
+                    : columnType === 'boolean'
+                    ? FilterMatchMode.EQUALS
+                    : FilterMatchMode.CONTAINS
+                )
+              }
+
               filterMaxLength={column.filterMaxLength}
               filterMinLength={column.filterMinLength}
               filterOptions={generateFilterOptions(column)}
@@ -1455,13 +1443,15 @@ const PrimeDataTable = ({
               filterShowMenu={enableFilterMenu}
               filterShowMatchModes={enableFilterMatchModes}
 
-              body={isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
-                    column.type === 'date' || column.type === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
-                    column.type === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
-                    column.type === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
-                    parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
-                    customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
-                    column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined}
+              body={
+                isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
+                columnType === 'date' || columnType === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
+                columnType === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
+                columnType === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
+                parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
+                customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
+                column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
+              }
 
               frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
             />
