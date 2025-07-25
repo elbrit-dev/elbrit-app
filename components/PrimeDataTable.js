@@ -16,6 +16,7 @@ import { Dropdown } from 'primereact/dropdown';
 import { classNames } from 'primereact/utils';
 import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
+import Image from 'next/image';
 
 
 import {
@@ -263,7 +264,7 @@ const PrimeDataTable = ({
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
-  const getColumnType = (column) => {
+  const getColumnType = useCallback((column) => {
     const key = column.key;
 
     if (dropdownFilterColumns?.includes(key)) return 'dropdown';
@@ -273,7 +274,7 @@ const PrimeDataTable = ({
     if (textFilterColumns?.includes(key)) return 'text';
 
     return column.type || 'text'; // fallback
-  };
+  }, [dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
 
   // Function to generate the correct filter UI for a column based on its type and data
   const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
@@ -352,7 +353,7 @@ const PrimeDataTable = ({
           />
         );
     }
-  }, [tableData, dropdownFilterColumns, datePickerFilterColumns, numberFilterColumns, textFilterColumns, booleanFilterColumns]);
+  }, [tableData, getColumnType]);
 
 
 
@@ -437,9 +438,11 @@ const PrimeDataTable = ({
   // Debug customFormatters
   useEffect(() => {
     if (Object.keys(customFormatters).length > 0) {
-      debugCustomFormatters();
+      console.log('Original Custom Formatters:', customFormatters);
+      console.log('Parsed Custom Formatters:', parsedCustomFormatters);
+      console.log('Custom Formatters Keys:', Object.keys(customFormatters));
     }
-  }, [customFormatters]);
+  }, [customFormatters, parsedCustomFormatters]);
 
   // Enhanced event handlers
   const handleSort = useCallback((event) => {
@@ -654,10 +657,12 @@ const PrimeDataTable = ({
     const isPopup = popupImageFields && Array.isArray(popupImageFields) && popupImageFields.includes(column.key);
     
     return (
-      <img
+      <Image
         src={value}
         alt={column.key}
-
+        width={50}
+        height={50}
+        style={{ objectFit: 'cover', cursor: isPopup ? 'pointer' : 'default' }}
         onClick={isPopup ? () => { 
           setImageModalSrc(value); 
           setImageModalAlt(column.key); 
@@ -728,13 +733,6 @@ const PrimeDataTable = ({
   }, [customFormatters]);
 
   const parsedCustomFormatters = parseCustomFormatters();
-
-  // Debug function to check if customFormatters are working
-  const debugCustomFormatters = () => {
-    console.log('Original Custom Formatters:', customFormatters);
-    console.log('Parsed Custom Formatters:', parsedCustomFormatters);
-    console.log('Custom Formatters Keys:', Object.keys(customFormatters));
-  };
 
   const dateBodyTemplate = (rowData, column) => {
     const value = rowData[column.key];
@@ -1197,7 +1195,7 @@ const PrimeDataTable = ({
         ))}
       </ColumnGroup>
     );
-  }, [enableColumnGrouping, columnGroups, groupConfig]);
+  }, [enableColumnGrouping, columnGroups]);
 
   // Generate footer groups from configuration
   const generateFooterGroups = useCallback(() => {
@@ -1232,7 +1230,7 @@ const PrimeDataTable = ({
     }
 
     return null;
-    }, [enableColumnGrouping, footerColumnGroup, columnGroups, groupConfig]);
+    }, [enableColumnGrouping, footerColumnGroup, columnGroups, groupConfig.enableFooterGroups]);
 
   // Helper function to create column groups easily
   const createColumnGroup = useCallback((groups) => {
@@ -1507,10 +1505,12 @@ const PrimeDataTable = ({
         modal
         className="p-fluid"
       >
-        <img
+        <Image
           src={imageModalSrc}
           alt={imageModalAlt}
-
+          width={800}
+          height={600}
+          style={{ objectFit: 'contain', maxWidth: '100%', height: 'auto' }}
         />
       </Dialog>
 

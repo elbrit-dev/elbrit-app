@@ -914,6 +914,40 @@ PLASMIC.registerComponent(PrimeDataTable, {
       defaultValue: []
     },
 
+    // Column grouping props
+    enableColumnGrouping: {
+      type: "boolean",
+      description: "Enable column grouping functionality",
+      defaultValue: false
+    },
+    headerColumnGroup: {
+      type: "object",
+      description: "Custom header column group component",
+      defaultValue: null
+    },
+    footerColumnGroup: {
+      type: "object",
+      description: "Custom footer column group component",
+      defaultValue: null
+    },
+    columnGroups: {
+      type: "object",
+      description: "Array of column group configurations",
+      defaultValue: []
+    },
+    groupConfig: {
+      type: "object",
+      description: "Configuration for column grouping styling and behavior",
+      defaultValue: {
+        enableHeaderGroups: true,
+        enableFooterGroups: true,
+        groupStyle: {},
+        headerGroupStyle: {},
+        footerGroupStyle: {}
+      }
+    },
+
+
     
     // Advanced filter options
     filterDelay: {
@@ -1092,287 +1126,4 @@ PLASMIC.registerComponent(PrimeDataTable, {
   },
   
   importPath: "./components/PrimeDataTable"
-});
-
-PLASMIC.registerComponent(PrimeDataTab, {
-  name: "PrimeDataTab",
-  displayName: "Prime Data Table",
-  description: "A comprehensive data table component with advanced features including search, filtering, sorting, pagination, row selection, and export capabilities",
-  props: {
-    // Data props
-    data: {
-      type: "array",
-      description: "Array of rows to display in the table",
-      defaultValue: []
-    },
-    columns: {
-      type: "array",
-      description: "Column definitions (field, header, filterType, filterOptions, minWidth, align, isImage, editor, etc.)",
-      defaultValue: []
-    },
-    columnGroups: {
-      type: "object",
-      description: "Column grouping configuration with header and footer groups",
-      defaultValue: null
-    },
-    loading: {
-      type: "boolean",
-      description: "Whether the table is in loading state",
-      defaultValue: false
-    },
-    
-    // GraphQL props
-    graphqlQuery: {
-      type: "string",
-      description: "GraphQL query string to fetch data",
-      defaultValue: null
-    },
-    graphqlVariables: {
-      type: "object",
-      description: "Variables for the GraphQL query",
-      defaultValue: {}
-    },
-    enableLazyLoading: {
-      type: "boolean",
-      description: "Enable lazy loading for GraphQL data",
-      defaultValue: false
-    },
-    
-    // Table configuration
-    enableSearch: {
-      type: "boolean",
-      description: "Enable global search functionality",
-      defaultValue: true
-    },
-    enableColumnManagement: {
-      type: "boolean",
-      description: "Enable column visibility management",
-      defaultValue: true
-    },
-    enableRowSelection: {
-      type: "boolean",
-      description: "Enable row selection with checkboxes",
-      defaultValue: false
-    },
-    enableRowActions: {
-      type: "boolean",
-      description: "Enable row action buttons",
-      defaultValue: false
-    },
-    enableRowExpansion: {
-      type: "boolean",
-      description: "Enable row expansion functionality",
-      defaultValue: false
-    },
-    enableEditable: {
-      type: "boolean",
-      description: "Enable inline row editing",
-      defaultValue: false
-    },
-    enableExport: {
-      type: "boolean",
-      description: "Enable CSV export functionality",
-      defaultValue: true
-    },
-    enablePagination: {
-      type: "boolean",
-      description: "Enable pagination controls",
-      defaultValue: true
-    },
-    footerTotals: {
-      type: "boolean",
-      description: "Show footer totals for numeric columns",
-      defaultValue: false
-    },
-    footerTotalsConfig: {
-      type: "object",
-      description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision, includeColumns, excludeColumns)",
-      defaultValue: {
-        showTotals: true,
-        showAverages: false,
-        showCounts: false,
-        numberFormat: 'en-IN',
-        currency: 'INR',
-        precision: 0,
-        includeColumns: [],
-        excludeColumns: []
-      }
-    },
-    
-    // Pagination
-    pageSize: {
-      type: "number",
-      description: "Number of items per page",
-      defaultValue: 10
-    },
-    
-    // Custom formatters and actions
-    customFormatters: {
-      type: "object",
-      description: "Custom formatters for specific columns",
-      defaultValue: {}
-    },
-    rowActions: {
-      type: "array",
-      description: "Array of action buttons for each row (icon, onClick, title)",
-      defaultValue: []
-    },
-    rowExpansionTemplate: {
-      type: "function",
-      description: "Template function for expanded row content"
-    },
-    
-    // Event handlers
-    onRowEditComplete: {
-      type: "eventHandler",
-      description: "Called when row editing is completed",
-      argTypes: [
-        {
-          name: "event",
-          type: "object",
-          description: "Edit event data"
-        }
-      ]
-    },
-    onGraphqlData: {
-      type: "eventHandler",
-      description: "Called when GraphQL data is received",
-      argTypes: [
-        {
-          name: "data",
-          type: "object",
-          description: "The GraphQL response data"
-        }
-      ]
-    },
-    onLazyLoad: {
-      type: "eventHandler",
-      description: "Called when lazy loading is triggered",
-      argTypes: [
-        {
-          name: "params",
-          type: "object",
-          description: "Lazy load parameters (first, rows, filters, globalFilterValue)"
-        }
-      ]
-    },
-    onRowClick: {
-      type: "eventHandler",
-      description: "Called when a row is clicked",
-      argTypes: [
-        {
-          name: "row",
-          type: "object",
-          description: "The clicked row data"
-        },
-        {
-          name: "index",
-          type: "number",
-          description: "The row index"
-        }
-      ]
-    },
-    onRowSelect: {
-      type: "eventHandler",
-      description: "Called when row selection changes",
-      argTypes: [
-        {
-          name: "selectedRows",
-          type: "object",
-          description: "Array of selected row data"
-        }
-      ]
-    },
-    onPageChange: {
-      type: "eventHandler",
-      description: "Called when page changes",
-      argTypes: [
-        {
-          name: "page",
-          type: "number",
-          description: "The new page number"
-        }
-      ]
-    },
-    onFilterChange: {
-      type: "eventHandler",
-      description: "Called when filters change",
-      argTypes: [
-        {
-          name: "column",
-          type: "string",
-          description: "The column being filtered"
-        },
-        {
-          name: "filterConfig",
-          type: "object",
-          description: "The filter configuration"
-        }
-      ]
-    },
-    onSortChange: {
-      type: "eventHandler",
-      description: "Called when sorting changes",
-      argTypes: [
-        {
-          name: "sortField",
-          type: "string",
-          description: "The column being sorted"
-        },
-        {
-          name: "sortOrder",
-          type: "number",
-          description: "The sort order (1 for asc, -1 for desc)"
-        }
-      ]
-    },
-    onSearch: {
-      type: "eventHandler",
-      description: "Called when search term changes",
-      argTypes: [
-        {
-          name: "searchTerm",
-          type: "string",
-          description: "The search term"
-        }
-      ]
-    },
-    
-    // Additional configuration props
-    showGridlines: {
-      type: "boolean",
-      description: "Show grid lines in the table",
-      defaultValue: true
-    },
-    stripedRows: {
-      type: "boolean",
-      description: "Enable striped row styling",
-      defaultValue: true
-    },
-    responsiveLayout: {
-      type: "choice",
-      options: ["scroll", "stack"],
-      description: "Responsive layout mode",
-      defaultValue: "scroll"
-    },
-    tableHeight: {
-      type: "string",
-      description: "Height of the table container",
-      defaultValue: "600px"
-    },
-    
-    // Styling props
-    className: {
-      type: "string",
-      description: "Additional CSS classes for the table container",
-      defaultValue: ""
-    },
-    style: {
-      type: "object",
-      description: "Inline styles for the table container",
-      defaultValue: {}
-    }
-  },
-  
-  importPath: "./components/pimereact"
 });
