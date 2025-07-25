@@ -82,6 +82,7 @@ const PrimeDataTable = ({
   fields = [],
   imageFields = [],
   popupImageFields = [],
+  currencyColumns = [], // Array of column keys that should be formatted as currency in footer totals
   
   // Filter configuration props
   dropdownFilterColumns = [], // Array of column keys that should use dropdown filters
@@ -222,7 +223,8 @@ const PrimeDataTable = ({
     numberFormat: 'en-US',
     currency: 'USD',
     precision: 2
-  }
+  },
+  currencyColumns = [] // Array of column keys that should be formatted as currency in footer totals
 }) => {
   // Local state
   const [selectedRows, setSelectedRows] = useState([]);
