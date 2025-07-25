@@ -358,6 +358,58 @@ a {
   margin: 0.25rem 0 0.5rem;
 }
 
+/* 📅 PrimeReact Calendar Filter Enhancements */
+
+.p-column-filter-menu .p-calendar {
+  width: 100%;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.p-column-filter-menu .p-calendar .p-inputtext {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 6px;
+}
+
+.p-calendar .p-inputtext::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Calendar popup panel */
+.p-datepicker {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 0.75rem;
+  font-size: 0.875rem;
+  border: 1px solid #e5e7eb;
+}
+
+/* Range styling */
+.p-datepicker td > span {
+  border-radius: 4px;
+}
+
+.p-datepicker td > span:hover {
+  background-color: #e5e7eb;
+}
+
+.p-datepicker td.p-datepicker-today > span {
+  background: #3b82f6;
+  color: white;
+  font-weight: 600;
+}
+
+/* Footer optional spacing */
+.p-column-filter-footer {
+  padding-top: 0.5rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
 
 /* Enhanced PrimeDataTable styles - REMOVED CUSTOM OVERRIDES */
 /* Native PrimeReact theme will be used instead */
