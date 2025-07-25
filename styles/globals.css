@@ -3,7 +3,6 @@
   --foreground: #171717;
 }
 
-/* Theme data attribute overrides */
 [data-theme="light"] {
   --background: #ffffff;
   --foreground: #374151;
@@ -34,30 +33,59 @@ a {
   text-decoration: none;
 }
 
-/* PrimeDataTable specific styles for Plasmic Studio */
-/* Essential styles to ensure proper PrimeReact component rendering */
+/* ----------------------------
+   PrimeDataTable + PrimeReact Styling
+---------------------------- */
 
-/* Ensure proper font inheritance */
+/* Global fix: inherit fonts */
 .p-datatable {
   font-family: inherit;
 }
 
-/* Fix filter menu positioning and sizing */
-.p-column-filter-menu {
-  min-width: 250px;
-  max-width: 300px;
-  z-index: 1000;
+/* Toolbar Layout */
+.p-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.p-column-filter-menu .p-column-filter-trigger {
-  margin-right: 0.5rem;
+.p-toolbar .p-toolbar-group-left,
+.p-toolbar .p-toolbar-group-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-.p-column-filter-menu .p-column-filter-clear-button {
-  margin-left: 0.5rem;
+/* Input Defaults */
+.p-inputtext {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 6px;
 }
 
-/* Ensure proper button styling */
+.p-dropdown {
+  min-width: 200px;
+}
+
+.p-dropdown .p-dropdown-label {
+  padding: 0.75rem;
+}
+
+.p-inputtext:hover,
+.p-dropdown:hover,
+.p-calendar:hover,
+.p-inputnumber:hover {
+  border-color: var(--primary-color, #3b82f6);
+}
+
+.p-inputtext:focus-within,
+.p-dropdown:focus-within,
+.p-calendar:focus-within,
+.p-inputnumber:focus-within {
+  box-shadow: 0 0 0 2px var(--primary-200, #bfdbfe);
+}
+
+/* Buttons */
 .p-button {
   display: inline-flex;
   align-items: center;
@@ -91,132 +119,10 @@ a {
   border-color: var(--primary-700, #1d4ed8);
 }
 
-/* Ensure proper input styling */
-.p-inputtext {
-  width: 100%;
-}
-
-/* Ensure proper toolbar layout */
-.p-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.p-toolbar .p-toolbar-group-left,
-.p-toolbar .p-toolbar-group-right {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Ensure proper pagination styling */
-.p-paginator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.p-paginator .p-paginator-pages {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-/* Fix table header and body styling */
-.p-datatable .p-datatable-thead > tr > th {
-  position: relative;
-}
-
-.p-datatable .p-datatable-tbody > tr > td {
-  vertical-align: middle;
-}
-
-/* Ensure proper filter overlay positioning */
-.p-column-filter-overlay {
-  position: absolute;
-  z-index: 1000;
-}
-
-/* Fix icon field positioning */
-.p-icon-field {
-  position: relative;
-}
-
-.p-icon-field .p-input-icon {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-}
-
-.p-icon-field-left .p-input-icon {
-  left: 0.75rem;
-}
-
-.p-icon-field-left .p-inputtext {
-  padding-left: 2.5rem;
-}
-
-/* Enhanced spacing and alignment fixes */
-.p-datatable .p-datatable-thead > tr > th {
-  padding: 1rem 0.75rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--surface-border);
-}
-
-.p-datatable .p-datatable-tbody > tr > td {
-  padding: 1rem 0.75rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--surface-border);
-}
-
-/* Fix filter menu content spacing */
-.p-column-filter-menu .p-column-filter-menu-button {
-  margin-bottom: 0.5rem;
-}
-
-.p-column-filter-menu .p-column-filter-constraint {
-  margin-bottom: 0.5rem;
-}
-
-.p-column-filter-menu .p-column-filter-add-rule {
-  margin-top: 0.5rem;
-}
-
-.p-column-filter-menu .p-column-filter-remove-rule {
-  margin-left: 0.5rem;
-}
-
-/* Fix toolbar spacing */
-.p-toolbar .p-toolbar-group-left {
-  gap: 1rem;
-}
-
-.p-toolbar .p-toolbar-group-right {
-  gap: 1rem;
-}
-
-/* Fix pagination spacing */
-.p-paginator .p-paginator-first,
-.p-paginator .p-paginator-prev,
-.p-paginator .p-paginator-next,
-.p-paginator .p-paginator-last {
-  margin: 0 0.25rem;
-}
-
-.p-paginator .p-paginator-page {
-  margin: 0 0.25rem;
-}
-
-/* Fix button spacing */
 .p-button + .p-button {
   margin-left: 0.5rem;
 }
 
-/* Button variants */
 .p-button.p-button-outlined {
   background: transparent;
   color: var(--primary-color, #3b82f6);
@@ -239,7 +145,6 @@ a {
   color: var(--primary-color, #3b82f6);
 }
 
-/* Button sizes */
 .p-button.p-button-sm {
   padding: 0.5rem 1rem;
   font-size: 0.75rem;
@@ -250,46 +155,114 @@ a {
   font-size: 1rem;
 }
 
-/* Fix input spacing */
-.p-inputtext {
-  padding: 0.75rem;
-  border-radius: 6px;
-}
-
-/* Fix dropdown spacing */
-.p-dropdown {
-  min-width: 200px;
-}
-
-.p-dropdown .p-dropdown-label {
-  padding: 0.75rem;
-}
-
-/* Fix filter overlay positioning */
+/* Filter Overlay Panel */
 .p-column-filter-overlay {
   position: absolute;
   z-index: 1000;
-  background: white;
-  border: 1px solid var(--surface-border);
-  border-radius: 6px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: #fff;
+  border-radius: 8px;
   padding: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 1px solid #e5e7eb;
   min-width: 250px;
   max-width: 300px;
+  animation: fadeIn 0.2s ease-out;
 }
 
-/* Fix table responsive spacing */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Filter Menu Content */
+.p-column-filter-menu .p-column-filter-constraint {
+  margin-bottom: 1rem;
+}
+
+.p-column-filter-menu .p-column-filter-add-rule {
+  margin-top: 0.5rem;
+}
+
+.p-column-filter-menu .p-column-filter-remove-rule {
+  margin-left: 0.5rem;
+}
+
+.p-column-filter-menu .p-button {
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+}
+
+.p-column-filter-menu .p-button + .p-button {
+  margin-left: 0.5rem;
+}
+
+/* Icon Field Fixes */
+.p-icon-field {
+  position: relative;
+}
+
+.p-icon-field .p-input-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 1;
+}
+
+.p-icon-field-left .p-input-icon {
+  left: 0.75rem;
+}
+
+.p-icon-field-left .p-inputtext {
+  padding-left: 2.5rem;
+}
+
+/* Table Cell Padding */
+.p-datatable .p-datatable-thead > tr > th,
+.p-datatable .p-datatable-tbody > tr > td {
+  padding: 1rem 0.75rem;
+  vertical-align: middle;
+  text-align: left;
+  border-bottom: 1px solid var(--surface-border);
+}
+
+.p-datatable .p-datatable-thead > tr > th {
+  position: relative;
+}
+
+/* Paginator Layout */
+.p-paginator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.p-paginator .p-paginator-pages {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.p-paginator .p-paginator-first,
+.p-paginator .p-paginator-prev,
+.p-paginator .p-paginator-next,
+.p-paginator .p-paginator-last,
+.p-paginator .p-paginator-page {
+  margin: 0 0.25rem;
+}
+
+/* Responsive Table Fix */
 @media (max-width: 768px) {
   .p-datatable .p-datatable-thead > tr > th,
   .p-datatable .p-datatable-tbody > tr > td {
     padding: 0.5rem;
   }
-  
+
   .p-toolbar {
     flex-direction: column;
     gap: 1rem;
   }
-  
+
   .p-toolbar .p-toolbar-group-left,
   .p-toolbar .p-toolbar-group-right {
     width: 100%;
@@ -297,19 +270,16 @@ a {
   }
 }
 
-/* Animation for refresh spinner */
+/* Spinner Animation */
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 .animate-spin {
   animation: spin 1s linear infinite;
 }
+
 
 /* Enhanced PrimeDataTable styles - REMOVED CUSTOM OVERRIDES */
 /* Native PrimeReact theme will be used instead */
