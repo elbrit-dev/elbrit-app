@@ -985,7 +985,9 @@ const PrimeDataTable = ({
 
   // Calculate footer totals for numeric columns based on filtered data
   const calculateFooterTotals = useMemo(() => {
-    if (!enableFooterTotals || !filteredDataForTotals.length) return {};
+    if (!enableFooterTotals || !filteredDataForTotals.length) {
+      return { totals: {}, averages: {}, counts: {} };
+    }
 
     const totals = {};
     const averages = {};
@@ -997,16 +999,18 @@ const PrimeDataTable = ({
           .filter(row => row && typeof row === 'object' && column.key in row)
           .map(row => {
             const value = row?.[column.key];
-            return typeof value === 'number' && !isNaN(value) ? value : 0;
-          });
+            return typeof value === 'number' && !isNaN(value) ? value : null;
+          })
+          .filter(val => val !== null);
 
         if (values.length > 0) {
+          const total = values.reduce((sum, val) => sum + val, 0);
           if (footerTotalsConfig.showTotals) {
-            totals[column.key] = values.reduce((sum, val) => sum + val, 0);
+            totals[column.key] = total;
           }
 
           if (footerTotalsConfig.showAverages) {
-            averages[column.key] = values.reduce((sum, val) => sum + val, 0) / values.length;
+            averages[column.key] = total / values.length;
           }
 
           if (footerTotalsConfig.showCounts) {
