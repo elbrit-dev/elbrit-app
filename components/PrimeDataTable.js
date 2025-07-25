@@ -14,6 +14,9 @@ import { InputIcon } from 'primereact/inputicon';
 import { ContextMenu } from 'primereact/contextmenu';
 import { Dropdown } from 'primereact/dropdown';
 import { classNames } from 'primereact/utils';
+import { Calendar } from 'primereact/calendar';
+import { InputNumber } from 'primereact/inputnumber';
+
 
 import {
   RefreshCw,
@@ -263,15 +266,14 @@ const PrimeDataTable = ({
   // Function to generate the correct filter UI for a column based on its type and data
   const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
     const columnKey = column.key;
-    
-    // Check if column is explicitly configured for specific filter types
+
+    // 1. Dropdown
     if (dropdownFilterColumns.includes(columnKey)) {
-      // Use custom options if provided, otherwise get unique values
       const options = customFilterOptions[columnKey] || [
         { label: 'All', value: null },
         ...getUniqueValues(tableData, columnKey).map(val => ({ label: String(val), value: val }))
       ];
-      
+
       return (
         <Dropdown
           value={filterValue}
@@ -283,41 +285,44 @@ const PrimeDataTable = ({
         />
       );
     }
-    
-    if (datePickerFilterColumns.includes(columnKey)) {
+
+    // 2. Date
+    if (datePickerFilterColumns.includes(columnKey) || column.type === 'date' || column.type === 'datetime') {
       return (
-        <InputText
-          type="date"
-          value={filterValue || ''}
-          onChange={(e) => filterCallback(e.target.value || null)}
-          placeholder={`Filter ${column.title}...`}
+        <Calendar
+          value={filterValue || null}
+          onChange={(e) => filterCallback(e.value)}
+          placeholder="Select date"
           className="p-column-filter"
+          dateFormat="yy-mm-dd"
+          showIcon
         />
       );
     }
-    
-    if (numberFilterColumns.includes(columnKey)) {
+
+    // 3. Number
+    if (numberFilterColumns.includes(columnKey) || column.type === 'number') {
       return (
-        <InputText
-          type="number"
-          value={filterValue || ''}
-          onChange={(e) => filterCallback(e.target.value || null)}
-          placeholder={`Filter ${column.title}...`}
+        <InputNumber
+          value={filterValue || null}
+          onValueChange={(e) => filterCallback(e.value)}
+          placeholder={`Enter ${column.title}`}
           className="p-column-filter"
+          inputStyle={{ width: '100%' }}
         />
       );
     }
-    
-    if (booleanFilterColumns.includes(columnKey)) {
-      const booleanOptions = [
-        { label: 'All', value: null },
-        { label: 'True', value: true },
-        { label: 'False', value: false }
-      ];
+
+    // 4. Boolean
+    if (booleanFilterColumns.includes(columnKey) || column.type === 'boolean') {
       return (
         <Dropdown
           value={filterValue}
-          options={booleanOptions}
+          options={[
+            { label: 'All', value: null },
+            { label: 'True', value: true },
+            { label: 'False', value: false }
+          ]}
           onChange={(e) => filterCallback(e.value)}
           placeholder="Select..."
           className="p-column-filter"
@@ -325,8 +330,9 @@ const PrimeDataTable = ({
         />
       );
     }
-    
-    if (textFilterColumns.includes(columnKey)) {
+
+    // 5. Text
+    if (textFilterColumns.includes(columnKey) || column.type === 'text') {
       return (
         <InputText
           value={filterValue || ''}
@@ -337,23 +343,18 @@ const PrimeDataTable = ({
       );
     }
 
-    // Auto-detection logic (fallback when no explicit configuration)
+    // 6. Fallback: smart detection (<=30 unique values → dropdown)
     const uniqueValues = getUniqueValues(tableData, columnKey);
-    const isCategorical = (
-      (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
-      column.type === 'dropdown' ||
-      column.type === 'select' ||
-      column.type === 'categorical' ||
-      column.isCategorical
-    );
+    const isCategorical =
+      uniqueValues.length > 0 &&
+      uniqueValues.length <= 30 &&
+      typeof uniqueValues[0] !== 'object';
 
-    // For categorical columns, use dropdown
     if (isCategorical) {
       const options = [
         { label: 'All', value: null },
         ...uniqueValues.map(val => ({ label: String(val), value: val }))
       ];
-      
       return (
         <Dropdown
           value={filterValue}
@@ -366,60 +367,25 @@ const PrimeDataTable = ({
       );
     }
 
-    // For different data types, return appropriate filter UI
-    switch (column.type) {
-      case 'number':
-        return (
-          <InputText
-            type="number"
-            value={filterValue || ''}
-            onChange={(e) => filterCallback(e.target.value || null)}
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-          />
-        );
-        
-      case 'boolean':
-        const booleanOptions = [
-          { label: 'All', value: null },
-          { label: 'True', value: true },
-          { label: 'False', value: false }
-        ];
-        return (
-          <Dropdown
-            value={filterValue}
-            options={booleanOptions}
-            onChange={(e) => filterCallback(e.value)}
-            placeholder="Select..."
-            className="p-column-filter"
-            showClear
-          />
-        );
-        
-      case 'date':
-      case 'datetime':
-        return (
-          <InputText
-            type="date"
-            value={filterValue || ''}
-            onChange={(e) => filterCallback(e.target.value || null)}
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-          />
-        );
-        
-      default:
-        // For text and other types, use regular text input
-        return (
-          <InputText
-            value={filterValue || ''}
-            onChange={(e) => filterCallback(e.target.value || null)}
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-          />
-        );
-    }
-  }, [tableData, dropdownFilterColumns, datePickerFilterColumns, numberFilterColumns, textFilterColumns, booleanFilterColumns, customFilterOptions]);
+    // Final fallback: generic text input
+    return (
+      <InputText
+        value={filterValue || ''}
+        onChange={(e) => filterCallback(e.target.value || null)}
+        placeholder={`Filter ${column.title}...`}
+        className="p-column-filter"
+      />
+    );
+  }, [
+    tableData,
+    dropdownFilterColumns,
+    datePickerFilterColumns,
+    numberFilterColumns,
+    textFilterColumns,
+    booleanFilterColumns,
+    customFilterOptions
+  ]);
+
 
   // Enhanced column generation with data type detection
   const defaultColumns = useMemo(() => {
