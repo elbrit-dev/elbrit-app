@@ -270,10 +270,8 @@ const PrimeDataTable = ({
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
-  // Simple function to get column type - use useCallback to ensure stable reference
   const getColumnType = useCallback((column) => {
-    const key = column?.key;
-    if (!key) return 'text';
+    const key = column.key;
 
     if (dropdownFilterColumns?.includes(key)) return 'dropdown';
     if (numberFilterColumns?.includes(key)) return 'number';
@@ -361,7 +359,7 @@ const PrimeDataTable = ({
           />
         );
     }
-  }, [tableData, dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
+  }, [tableData, getColumnType]);
 
 
 
@@ -371,67 +369,57 @@ const PrimeDataTable = ({
   const defaultColumns = useMemo(() => {
     let cols = [];
 
-    try {
-      if (columns && Array.isArray(columns) && columns.length > 0) {
-        // ✅ Normalize keys from field/header if missing
-        const normalizedColumns = columns.map(col => {
-          if (!col || typeof col !== 'object') return null;
-          const key = col.key || col.field || col.header || col.name;
-          if (!key) return null;
-          
-          return {
-            key,
-            title: col.title || col.header || key,
-            sortable: col.sortable !== false,
-            filterable: col.filterable !== false,
-            type: col.type || 'text',
-            ...col,
-            key // override or re-add key to make sure it's set
-          };
-        }).filter(Boolean);
+    if (columns.length > 0) {
+      // ✅ Normalize keys from field/header if missing
+      const normalizedColumns = columns.map(col => {
+        const key = col.key || col.field || col.header || col.name;
+        return {
+          key,
+          title: col.title || col.header || key,
+          sortable: col.sortable !== false,
+          filterable: col.filterable !== false,
+          type: col.type || 'text',
+          ...col,
+          key // override or re-add key to make sure it's set
+        };
+      });
 
-        const orderedColumns = columnOrder && columnOrder.length > 0 
-          ? columnOrder.map(key => normalizedColumns.find(col => col && col.key === key)).filter(Boolean)
-          : normalizedColumns;
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => normalizedColumns.find(col => col.key === key)).filter(Boolean)
+        : normalizedColumns;
 
-        cols = orderedColumns.filter(col => col && col.key && !hiddenColumns.includes(col.key));
-      } else if (tableData && Array.isArray(tableData) && tableData.length > 0) {
-        const sampleRow = tableData[0];
-        if (sampleRow && typeof sampleRow === 'object') {
-          const autoColumns = Object.keys(sampleRow).map(key => {
-            const value = sampleRow[key];
-            let type = 'text';
-            if (typeof value === 'number') type = 'number';
-            else if (typeof value === 'boolean') type = 'boolean';
-            else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) type = 'date';
-            else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) type = 'datetime';
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
+    } else if (tableData.length > 0) {
+      const sampleRow = tableData[0];
+      const autoColumns = Object.keys(sampleRow).map(key => {
+        const value = sampleRow[key];
+        let type = 'text';
+        if (typeof value === 'number') type = 'number';
+        else if (typeof value === 'boolean') type = 'boolean';
+        else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) type = 'date';
+        else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) type = 'datetime';
 
-            return {
-              key,
-              title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-              sortable: true,
-              filterable: true,
-              type
-            };
-          });
+        return {
+          key,
+          title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+          sortable: true,
+          filterable: true,
+          type
+        };
+      });
 
-          const orderedColumns = columnOrder && columnOrder.length > 0 
-            ? columnOrder.map(key => autoColumns.find(col => col && col.key === key)).filter(Boolean)
-            : autoColumns;
+      const orderedColumns = columnOrder.length > 0 
+        ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
+        : autoColumns;
 
-          cols = orderedColumns.filter(col => col && col.key && !hiddenColumns.includes(col.key));
-        }
-      }
-
-      if (fields && Array.isArray(fields) && fields.length > 0) {
-        cols = cols.filter(col => col && col.key && fields.includes(col.key));
-      }
-    } catch (error) {
-      console.warn('Error generating default columns:', error);
-      cols = [];
+      cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     }
 
-    return cols || [];
+    if (fields && Array.isArray(fields) && fields.length > 0) {
+      cols = cols.filter(col => fields.includes(col.key));
+    }
+
+    return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
 
   // Auto-detect column grouping patterns
@@ -649,35 +637,20 @@ const PrimeDataTable = ({
   // Initialize filters based on columns
   useEffect(() => {
     const initialFilters = {
-      global: { value: globalFilterValue || null, matchMode: FilterMatchMode.CONTAINS }
+      global: { value: globalFilterValue, matchMode: FilterMatchMode.CONTAINS }
     };
     
-    if (defaultColumns && Array.isArray(defaultColumns)) {
-      defaultColumns.forEach(col => {
-        if (col && col.key && col.filterable !== false && enableColumnFilter) {
-          const columnType = getColumnType(col);
-          let defaultMatchMode = FilterMatchMode.CONTAINS;
-          
-          // Set appropriate default match mode based on column type
-          if (['dropdown', 'select', 'categorical', 'boolean'].includes(columnType)) {
-            defaultMatchMode = FilterMatchMode.EQUALS;
-          } else if (['date', 'datetime'].includes(columnType)) {
-            defaultMatchMode = FilterMatchMode.DATE_IS;
-          } else if (columnType === 'number') {
-            defaultMatchMode = FilterMatchMode.EQUALS;
-          }
-          
-          // Use simple filter structure for better compatibility
-          initialFilters[col.key] = { 
-            value: null, 
-            matchMode: defaultMatchMode 
-          };
-        }
-      });
-    }
-    
+    defaultColumns.forEach(col => {
+      if (col.filterable && enableColumnFilter) {
+        // Use advanced filter structure for all columns to match official PrimeReact design
+        initialFilters[col.key] = { 
+          operator: FilterOperator.AND, 
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+        };
+      }
+    });
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue, getColumnType]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue]);
 
   // Parse customFormatters from strings to functions using useMemo
   const parsedCustomFormatters = useMemo(() => {
@@ -688,57 +661,53 @@ const PrimeDataTable = ({
       return parsedFormatters;
     }
     
-    try {
-      Object.keys(customFormatters).forEach(key => {
-        const formatter = customFormatters[key];
-        
-        if (typeof formatter === 'function') {
-          // Already a function, use as is
-          parsedFormatters[key] = formatter;
-        } else if (typeof formatter === 'string') {
-          // String function, try to parse it
-          try {
-            // Handle different function formats
-            let functionBody, paramNames;
-            
-            if (formatter.includes('function(')) {
-              // Standard function format: function(value, rowData) { return ... }
-              functionBody = formatter.replace(/^function\s*\([^)]*\)\s*\{/, '').replace(/\}$/, '');
-              const params = formatter.match(/function\s*\(([^)]*)\)/);
-              paramNames = params ? params[1].split(',').map(p => p.trim()) : ['value', 'rowData'];
-            } else if (formatter.includes('=>')) {
-              // Arrow function format: (value, rowData) => ...
-              const arrowMatch = formatter.match(/\(([^)]*)\)\s*=>\s*(.+)/);
-              if (arrowMatch) {
-                paramNames = arrowMatch[1].split(',').map(p => p.trim());
-                functionBody = `return ${arrowMatch[2]}`;
-              } else {
-                // Simple arrow function: value => ...
-                paramNames = ['value'];
-                functionBody = `return ${formatter.replace(/^[^=]*=>\s*/, '')}`;
-              }
+    Object.keys(customFormatters).forEach(key => {
+      const formatter = customFormatters[key];
+      
+      if (typeof formatter === 'function') {
+        // Already a function, use as is
+        parsedFormatters[key] = formatter;
+      } else if (typeof formatter === 'string') {
+        // String function, try to parse it
+        try {
+          // Handle different function formats
+          let functionBody, paramNames;
+          
+          if (formatter.includes('function(')) {
+            // Standard function format: function(value, rowData) { return ... }
+            functionBody = formatter.replace(/^function\s*\([^)]*\)\s*\{/, '').replace(/\}$/, '');
+            const params = formatter.match(/function\s*\(([^)]*)\)/);
+            paramNames = params ? params[1].split(',').map(p => p.trim()) : ['value', 'rowData'];
+          } else if (formatter.includes('=>')) {
+            // Arrow function format: (value, rowData) => ...
+            const arrowMatch = formatter.match(/\(([^)]*)\)\s*=>\s*(.+)/);
+            if (arrowMatch) {
+              paramNames = arrowMatch[1].split(',').map(p => p.trim());
+              functionBody = `return ${arrowMatch[2]}`;
             } else {
-              // Simple expression, treat as value => expression
+              // Simple arrow function: value => ...
               paramNames = ['value'];
-              functionBody = `return ${formatter}`;
+              functionBody = `return ${formatter.replace(/^[^=]*=>\s*/, '')}`;
             }
-            
-            // Create the function
-            const func = new Function(...paramNames, functionBody);
-            parsedFormatters[key] = func;
-          } catch (error) {
-            console.warn(`Failed to parse customFormatter for ${key}:`, error);
-            // Fallback to simple string return
-            parsedFormatters[key] = (value) => String(value || '');
+          } else {
+            // Simple expression, treat as value => expression
+            paramNames = ['value'];
+            functionBody = `return ${formatter}`;
           }
-        } else {
-          // Fallback for other types
+          
+          // Create the function
+          const func = new Function(...paramNames, functionBody);
+          parsedFormatters[key] = func;
+        } catch (error) {
+          console.warn(`Failed to parse customFormatter for ${key}:`, error);
+          // Fallback to simple string return
           parsedFormatters[key] = (value) => String(value || '');
         }
-      });
-    } catch (error) {
-      console.warn('Error parsing customFormatters:', error);
-    }
+      } else {
+        // Fallback for other types
+        parsedFormatters[key] = (value) => String(value || '');
+      }
+    });
     
     return parsedFormatters;
   }, [customFormatters]);
@@ -763,36 +732,12 @@ const PrimeDataTable = ({
   }, [onSortChange]);
 
   const handleFilter = useCallback((event) => {
-    if (!event || !event.filters) return;
-    
     setFilters(event.filters);
-    
-    // Update filtered data for totals calculation
-    if (enableFooterTotals && tableData && Array.isArray(tableData)) {
-      // Get the filtered data from PrimeReact event
-      let filteredRows = tableData;
-      
-      // Try to get filtered data from various event properties
-      if (event.filteredValue && Array.isArray(event.filteredValue)) {
-        filteredRows = event.filteredValue;
-      } else if (event.value && Array.isArray(event.value)) {
-        filteredRows = event.value;
-      } else if (event.data && Array.isArray(event.data)) {
-        filteredRows = event.data;
-      } else {
-        // Apply filters manually using the updated filters
-        filteredRows = applyFiltersToData(tableData, event.filters);
-      }
-      
-      // Ensure filtered rows are valid objects
-      const validFilteredRows = (filteredRows || []).filter(row => row && typeof row === 'object');
-      setFilteredDataForTotals(validFilteredRows);
-    }
     
     if (onFilterChange) {
       onFilterChange(event.filters);
     }
-  }, [onFilterChange, enableFooterTotals, tableData, applyFiltersToData]);
+  }, [onFilterChange]);
 
   const handleSearch = useCallback((value) => {
     setGlobalFilterValue(value);
@@ -825,39 +770,24 @@ const PrimeDataTable = ({
     };
     
     // Reset column filters to default state
-    if (defaultColumns && Array.isArray(defaultColumns)) {
-      defaultColumns.forEach(col => {
-        if (col && col.key && col.filterable !== false && enableColumnFilter) {
-          const columnType = getColumnType(col);
-          let defaultMatchMode = FilterMatchMode.CONTAINS;
-          
-          // Set appropriate default match mode based on column type
-          if (['dropdown', 'select', 'categorical', 'boolean'].includes(columnType)) {
-            defaultMatchMode = FilterMatchMode.EQUALS;
-          } else if (['date', 'datetime'].includes(columnType)) {
-            defaultMatchMode = FilterMatchMode.DATE_IS;
-          } else if (columnType === 'number') {
-            defaultMatchMode = FilterMatchMode.EQUALS;
-          }
-          
-          clearedFilters[col.key] = { 
-            value: null, 
-            matchMode: defaultMatchMode 
-          };
-        }
-      });
-    }
+    defaultColumns.forEach(col => {
+      if (col.filterable && enableColumnFilter) {
+        clearedFilters[col.key] = { 
+          operator: FilterOperator.AND, 
+          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+        };
+      }
+    });
     
     setFilters(clearedFilters);
     setSortField(null);
     setSortOrder(1);
     
     // Clear filtered data for totals
-    if (enableFooterTotals && tableData && Array.isArray(tableData)) {
-      const validData = tableData.filter(row => row && typeof row === 'object');
-      setFilteredDataForTotals(validData);
+    if (enableFooterTotals) {
+      setFilteredDataForTotals(tableData.filter(row => row && typeof row === 'object'));
     }
-  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData, getColumnType]);
+  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData]);
 
   const handleRowSelect = useCallback((event) => {
     setSelectedRows(event.value);
@@ -1111,44 +1041,15 @@ const PrimeDataTable = ({
   };
 
   // State to store filtered data for footer totals
-  const [filteredDataForTotals, setFilteredDataForTotals] = useState([]);
+  const [filteredDataForTotals, setFilteredDataForTotals] = useState(() =>
+    tableData.filter(row => row && typeof row === 'object')
+  );
 
   // Helper function to match filter values
   const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
     // Handle null/undefined values
     if (cellValue === null || cellValue === undefined) {
       return filterValue === null || filterValue === undefined || filterValue === '';
-    }
-    
-    // Handle date/datetime values
-    if (matchMode === FilterMatchMode.DATE_IS || 
-        matchMode === FilterMatchMode.DATE_BEFORE || 
-        matchMode === FilterMatchMode.DATE_AFTER ||
-        matchMode === FilterMatchMode.BETWEEN) {
-      const cellDate = new Date(cellValue);
-      const filterDate = new Date(filterValue);
-      
-      if (isNaN(cellDate.getTime()) || isNaN(filterDate.getTime())) {
-        return false;
-      }
-      
-      switch (matchMode) {
-        case FilterMatchMode.DATE_IS:
-          return cellDate.toDateString() === filterDate.toDateString();
-        case FilterMatchMode.DATE_BEFORE:
-          return cellDate < filterDate;
-        case FilterMatchMode.DATE_AFTER:
-          return cellDate > filterDate;
-        case FilterMatchMode.BETWEEN:
-          if (Array.isArray(filterValue) && filterValue.length === 2) {
-            const startDate = new Date(filterValue[0]);
-            const endDate = new Date(filterValue[1]);
-            return cellDate >= startDate && cellDate <= endDate;
-          }
-          return false;
-        default:
-          return cellDate.toDateString() === filterDate.toDateString();
-      }
     }
     
     // Handle exact matches for non-string types
@@ -1192,18 +1093,15 @@ const PrimeDataTable = ({
 
   // Apply filters to data manually when PrimeReact doesn't provide filtered data
   const applyFiltersToData = useCallback((data, filters) => {
-    if (!data || !Array.isArray(data)) return [];
     if (!filters || Object.keys(filters).length === 0) return data;
     
     return data.filter(row => {
       // Ensure row is not null or undefined
       if (!row || typeof row !== 'object') return false;
-      
       // Check global filter
       if (filters.global && filters.global.value) {
         const globalValue = String(filters.global.value).toLowerCase();
         const globalMatch = defaultColumns.some(col => {
-          if (!col || !col.key) return false;
           const cellValue = String(row[col.key] || '').toLowerCase();
           return cellValue.includes(globalValue);
         });
@@ -1216,11 +1114,29 @@ const PrimeDataTable = ({
         
         const cellValue = row[columnKey];
         
-        // Handle simple filter structure (PrimeReact default)
-        if (filterConfig.value !== null && filterConfig.value !== undefined && filterConfig.value !== '') {
-          const matchMode = filterConfig.matchMode || FilterMatchMode.CONTAINS;
-          if (!matchFilterValue(cellValue, filterConfig.value, matchMode)) {
-            return false;
+        // Handle advanced filter structure
+        if (filterConfig.operator && filterConfig.constraints) {
+          const constraintResults = filterConfig.constraints.map(constraint => {
+            if (!constraint.value && constraint.value !== 0 && constraint.value !== false) return true;
+            
+            const constraintValue = constraint.value;
+            const matchMode = constraint.matchMode || FilterMatchMode.CONTAINS;
+            
+            return matchFilterValue(cellValue, constraintValue, matchMode);
+          });
+          
+          const result = filterConfig.operator === FilterOperator.AND
+            ? constraintResults.every(Boolean)
+            : constraintResults.some(Boolean);
+            
+          if (!result) return false;
+        } else {
+          // Handle simple filter structure
+          if (filterConfig.value !== null && filterConfig.value !== undefined && filterConfig.value !== '') {
+            const matchMode = filterConfig.matchMode || FilterMatchMode.CONTAINS;
+            if (!matchFilterValue(cellValue, filterConfig.value, matchMode)) {
+              return false;
+            }
           }
         }
       }
@@ -1229,27 +1145,14 @@ const PrimeDataTable = ({
     });
   }, [defaultColumns, matchFilterValue]);
 
-  // Initialize and update filtered data when filters or tableData change
+  // Update filtered data when filters or tableData change
   useEffect(() => {
-    if (!tableData || !Array.isArray(tableData)) {
-      setFilteredDataForTotals([]);
-      return;
-    }
-    
     // Apply current filters to get filtered data for totals
     const filteredData = applyFiltersToData(tableData, filters);
     // Ensure filtered data contains only valid objects
     const validFilteredData = filteredData.filter(row => row && typeof row === 'object');
     setFilteredDataForTotals(validFilteredData);
   }, [tableData, filters, applyFiltersToData]);
-
-  // Initialize filtered data on mount
-  useEffect(() => {
-    if (tableData && Array.isArray(tableData)) {
-      const validData = tableData.filter(row => row && typeof row === 'object');
-      setFilteredDataForTotals(validData);
-    }
-  }, []);
 
   // Calculate footer totals for numeric columns based on filtered data
   const calculateFooterTotals = useMemo(() => {
@@ -1712,12 +1615,37 @@ const PrimeDataTable = ({
         value={tableData}
         loading={isLoading}
         filters={filters}
-        filterDisplay={enableColumnFilter ? (filterDisplay || "menu") : undefined}
+        filterDisplay={filterDisplay}
         globalFilterFields={globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key)}
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
-        onFilter={handleFilter}
+        onFilter={(e) => {
+          // Update filters first
+          handleFilter(e);
+          
+          // Update filtered data for totals calculation
+          if (enableFooterTotals) {
+            // Get the filtered data from PrimeReact event
+            let filteredRows = tableData;
+            
+            // Try to get filtered data from various event properties
+            if (e.filteredValue && Array.isArray(e.filteredValue)) {
+              filteredRows = e.filteredValue;
+            } else if (e.value && Array.isArray(e.value)) {
+              filteredRows = e.value;
+            } else if (e.data && Array.isArray(e.data)) {
+              filteredRows = e.data;
+            } else {
+              // Apply filters manually using the updated filters
+              filteredRows = applyFiltersToData(tableData, e.filters);
+            }
+            
+            // Ensure filtered rows are valid objects
+            const validFilteredRows = filteredRows.filter(row => row && typeof row === 'object');
+            setFilteredDataForTotals(validFilteredRows);
+          }
+        }}
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
@@ -1836,21 +1764,21 @@ const PrimeDataTable = ({
               <Column
                 key={column.key}
                 field={column.key}
-                header={column.title}
-                sortable={column.sortable !== false && enableSorting}
-                filter={column.filterable !== false && enableColumnFilter}
-                filterElement={column.filterable !== false && enableColumnFilter ? (options) => getColumnFilterElement(
+                header={column.title} // Keep headers for filters even with grouping
+                sortable={column.sortable && enableSorting}
+                filter={column.filterable && enableColumnFilter}
+                filterElement={(options) => getColumnFilterElement(
                   column,
                   options.value,
                   options.filterCallback
-                ) : undefined}
+                )}
                 filterPlaceholder={`Filter ${column.title}...`}
                 filterClear={enableFilterClear ? filterClearTemplate : undefined}
                 filterApply={enableFilterApply ? filterApplyTemplate : undefined}
                 filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
                 footer={enableFooterTotals && !finalColumnStructure.hasGroups ? () => footerTemplate(column) : undefined}
+
                 showFilterMatchModes={
-                  enableFilterMatchModes && 
                   !['dropdown', 'select', 'categorical', 'date', 'datetime', 'number', 'boolean'].includes(columnType)
                 }
                 filterMatchMode={
@@ -1858,7 +1786,7 @@ const PrimeDataTable = ({
                     ['dropdown', 'select', 'categorical'].includes(columnType)
                       ? FilterMatchMode.EQUALS
                       : ['date', 'datetime'].includes(columnType)
-                      ? FilterMatchMode.DATE_IS
+                      ? FilterMatchMode.BETWEEN
                       : columnType === 'number'
                       ? FilterMatchMode.EQUALS
                       : columnType === 'boolean'
@@ -1866,6 +1794,7 @@ const PrimeDataTable = ({
                       : FilterMatchMode.CONTAINS
                   )
                 }
+
                 filterMaxLength={column.filterMaxLength}
                 filterMinLength={column.filterMinLength}
                 filterOptions={generateFilterOptions(column)}
