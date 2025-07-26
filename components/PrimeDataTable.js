@@ -1150,7 +1150,7 @@ const PrimeDataTable = ({
           const prefix = match[1];
           
           // Skip common shared field prefixes
-          const sharedPrefixes = ['dr', 'date', 'id', 'name', 'team', 'hq', 'location', 'code'];
+          const sharedPrefixes = ['dr', 'date', 'id', 'name', 'team', 'hq', 'location', 'code','salesTeam'];
           if (sharedPrefixes.includes(prefix)) return;
           
           // Count how many columns start with this prefix
