@@ -1129,214 +1129,79 @@ const PrimeDataTable = ({
     );
     explicitlyUngroupedColumns.forEach(col => processedColumns.add(col.key));
 
-    // Step 2: Check if we have group markers from merged data
-    const hasGroupMarkers = tableData.some(row => row && row.__group);
-    
-    if (hasGroupMarkers) {
-      // Group by __group markers (from merged data)
-      const groupMarkers = [...new Set(tableData.map(row => row?.__group).filter(Boolean))];
+    // Step 2: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
+    const separatorGroups = {};
+    defaultColumns.forEach(col => {
+      if (processedColumns.has(col.key)) return;
       
-      groupMarkers.forEach(groupMarker => {
-        const groupColumns = defaultColumns.filter(col => {
-          if (processedColumns.has(col.key)) return false;
-          
-          // Check if this column has data for this group
-          return tableData.some(row => 
-            row && row.__group === groupMarker && 
-            (row[col.key] !== undefined && row[col.key] !== null)
-          );
-        });
-        
-        if (groupColumns.length > 0) {
-          // Enhanced group name detection
-          let groupName = customGroupMappings[groupMarker];
-          
-          if (!groupName) {
-            // Auto-generate group name based on marker
-            const markerLower = groupMarker.toLowerCase();
-            
-            // Business-specific mappings
-            if (markerLower.includes('service')) {
-              groupName = 'Service';
-            } else if (markerLower.includes('support')) {
-              groupName = 'Support';
-            } else if (markerLower.includes('sales')) {
-              groupName = 'Sales';
-            } else if (markerLower.includes('marketing')) {
-              groupName = 'Marketing';
-            } else if (markerLower.includes('inventory')) {
-              groupName = 'Inventory';
-            } else if (markerLower.includes('warehouse')) {
-              groupName = 'Warehouse';
-            } else if (markerLower.includes('finance')) {
-              groupName = 'Finance';
-            } else if (markerLower.includes('hr')) {
-              groupName = 'Human Resources';
-            } else if (markerLower.includes('it')) {
-              groupName = 'Information Technology';
-            } else if (markerLower.includes('operations')) {
-              groupName = 'Operations';
-            } else if (markerLower.includes('revenue')) {
-              groupName = 'Revenue';
-            } else if (markerLower.includes('cost')) {
-              groupName = 'Cost';
-            } else if (markerLower.includes('expense')) {
-              groupName = 'Expense';
-            } else if (markerLower.includes('profit')) {
-              groupName = 'Profit';
-            } else if (markerLower.includes('budget')) {
-              groupName = 'Budget';
-            } else if (markerLower.includes('target')) {
-              groupName = 'Target';
-            } else if (markerLower.includes('actual')) {
-              groupName = 'Actual';
-            } else if (markerLower.includes('forecast')) {
-              groupName = 'Forecast';
-            } else {
-              // Default: capitalize first letter and add spaces before capitals
-              groupName = groupMarker
-                .replace(/([A-Z])/g, ' $1')
-                .replace(/^./, str => str.toUpperCase())
-                .trim();
+      if (col.key.includes(groupSeparator)) {
+        const parts = col.key.split(groupSeparator);
+        if (parts.length >= 2) {
+          const prefix = parts[0]; // e.g., "2025-04-01"
+          const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
+          let groupName = suffix;
+          const suffixLower = suffix.toLowerCase();
+          // Step 1: Check custom group mappings first
+          let customMatch = false;
+          if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
+            for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
+              if (suffixLower.includes(keyword.toLowerCase())) {
+                groupName = groupNameMapping;
+                customMatch = true;
+                break;
+              }
             }
           }
-          
-          groups.push({
-            header: groupName,
-            columns: groupColumns.map(col => ({
-              ...col,
-              originalKey: col.key,
-              subHeader: col.title,
-              groupMarker: groupMarker
-            }))
+          if (!separatorGroups[groupName]) {
+            separatorGroups[groupName] = [];
+          }
+          separatorGroups[groupName].push({
+            ...col,
+            originalKey: col.key,
+            groupPrefix: prefix,
+            groupSuffix: suffix,
+            subHeader: suffix.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
           });
-          
-          groupColumns.forEach(col => processedColumns.add(col.key));
+          processedColumns.add(col.key);
         }
-      });
-    } else {
-      // Step 3: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
-      const separatorGroups = {};
+      }
+    });
+
+    // Step 3: Handle custom grouping patterns
+    groupingPatterns.forEach(pattern => {
+      const regex = new RegExp(pattern.regex);
       defaultColumns.forEach(col => {
         if (processedColumns.has(col.key)) return;
-        
-        if (col.key.includes(groupSeparator)) {
-          const parts = col.key.split(groupSeparator);
-          if (parts.length >= 2) {
-            const prefix = parts[0]; // e.g., "2025-04-01"
-            const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
-            
-            // Extract group name from suffix (e.g., "service" from "serviceAmount")
-            let groupName = suffix;
-            const suffixLower = suffix.toLowerCase();
-            
-            // Step 1: Check custom group mappings first
-            let customMatch = false;
-            if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
-              for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
-                if (suffixLower.includes(keyword.toLowerCase())) {
-                  groupName = groupNameMapping;
-                  customMatch = true;
-                  break;
-                }
-              }
-            }
-            
-            // Step 2: If no custom match, try built-in business terms
-            if (!customMatch) {
-              if (suffixLower.includes('service')) {
-                groupName = 'Service';
-              } else if (suffixLower.includes('support')) {
-                groupName = 'Support';
-              } else if (suffixLower.includes('sales')) {
-                groupName = 'Sales';
-              } else if (suffixLower.includes('marketing')) {
-                groupName = 'Marketing';
-              } else if (suffixLower.includes('revenue')) {
-                groupName = 'Revenue';
-              } else if (suffixLower.includes('cost')) {
-                groupName = 'Cost';
-              } else if (suffixLower.includes('expense')) {
-                groupName = 'Expense';
-              } else if (suffixLower.includes('profit')) {
-                groupName = 'Profit';
-              } else if (suffixLower.includes('budget')) {
-                groupName = 'Budget';
-              } else if (suffixLower.includes('target')) {
-                groupName = 'Target';
-              } else if (suffixLower.includes('actual')) {
-                groupName = 'Actual';
-              } else if (suffixLower.includes('forecast')) {
-                groupName = 'Forecast';
-              } else {
-                // Extract first meaningful word from suffix
-                const firstWord = suffix.match(/^([a-zA-Z]+)/);
-                if (firstWord && firstWord[1].length > 2) {
-                  groupName = firstWord[1].charAt(0).toUpperCase() + firstWord[1].slice(1);
-                } else {
-                  // If no good match, use the full suffix as group name
-                  groupName = suffix.charAt(0).toUpperCase() + suffix.slice(1);
-                }
-              }
-            }
-
-            if (!separatorGroups[groupName]) {
-              separatorGroups[groupName] = [];
-            }
-            
-            separatorGroups[groupName].push({
-              ...col,
-              originalKey: col.key,
-              groupPrefix: prefix,
-              groupSuffix: suffix,
-              subHeader: suffix.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
-            });
-            
-            processedColumns.add(col.key);
+        if (regex.test(col.key)) {
+          const match = col.key.match(regex);
+          const groupName = pattern.groupName || match[1] || 'Group';
+          if (!separatorGroups[groupName]) {
+            separatorGroups[groupName] = [];
           }
-        }
-      });
-
-      // Step 3: Handle custom grouping patterns
-      groupingPatterns.forEach(pattern => {
-        const regex = new RegExp(pattern.regex);
-        defaultColumns.forEach(col => {
-          if (processedColumns.has(col.key)) return;
-          
-          if (regex.test(col.key)) {
-            const match = col.key.match(regex);
-            const groupName = pattern.groupName || match[1] || 'Group';
-            
-            if (!separatorGroups[groupName]) {
-              separatorGroups[groupName] = [];
-            }
-            
-            separatorGroups[groupName].push({
-              ...col,
-              originalKey: col.key,
-              subHeader: pattern.subHeaderExtractor ? pattern.subHeaderExtractor(col.key) : col.title
-            });
-            
-            processedColumns.add(col.key);
-          }
-        });
-      });
-
-      // Step 4: Convert separator groups to column groups
-      Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
-        if (groupColumns.length > 0) {
-          groups.push({
-            header: groupName,
-            columns: groupColumns.sort((a, b) => {
-              // Sort by prefix first, then by suffix
-              const prefixCompare = (a.groupPrefix || '').localeCompare(b.groupPrefix || '');
-              if (prefixCompare !== 0) return prefixCompare;
-              return (a.groupSuffix || '').localeCompare(b.groupSuffix || '');
-            })
+          separatorGroups[groupName].push({
+            ...col,
+            originalKey: col.key,
+            subHeader: pattern.subHeaderExtractor ? pattern.subHeaderExtractor(col.key) : col.title
           });
+          processedColumns.add(col.key);
         }
       });
-    }
+    });
+
+    // Step 4: Convert separator groups to column groups
+    Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
+      if (groupColumns.length > 0) {
+        groups.push({
+          header: groupName,
+          columns: groupColumns.sort((a, b) => {
+            // Sort by prefix first, then by suffix
+            const prefixCompare = (a.groupPrefix || '').localeCompare(b.groupPrefix || '');
+            if (prefixCompare !== 0) return prefixCompare;
+            return (a.groupSuffix || '').localeCompare(b.groupSuffix || '');
+          })
+        });
+      }
+    });
 
     // Step 5: Handle total columns - try to group them with their parent groups
     const totalCols = defaultColumns.filter(col => 
@@ -1346,32 +1211,27 @@ const PrimeDataTable = ({
         col.title.toLowerCase().includes('total')
       )
     );
-
-         totalCols.forEach(col => {
-       // Try to match total column to existing group
-       let matched = false;
-       const colLower = col.key.toLowerCase();
-       
-       groups.forEach(group => {
-         const groupNameLower = group.header.toLowerCase();
-         if (colLower.includes(groupNameLower)) {
-           group.columns.push({
-             ...col,
-             originalKey: col.key,
-             subHeader: col.title,
-             isTotal: true
-           });
-           matched = true;
-           processedColumns.add(col.key);
-         }
-       });
-
-       if (!matched) {
-         // Add to remaining columns if no group match (don't create separate Totals group)
-         remainingColumns.push(col);
-         processedColumns.add(col.key);
-       }
-     });
+    totalCols.forEach(col => {
+      let matched = false;
+      const colLower = col.key.toLowerCase();
+      groups.forEach(group => {
+        const groupNameLower = group.header.toLowerCase();
+        if (colLower.includes(groupNameLower)) {
+          group.columns.push({
+            ...col,
+            originalKey: col.key,
+            subHeader: col.title,
+            isTotal: true
+          });
+          matched = true;
+          processedColumns.add(col.key);
+        }
+      });
+      if (!matched) {
+        remainingColumns.push(col);
+        processedColumns.add(col.key);
+      }
+    });
 
     // Step 6: Remaining ungrouped columns
     defaultColumns.forEach(col => {
