@@ -207,6 +207,7 @@ const PrimeDataTable = ({
   
   // Column grouping props
   enableColumnGrouping = false,
+  enableAutoColumnGrouping = false, // New: Auto-detect column groups from data
   headerColumnGroup = null,
   footerColumnGroup = null,
   columnGroups = [],
@@ -215,7 +216,12 @@ const PrimeDataTable = ({
     enableFooterGroups: true,
     groupStyle: {},
     headerGroupStyle: {},
-    footerGroupStyle: {}
+    footerGroupStyle: {},
+    groupingPatterns: [], // Custom patterns for grouping
+    ungroupedColumns: [], // Columns that should not be grouped
+    totalColumns: [], // Columns that represent totals
+    groupSeparator: '__', // Default separator for detecting groups
+    customGroupMappings: {} // Custom word to group name mappings e.g., { "inventory": "Inventory", "warehouse": "Warehouse" }
   },
   
   // Footer totals props
@@ -415,6 +421,217 @@ const PrimeDataTable = ({
 
     return cols;
   }, [columns, tableData, hiddenColumns, columnOrder, fields]);
+
+  // Auto-detect column grouping patterns
+  const autoDetectedColumnGroups = useMemo(() => {
+    if (!enableAutoColumnGrouping || !tableData.length) {
+      return { groups: [], ungroupedColumns: defaultColumns };
+    }
+
+    const { groupSeparator, ungroupedColumns, totalColumns, groupingPatterns, customGroupMappings } = groupConfig;
+    const groups = [];
+    const processedColumns = new Set();
+    const remainingColumns = [];
+
+    // Step 1: Handle explicitly ungrouped columns
+    const explicitlyUngroupedColumns = defaultColumns.filter(col => 
+      ungroupedColumns.includes(col.key)
+    );
+    explicitlyUngroupedColumns.forEach(col => processedColumns.add(col.key));
+
+    // Step 2: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
+    const separatorGroups = {};
+    defaultColumns.forEach(col => {
+      if (processedColumns.has(col.key)) return;
+      
+      if (col.key.includes(groupSeparator)) {
+        const parts = col.key.split(groupSeparator);
+        if (parts.length >= 2) {
+          const prefix = parts[0]; // e.g., "2025-04-01"
+          const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
+          
+          // Extract group name from suffix (e.g., "service" from "serviceAmount")
+          let groupName = suffix;
+          const suffixLower = suffix.toLowerCase();
+          
+          // Step 1: Check custom group mappings first
+          let customMatch = false;
+          if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
+            for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
+              if (suffixLower.includes(keyword.toLowerCase())) {
+                groupName = groupNameMapping;
+                customMatch = true;
+                break;
+              }
+            }
+          }
+          
+          // Step 2: If no custom match, try built-in business terms
+          if (!customMatch) {
+            if (suffixLower.includes('service')) {
+              groupName = 'Service';
+            } else if (suffixLower.includes('support')) {
+              groupName = 'Support';
+            } else if (suffixLower.includes('sales')) {
+              groupName = 'Sales';
+            } else if (suffixLower.includes('marketing')) {
+              groupName = 'Marketing';
+            } else if (suffixLower.includes('revenue')) {
+              groupName = 'Revenue';
+            } else if (suffixLower.includes('cost')) {
+              groupName = 'Cost';
+            } else if (suffixLower.includes('expense')) {
+              groupName = 'Expense';
+            } else if (suffixLower.includes('profit')) {
+              groupName = 'Profit';
+            } else if (suffixLower.includes('budget')) {
+              groupName = 'Budget';
+            } else if (suffixLower.includes('target')) {
+              groupName = 'Target';
+            } else if (suffixLower.includes('actual')) {
+              groupName = 'Actual';
+            } else if (suffixLower.includes('forecast')) {
+              groupName = 'Forecast';
+            } else {
+              // Extract first meaningful word from suffix
+              const firstWord = suffix.match(/^([a-zA-Z]+)/);
+              if (firstWord && firstWord[1].length > 2) {
+                groupName = firstWord[1].charAt(0).toUpperCase() + firstWord[1].slice(1);
+              } else {
+                // If no good match, use the full suffix as group name
+                groupName = suffix.charAt(0).toUpperCase() + suffix.slice(1);
+              }
+            }
+          }
+
+          if (!separatorGroups[groupName]) {
+            separatorGroups[groupName] = [];
+          }
+          
+          separatorGroups[groupName].push({
+            ...col,
+            originalKey: col.key,
+            groupPrefix: prefix,
+            groupSuffix: suffix,
+            subHeader: suffix.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+          });
+          
+          processedColumns.add(col.key);
+        }
+      }
+    });
+
+    // Step 3: Handle custom grouping patterns
+    groupingPatterns.forEach(pattern => {
+      const regex = new RegExp(pattern.regex);
+      defaultColumns.forEach(col => {
+        if (processedColumns.has(col.key)) return;
+        
+        if (regex.test(col.key)) {
+          const match = col.key.match(regex);
+          const groupName = pattern.groupName || match[1] || 'Group';
+          
+          if (!separatorGroups[groupName]) {
+            separatorGroups[groupName] = [];
+          }
+          
+          separatorGroups[groupName].push({
+            ...col,
+            originalKey: col.key,
+            subHeader: pattern.subHeaderExtractor ? pattern.subHeaderExtractor(col.key) : col.title
+          });
+          
+          processedColumns.add(col.key);
+        }
+      });
+    });
+
+    // Step 4: Convert separator groups to column groups
+    Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
+      if (groupColumns.length > 0) {
+        groups.push({
+          header: groupName,
+          columns: groupColumns.sort((a, b) => {
+            // Sort by prefix first, then by suffix
+            const prefixCompare = (a.groupPrefix || '').localeCompare(b.groupPrefix || '');
+            if (prefixCompare !== 0) return prefixCompare;
+            return (a.groupSuffix || '').localeCompare(b.groupSuffix || '');
+          })
+        });
+      }
+    });
+
+    // Step 5: Handle total columns - try to group them with their parent groups
+    const totalCols = defaultColumns.filter(col => 
+      !processedColumns.has(col.key) && (
+        totalColumns.includes(col.key) || 
+        col.key.toLowerCase().includes('total') ||
+        col.title.toLowerCase().includes('total')
+      )
+    );
+
+         totalCols.forEach(col => {
+       // Try to match total column to existing group
+       let matched = false;
+       const colLower = col.key.toLowerCase();
+       
+       groups.forEach(group => {
+         const groupNameLower = group.header.toLowerCase();
+         if (colLower.includes(groupNameLower)) {
+           group.columns.push({
+             ...col,
+             originalKey: col.key,
+             subHeader: col.title,
+             isTotal: true
+           });
+           matched = true;
+           processedColumns.add(col.key);
+         }
+       });
+
+       if (!matched) {
+         // Add to remaining columns if no group match (don't create separate Totals group)
+         remainingColumns.push(col);
+         processedColumns.add(col.key);
+       }
+     });
+
+    // Step 6: Remaining ungrouped columns
+    defaultColumns.forEach(col => {
+      if (!processedColumns.has(col.key)) {
+        remainingColumns.push(col);
+      }
+    });
+
+    return {
+      groups,
+      ungroupedColumns: [...explicitlyUngroupedColumns, ...remainingColumns]
+    };
+  }, [enableAutoColumnGrouping, defaultColumns, tableData, groupConfig]);
+
+  // Final column structure with grouping
+  const finalColumnStructure = useMemo(() => {
+    if (!enableColumnGrouping) {
+      return { columns: defaultColumns, hasGroups: false };
+    }
+
+    if (enableAutoColumnGrouping) {
+      return {
+        columns: defaultColumns,
+        hasGroups: autoDetectedColumnGroups.groups.length > 0,
+        groups: autoDetectedColumnGroups.groups,
+        ungroupedColumns: autoDetectedColumnGroups.ungroupedColumns
+      };
+    }
+
+    // Use manual column groups
+    return {
+      columns: defaultColumns,
+      hasGroups: columnGroups.length > 0,
+      groups: columnGroups,
+      ungroupedColumns: defaultColumns
+    };
+  }, [enableColumnGrouping, enableAutoColumnGrouping, defaultColumns, autoDetectedColumnGroups, columnGroups]);
 
 
   // Initialize filters based on columns
@@ -1169,37 +1386,91 @@ const PrimeDataTable = ({
 
   // Generate column groups from configuration
   const generateColumnGroups = useCallback(() => {
-    if (!enableColumnGrouping || !columnGroups.length) {
+    if (!enableColumnGrouping || !finalColumnStructure.hasGroups) {
       return null;
     }
 
+    const { groups, ungroupedColumns } = finalColumnStructure;
+
+    // Create header rows for grouped columns
+    const headerRows = [];
+
+    // First row: Main group headers + ungrouped column headers
+    const firstRowColumns = [];
+    
+    // Add ungrouped columns to first row
+    ungroupedColumns.forEach(col => {
+      firstRowColumns.push(
+        <Column
+          key={`ungrouped-${col.key}`}
+          header={col.title}
+          field={col.key}
+          rowSpan={2} // Span both header rows since ungrouped
+        />
+      );
+    });
+
+    // Add group headers to first row
+    groups.forEach(group => {
+      firstRowColumns.push(
+        <Column
+          key={`group-${group.header}`}
+          header={group.header}
+          colSpan={group.columns.length}
+          style={{
+            textAlign: 'center',
+            fontWeight: 'bold',
+            backgroundColor: 'var(--primary-50)',
+            border: '1px solid var(--primary-200)',
+            ...groupConfig.headerGroupStyle
+          }}
+        />
+      );
+    });
+
+    headerRows.push(
+      <Row key="group-headers">
+        {firstRowColumns}
+      </Row>
+    );
+
+    // Second row: Sub-column headers for grouped columns
+    const secondRowColumns = [];
+    
+    groups.forEach(group => {
+      group.columns.forEach(col => {
+        secondRowColumns.push(
+          <Column
+            key={`sub-${col.originalKey || col.key}`}
+            header={col.subHeader || col.title}
+            field={col.originalKey || col.key}
+            style={{
+              textAlign: 'center',
+              fontSize: '0.9em',
+              backgroundColor: 'var(--surface-50)',
+              ...groupConfig.groupStyle
+            }}
+          />
+        );
+      });
+    });
+
+    headerRows.push(
+      <Row key="sub-headers">
+        {secondRowColumns}
+      </Row>
+    );
+
     return (
       <ColumnGroup>
-        {columnGroups.map((group, groupIndex) => (
-          <Row key={groupIndex}>
-            {group.columns.map((col, colIndex) => (
-              <Column
-                key={colIndex}
-                header={col.header}
-                field={col.field}
-                sortable={col.sortable}
-                colSpan={col.colSpan}
-                rowSpan={col.rowSpan}
-
-                footer={col.footer}
-                body={col.body}
-                bodyTemplate={col.bodyTemplate}
-              />
-            ))}
-          </Row>
-        ))}
+        {headerRows}
       </ColumnGroup>
     );
-  }, [enableColumnGrouping, columnGroups]);
+  }, [enableColumnGrouping, finalColumnStructure, groupConfig]);
 
   // Generate footer groups from configuration
   const generateFooterGroups = useCallback(() => {
-    if (!enableColumnGrouping || !groupConfig.enableFooterGroups) {
+    if (!enableColumnGrouping || !groupConfig.enableFooterGroups || !finalColumnStructure.hasGroups) {
       return null;
     }
 
@@ -1208,29 +1479,43 @@ const PrimeDataTable = ({
       return footerColumnGroup;
     }
 
-    // Generate footer from column groups if available
-    if (columnGroups.length) {
-      return (
-        <ColumnGroup>
-          {columnGroups.map((group, groupIndex) => (
-            <Row key={groupIndex}>
-              {group.columns.map((col, colIndex) => (
-                <Column
-                  key={colIndex}
-                  footer={col.footer}
-                  colSpan={col.colSpan}
-                  rowSpan={col.rowSpan}
+    const { groups, ungroupedColumns } = finalColumnStructure;
 
-                />
-              ))}
-            </Row>
-          ))}
-        </ColumnGroup>
+    // Create footer row
+    const footerColumns = [];
+    
+    // Add ungrouped columns to footer
+    ungroupedColumns.forEach(col => {
+      footerColumns.push(
+        <Column
+          key={`footer-ungrouped-${col.key}`}
+          footer={enableFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
+          field={col.key}
+        />
       );
-    }
+    });
 
-    return null;
-    }, [enableColumnGrouping, footerColumnGroup, columnGroups, groupConfig.enableFooterGroups]);
+    // Add grouped columns to footer
+    groups.forEach(group => {
+      group.columns.forEach(col => {
+        footerColumns.push(
+          <Column
+            key={`footer-grouped-${col.originalKey || col.key}`}
+            footer={enableFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
+            field={col.originalKey || col.key}
+          />
+        );
+      });
+    });
+
+    return (
+      <ColumnGroup>
+        <Row>
+          {footerColumns}
+        </Row>
+      </ColumnGroup>
+    );
+  }, [enableColumnGrouping, footerColumnGroup, finalColumnStructure, groupConfig.enableFooterGroups, enableFooterTotals, footerTemplate]);
 
   // Helper function to create column groups easily
   const createColumnGroup = useCallback((groups) => {
@@ -1285,7 +1570,7 @@ const PrimeDataTable = ({
     <div className={className} style={style}>
       {/* Debug Info - Remove this in production */}
       {process.env.NODE_ENV === 'development' && (
-        <div>
+        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em' }}>
           <strong>Debug Info:</strong><br/>
           <strong>Data:</strong> {data.length} rows<br/>
           <strong>Columns:</strong> {columns.length} custom, {defaultColumns.length} total<br/>
@@ -1297,8 +1582,22 @@ const PrimeDataTable = ({
           <strong>Column Groups:</strong> {columnGroups.length}<br/>
           <strong>Features:</strong> Search:{enableSearch ? '✓' : '✗'} | Filter:{enableColumnFilter ? '✓' : '✗'} | Sort:{enableSorting ? '✓' : '✗'} | Pagination:{enablePagination ? '✓' : '✗'}<br/>
           <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
+          <strong>Auto Grouping:</strong> {enableAutoColumnGrouping ? '✓' : '✗'}<br/>
           <strong>Size:</strong> {tableSize}<br/>
-          <strong>Theme:</strong> Native PrimeReact
+          <strong>Theme:</strong> Native PrimeReact<br/>
+          
+          {enableAutoColumnGrouping && (
+            <>
+              <strong>Auto-detected Groups:</strong> {autoDetectedColumnGroups.groups.length}<br/>
+              {autoDetectedColumnGroups.groups.map((group, idx) => (
+                <div key={idx} style={{ marginLeft: '1rem' }}>
+                  <strong>{group.header}:</strong> {group.columns.map(col => col.originalKey || col.key).join(', ')}
+                </div>
+              ))}
+              <strong>Ungrouped Columns:</strong> {autoDetectedColumnGroups.ungroupedColumns.map(col => col.key).join(', ')}<br/>
+              <strong>Group Separator:</strong> {groupConfig.groupSeparator}<br/>
+            </>
+          )}
         </div>
       )}
       
@@ -1412,79 +1711,115 @@ const PrimeDataTable = ({
           />
         )}
 
-        {defaultColumns.map(column => {
-          const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
-          const columnKey = column.key;
-          const columnType = getColumnType(column);
+        {(() => {
+          // Generate columns in the correct order for grouping
+          const columnsToRender = [];
           
-          // Enhanced categorical detection including explicit configuration
-          const uniqueValues = getUniqueValues(tableData, columnKey);
-          const isCategorical = (
-            dropdownFilterColumns.includes(columnKey) ||
-            (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
-            column.type === 'dropdown' ||
-            column.type === 'select' ||
-            column.isCategorical
-          );
-          return (
-            <Column
-              key={column.key}
-              field={column.key}
-              header={column.title}
-              sortable={column.sortable && enableSorting}
-              filter={column.filterable && enableColumnFilter}
-              filterElement={(options) => getColumnFilterElement(
-                column,
-                options.value,
-                options.filterCallback
-              )}
-              filterPlaceholder={`Filter ${column.title}...`}
-              filterClear={enableFilterClear ? filterClearTemplate : undefined}
-              filterApply={enableFilterApply ? filterApplyTemplate : undefined}
-              filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
-              footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
+          if (enableColumnGrouping && finalColumnStructure.hasGroups) {
+            const { groups, ungroupedColumns } = finalColumnStructure;
+            
+            // First, add ungrouped columns
+            ungroupedColumns.forEach(column => {
+              columnsToRender.push(column);
+            });
+            
+            // Then, add grouped columns in order
+            groups.forEach(group => {
+              group.columns.forEach(groupedColumn => {
+                // Find the original column definition
+                const originalColumn = defaultColumns.find(col => 
+                  col.key === (groupedColumn.originalKey || groupedColumn.key)
+                );
+                if (originalColumn) {
+                  columnsToRender.push({
+                    ...originalColumn,
+                    key: groupedColumn.originalKey || groupedColumn.key,
+                    isGrouped: true,
+                    groupName: group.header
+                  });
+                }
+              });
+            });
+          } else {
+            // No grouping, use default columns
+            columnsToRender.push(...defaultColumns);
+          }
 
-              showFilterMatchModes={
-                !['dropdown', 'select', 'categorical', 'date', 'datetime', 'number', 'boolean'].includes(columnType)
-              }
-              filterMatchMode={
-                column.filterMatchMode || (
-                  ['dropdown', 'select', 'categorical'].includes(columnType)
-                    ? FilterMatchMode.EQUALS
-                    : ['date', 'datetime'].includes(columnType)
-                    ? FilterMatchMode.BETWEEN
-                    : columnType === 'number'
-                    ? FilterMatchMode.EQUALS
-                    : columnType === 'boolean'
-                    ? FilterMatchMode.EQUALS
-                    : FilterMatchMode.CONTAINS
-                )
-              }
+          return columnsToRender.map(column => {
+            const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
+            const columnKey = column.key;
+            const columnType = getColumnType(column);
+            
+            // Enhanced categorical detection including explicit configuration
+            const uniqueValues = getUniqueValues(tableData, columnKey);
+            const isCategorical = (
+              dropdownFilterColumns.includes(columnKey) ||
+              (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
+              column.type === 'dropdown' ||
+              column.type === 'select' ||
+              column.isCategorical
+            );
 
-              filterMaxLength={column.filterMaxLength}
-              filterMinLength={column.filterMinLength}
-              filterOptions={generateFilterOptions(column)}
-              filterOptionLabel={column.filterOptionLabel || 'label'}
-              filterOptionValue={column.filterOptionValue || 'value'}
-              filterShowClear={enableFilterClear}
-              filterShowApply={enableFilterApply}
-              filterShowMenu={enableFilterMenu}
-              filterShowMatchModes={enableFilterMatchModes}
+            return (
+              <Column
+                key={column.key}
+                field={column.key}
+                header={enableColumnGrouping && finalColumnStructure.hasGroups ? '' : column.title} // Headers handled by column groups
+                sortable={column.sortable && enableSorting}
+                filter={column.filterable && enableColumnFilter}
+                filterElement={(options) => getColumnFilterElement(
+                  column,
+                  options.value,
+                  options.filterCallback
+                )}
+                filterPlaceholder={`Filter ${column.title}...`}
+                filterClear={enableFilterClear ? filterClearTemplate : undefined}
+                filterApply={enableFilterApply ? filterApplyTemplate : undefined}
+                filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
+                footer={enableFooterTotals && !finalColumnStructure.hasGroups ? () => footerTemplate(column) : undefined}
 
-              body={
-                isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
-                columnType === 'date' || columnType === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
-                columnType === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
-                columnType === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
-                parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
-                customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
-                column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
-              }
+                showFilterMatchModes={
+                  !['dropdown', 'select', 'categorical', 'date', 'datetime', 'number', 'boolean'].includes(columnType)
+                }
+                filterMatchMode={
+                  column.filterMatchMode || (
+                    ['dropdown', 'select', 'categorical'].includes(columnType)
+                      ? FilterMatchMode.EQUALS
+                      : ['date', 'datetime'].includes(columnType)
+                      ? FilterMatchMode.BETWEEN
+                      : columnType === 'number'
+                      ? FilterMatchMode.EQUALS
+                      : columnType === 'boolean'
+                      ? FilterMatchMode.EQUALS
+                      : FilterMatchMode.CONTAINS
+                  )
+                }
 
-              frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
-            />
-          );
-        })}
+                filterMaxLength={column.filterMaxLength}
+                filterMinLength={column.filterMinLength}
+                filterOptions={generateFilterOptions(column)}
+                filterOptionLabel={column.filterOptionLabel || 'label'}
+                filterOptionValue={column.filterOptionValue || 'value'}
+                filterShowClear={enableFilterClear}
+                filterShowApply={enableFilterApply}
+                filterShowMenu={enableFilterMenu}
+                filterShowMatchModes={enableFilterMatchModes}
+
+                body={
+                  isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
+                  columnType === 'date' || columnType === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
+                  columnType === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
+                  columnType === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
+                  parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
+                  customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
+                  column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
+                }
+
+                frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
+              />
+            );
+          });
+        })()}
 
         {enableRowActions && rowActions.length > 0 && (
           <Column
