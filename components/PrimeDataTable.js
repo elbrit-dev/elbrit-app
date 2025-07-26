@@ -1615,7 +1615,7 @@ const PrimeDataTable = ({
         value={tableData}
         loading={isLoading}
         filters={filters}
-        filterDisplay={filterDisplay}
+        filterDisplay={enableColumnGrouping && finalColumnStructure.hasGroups ? "row" : filterDisplay}
         globalFilterFields={globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key)}
         sortField={sortField}
         sortOrder={sortOrder}
