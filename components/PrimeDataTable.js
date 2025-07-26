@@ -270,7 +270,8 @@ const PrimeDataTable = ({
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
-  const getColumnType = useCallback((column) => {
+  // Simple function to get column type - no useCallback to avoid circular dependencies
+  const getColumnType = (column) => {
     const key = column.key;
 
     if (dropdownFilterColumns?.includes(key)) return 'dropdown';
@@ -280,7 +281,7 @@ const PrimeDataTable = ({
     if (textFilterColumns?.includes(key)) return 'text';
 
     return column.type || 'text'; // fallback
-  }, [dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
+  };
 
   // Function to generate the correct filter UI for a column based on its type and data
   const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
@@ -359,7 +360,7 @@ const PrimeDataTable = ({
           />
         );
     }
-  }, [tableData, getColumnType]);
+  }, [tableData, dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
 
 
 
@@ -662,7 +663,7 @@ const PrimeDataTable = ({
       }
     });
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue, getColumnType]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue, dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
 
   // Parse customFormatters from strings to functions using useMemo
   const parsedCustomFormatters = useMemo(() => {
@@ -833,7 +834,7 @@ const PrimeDataTable = ({
     if (enableFooterTotals) {
       setFilteredDataForTotals(tableData.filter(row => row && typeof row === 'object'));
     }
-  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData, getColumnType]);
+  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData, dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
 
   const handleRowSelect = useCallback((event) => {
     setSelectedRows(event.value);
