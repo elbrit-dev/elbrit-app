@@ -1129,7 +1129,58 @@ const PrimeDataTable = ({
     );
     explicitlyUngroupedColumns.forEach(col => processedColumns.add(col.key));
 
-    // Step 2: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
+    // Step 2: Post-merge column grouping based on keywords
+    // This groups columns after merging based on their names containing keywords like "service", "support", etc.
+    const keywordGroups = {};
+    
+    defaultColumns.forEach(col => {
+      if (processedColumns.has(col.key)) return;
+      
+      const colKey = col.key.toLowerCase();
+      let assignedGroup = null;
+      
+      // Check for keyword-based grouping (post-merge logic)
+      if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
+        for (const [keyword, groupName] of Object.entries(customGroupMappings)) {
+          if (colKey.includes(keyword.toLowerCase())) {
+            assignedGroup = groupName;
+            break;
+          }
+        }
+      }
+      
+      // Default keyword detection if no custom mappings
+      if (!assignedGroup) {
+        if (colKey.includes('service')) {
+          assignedGroup = 'Service';
+        } else if (colKey.includes('support')) {
+          assignedGroup = 'Support';
+        } else if (colKey.includes('inventory')) {
+          assignedGroup = 'Inventory';
+        } else if (colKey.includes('finance')) {
+          assignedGroup = 'Finance';
+        } else if (colKey.includes('marketing')) {
+          assignedGroup = 'Marketing';
+        } else if (colKey.includes('sales')) {
+          assignedGroup = 'Sales';
+        }
+      }
+      
+      if (assignedGroup) {
+        if (!keywordGroups[assignedGroup]) {
+          keywordGroups[assignedGroup] = [];
+        }
+        keywordGroups[assignedGroup].push({
+          ...col,
+          originalKey: col.key,
+          subHeader: col.title,
+          groupName: assignedGroup
+        });
+        processedColumns.add(col.key);
+      }
+    });
+
+    // Step 3: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
     const separatorGroups = {};
     defaultColumns.forEach(col => {
       if (processedColumns.has(col.key)) return;
@@ -1141,17 +1192,17 @@ const PrimeDataTable = ({
           const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
           let groupName = suffix;
           const suffixLower = suffix.toLowerCase();
-          // Step 1: Check custom group mappings first
-          let customMatch = false;
+          
+          // Check custom group mappings first
           if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
             for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
               if (suffixLower.includes(keyword.toLowerCase())) {
                 groupName = groupNameMapping;
-                customMatch = true;
                 break;
               }
             }
           }
+          
           if (!separatorGroups[groupName]) {
             separatorGroups[groupName] = [];
           }
@@ -1167,7 +1218,7 @@ const PrimeDataTable = ({
       }
     });
 
-    // Step 3: Handle custom grouping patterns
+    // Step 4: Handle custom grouping patterns
     groupingPatterns.forEach(pattern => {
       const regex = new RegExp(pattern.regex);
       defaultColumns.forEach(col => {
@@ -1188,7 +1239,17 @@ const PrimeDataTable = ({
       });
     });
 
-    // Step 4: Convert separator groups to column groups
+    // Step 5: Convert keyword groups to column groups (post-merge grouping takes priority)
+    Object.entries(keywordGroups).forEach(([groupName, groupColumns]) => {
+      if (groupColumns.length > 0) {
+        groups.push({
+          header: groupName,
+          columns: groupColumns.sort((a, b) => a.title.localeCompare(b.title))
+        });
+      }
+    });
+
+    // Step 6: Convert separator groups to column groups
     Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
       if (groupColumns.length > 0) {
         groups.push({
@@ -1203,7 +1264,7 @@ const PrimeDataTable = ({
       }
     });
 
-    // Step 5: Handle total columns - try to group them with their parent groups
+    // Step 7: Handle total columns - try to group them with their parent groups
     const totalCols = defaultColumns.filter(col => 
       !processedColumns.has(col.key) && (
         totalColumns.includes(col.key) || 
@@ -1233,7 +1294,7 @@ const PrimeDataTable = ({
       }
     });
 
-    // Step 6: Remaining ungrouped columns
+    // Step 8: Remaining ungrouped columns
     defaultColumns.forEach(col => {
       if (!processedColumns.has(col.key)) {
         remainingColumns.push(col);
