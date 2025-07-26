@@ -1184,6 +1184,94 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "object",
       description: "CSS styles for group footers",
       defaultValue: {}
+    },
+    
+    // Pivot Table Props - Excel-like pivot functionality
+    enablePivotTable: {
+      type: "boolean",
+      description: "Enable Excel-like pivot table functionality",
+      defaultValue: false
+    },
+    pivotRows: {
+      type: "object",
+      description: "Array of field names to use as row grouping (like Excel's 'Rows' area). Example: ['drName', 'salesTeam']",
+      defaultValue: []
+    },
+    pivotColumns: {
+      type: "object", 
+      description: "Array of field names to use as column headers (like Excel's 'Columns' area). Example: ['date', 'category']",
+      defaultValue: []
+    },
+    pivotValues: {
+      type: "object",
+      description: "Array of value configuration objects with field and aggregation. Example: [{ field: 'serviceAmount', aggregation: 'sum' }, { field: 'supportValue', aggregation: 'average' }]",
+      defaultValue: []
+    },
+    pivotFilters: {
+      type: "object",
+      description: "Array of field names to use as pivot filters (like Excel's 'Filters' area). Example: ['region', 'status']",
+      defaultValue: []
+    },
+    pivotShowGrandTotals: {
+      type: "boolean",
+      description: "Show grand total row in pivot table",
+      defaultValue: true
+    },
+    pivotShowRowTotals: {
+      type: "boolean",
+      description: "Show row totals column in pivot table",
+      defaultValue: true
+    },
+    pivotShowColumnTotals: {
+      type: "boolean",
+      description: "Show column totals in pivot table",
+      defaultValue: true
+    },
+    pivotShowSubTotals: {
+      type: "boolean",
+      description: "Show subtotals in pivot table",
+      defaultValue: true
+    },
+    pivotNumberFormat: {
+      type: "string",
+      description: "Number format locale for pivot table (e.g., 'en-US', 'de-DE')",
+      defaultValue: "en-US"
+    },
+    pivotCurrency: {
+      type: "string",
+      description: "Currency code for pivot table formatting (e.g., 'USD', 'EUR', 'GBP')",
+      defaultValue: "USD"
+    },
+    pivotPrecision: {
+      type: "number",
+      description: "Number of decimal places for pivot table numbers",
+      defaultValue: 2
+    },
+    pivotFieldSeparator: {
+      type: "string",
+      description: "Separator for parsing complex field names like '2025-04-01__serviceAmount'",
+      defaultValue: "__"
+    },
+    pivotSortRows: {
+      type: "boolean",
+      description: "Sort row values in pivot table",
+      defaultValue: true
+    },
+    pivotSortColumns: {
+      type: "boolean",
+      description: "Sort column values in pivot table",
+      defaultValue: true
+    },
+    pivotSortDirection: {
+      type: "choice",
+      options: ["asc", "desc"],
+      description: "Sort direction for pivot table",
+      defaultValue: "asc"
+    },
+    pivotAggregationFunctions: {
+      type: "object",
+      description: "Custom aggregation functions for pivot table. Object with function names as keys",
+      defaultValue: {}
     }
   },
   

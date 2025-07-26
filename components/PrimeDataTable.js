@@ -33,8 +33,282 @@ const getUniqueValues = (data, key) => {
     .filter(val => val !== null && val !== undefined))];
 };
 
+// Pivot Table Helper Functions
+const parsePivotFieldName = (fieldName, config) => {
+  if (config.parseFieldName && typeof config.parseFieldName === 'function') {
+    return config.parseFieldName(fieldName);
+  }
+  
+  // Default parsing logic for fields like "2025-04-01__serviceAmount"
+  if (fieldName.includes(config.fieldSeparator)) {
+    const parts = fieldName.split(config.fieldSeparator);
+    return {
+      prefix: parts[0], // e.g., "2025-04-01"
+      suffix: parts.slice(1).join(config.fieldSeparator), // e.g., "serviceAmount"
+      isDateField: config.dateFieldPattern.test(parts[0]),
+      originalField: fieldName
+    };
+  }
+  
+  return {
+    prefix: null,
+    suffix: fieldName,
+    isDateField: false,
+    originalField: fieldName
+  };
+};
+
+// Group data by specified fields
+const groupDataBy = (data, groupFields) => {
+  const groups = {};
+  
+  data.forEach(row => {
+    if (!row || typeof row !== 'object') return;
+    
+    // Create a key based on the grouping fields
+    const key = groupFields.map(field => row[field] || '').join('|');
+    
+    if (!groups[key]) {
+      groups[key] = {
+        key,
+        groupValues: {},
+        rows: []
+      };
+      
+      // Store the group values for easy access
+      groupFields.forEach(field => {
+        groups[key].groupValues[field] = row[field];
+      });
+    }
+    
+    groups[key].rows.push(row);
+  });
+  
+  return Object.values(groups);
+};
+
+  // Transform data into pivot structure
+const transformToPivotData = (data, config) => {
+  if (!config.enabled || !data.length) {
+    return { pivotData: data, pivotColumns: [] };
+  }
+  
+  const { rows, columns, values, filters } = config;
+  
+  // Step 1: Apply pivot filters if any
+  let filteredData = data;
+  if (filters && filters.length > 0) {
+    // For now, we'll handle filters through the existing filter system
+    // Could be enhanced to have specific pivot filter logic
+  }
+  
+  // Step 2: If no pivot configuration, return original data
+  if (rows.length === 0 && columns.length === 0 && values.length === 0) {
+    return { pivotData: filteredData, pivotColumns: [] };
+  }
+  
+  // Step 3: Group data by row fields
+  const rowGroups = rows.length > 0 ? groupDataBy(filteredData, rows) : [{ key: 'all', groupValues: {}, rows: filteredData }];
+  
+  // Step 4: Get unique column values
+  let columnValues = [];
+  if (columns.length > 0) {
+    columns.forEach(colField => {
+      const uniqueVals = getUniqueValues(filteredData, colField);
+      columnValues = [...columnValues, ...uniqueVals];
+    });
+    columnValues = [...new Set(columnValues)];
+    
+    if (config.sortColumns) {
+      columnValues.sort((a, b) => {
+        if (config.sortDirection === 'desc') {
+          return String(b).localeCompare(String(a));
+        }
+        return String(a).localeCompare(String(b));
+      });
+    }
+  }
+  
+  // Step 5: Create pivot structure
+  const pivotData = [];
+  
+  rowGroups.forEach(rowGroup => {
+    const pivotRow = { ...rowGroup.groupValues };
+    
+    // Add row totals
+    if (config.showRowTotals && values.length > 0) {
+      values.forEach(valueConfig => {
+        const fieldName = valueConfig.field;
+        const aggregation = valueConfig.aggregation || 'sum';
+        const aggregateFunc = config.aggregationFunctions[aggregation];
+        
+        if (aggregateFunc) {
+          const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
+          pivotRow[`${fieldName}_total`] = aggregateFunc(allValues);
+        }
+      });
+    }
+    
+    // Add column-specific values
+    if (columns.length > 0 && columnValues.length > 0) {
+      columnValues.forEach(colValue => {
+        // Filter rows for this specific column value
+        const colRows = rowGroup.rows.filter(row => {
+          return columns.some(colField => row[colField] === colValue);
+        });
+        
+        // Calculate aggregated values for each value field
+        values.forEach(valueConfig => {
+          const fieldName = valueConfig.field;
+          const aggregation = valueConfig.aggregation || 'sum';
+          const aggregateFunc = config.aggregationFunctions[aggregation];
+          
+          if (aggregateFunc) {
+            const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
+            const columnKey = `${colValue}_${fieldName}`;
+            pivotRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
+          }
+        });
+      });
+    } else {
+      // No column grouping, just calculate values
+      values.forEach(valueConfig => {
+        const fieldName = valueConfig.field;
+        const aggregation = valueConfig.aggregation || 'sum';
+        const aggregateFunc = config.aggregationFunctions[aggregation];
+        
+        if (aggregateFunc) {
+          const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
+          pivotRow[fieldName] = aggregateFunc(allValues);
+        }
+      });
+    }
+    
+    pivotData.push(pivotRow);
+  });
+  
+  // Step 6: Add grand totals row if needed
+  if (config.showGrandTotals && pivotData.length > 0) {
+    const grandTotalRow = { isGrandTotal: true };
+    
+    // Set row field values to "Grand Total"
+    rows.forEach(rowField => {
+      grandTotalRow[rowField] = 'Grand Total';
+    });
+    
+    // Calculate grand totals for each value
+    values.forEach(valueConfig => {
+      const fieldName = valueConfig.field;
+      const aggregation = valueConfig.aggregation || 'sum';
+      const aggregateFunc = config.aggregationFunctions[aggregation];
+      
+      if (aggregateFunc) {
+        const allValues = filteredData.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
+        
+        if (config.showRowTotals) {
+          grandTotalRow[`${fieldName}_total`] = aggregateFunc(allValues);
+        }
+        
+        if (columns.length > 0) {
+          columnValues.forEach(colValue => {
+            const colRows = filteredData.filter(row => {
+              return columns.some(colField => row[colField] === colValue);
+            });
+            const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
+            const columnKey = `${colValue}_${fieldName}`;
+            grandTotalRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
+        });
+      } else {
+          grandTotalRow[fieldName] = aggregateFunc(allValues);
+        }
+      }
+    });
+    
+    pivotData.push(grandTotalRow);
+  }
+  
+  // Step 7: Generate pivot columns
+  const pivotColumns = generatePivotColumns(config, columnValues);
+  
+  return { pivotData, pivotColumns, columnValues };
+};
+
+// Generate columns for pivot table
+const generatePivotColumns = (config, columnValues) => {
+  const { rows, columns, values } = config;
+  const pivotColumns = [];
+  
+  // Add row grouping columns
+  rows.forEach(rowField => {
+    pivotColumns.push({
+      key: rowField,
+      title: rowField.charAt(0).toUpperCase() + rowField.slice(1).replace(/([A-Z])/g, ' $1'),
+      sortable: true,
+      filterable: true,
+      type: 'text',
+      isPivotRow: true
+          });
+        });
+  
+  // Add value columns (when no column grouping)
+  if (columns.length === 0) {
+    values.forEach(valueConfig => {
+      const fieldName = valueConfig.field;
+      const aggregation = valueConfig.aggregation || 'sum';
+      
+      pivotColumns.push({
+        key: fieldName,
+        title: `${fieldName} (${aggregation})`,
+        sortable: true,
+        filterable: true,
+        type: 'number',
+        isPivotValue: true
+      });
+    });
+  } else {
+    // Add column-grouped value columns
+    columnValues.forEach(colValue => {
+      values.forEach(valueConfig => {
+        const fieldName = valueConfig.field;
+        const aggregation = valueConfig.aggregation || 'sum';
+        const columnKey = `${colValue}_${fieldName}`;
+        
+        pivotColumns.push({
+          key: columnKey,
+          title: `${colValue} - ${fieldName} (${aggregation})`,
+          sortable: true,
+          filterable: true,
+          type: 'number',
+          isPivotValue: true,
+          pivotColumn: colValue,
+          pivotField: fieldName
+        });
+      });
+    });
+  }
+  
+  // Add row total columns
+  if (config.showRowTotals && values.length > 0) {
+    values.forEach(valueConfig => {
+      const fieldName = valueConfig.field;
+      const aggregation = valueConfig.aggregation || 'sum';
+      
+      pivotColumns.push({
+        key: `${fieldName}_total`,
+        title: `${fieldName} Total`,
+        sortable: true,
+        filterable: true,
+        type: 'number',
+        isPivotTotal: true
+      });
+    });
+  }
+  
+  return pivotColumns;
+};
+
 /**
- * PrimeDataTable Component with Configurable Column Filters
+ * PrimeDataTable Component with Configurable Column Filters and Pivot Table Support
  *
  * Filter Configuration Props:
  * - dropdownFilterColumns: Array of column keys that should use dropdown filters
@@ -61,19 +335,50 @@ const getUniqueValues = (data, key) => {
  *     ]
  *   }
  *
- * Usage Example:
+ * Pivot Table Configuration:
+ * - enablePivotTable: Boolean to enable pivot table functionality
+ * - pivotConfig: Object with pivot configuration
+ *   Example: {
+ *     enabled: true,
+ *     rows: ["drName", "salesTeam"], // Row grouping fields
+ *     columns: ["date"], // Column grouping fields  
+ *     values: [
+ *       { field: "serviceAmount", aggregation: "sum" },
+ *       { field: "supportValue", aggregation: "sum" }
+ *     ],
+ *     showGrandTotals: true,
+ *     showRowTotals: true
+ *   }
+ *
+ * Usage Examples:
+ * 
+ * Basic Table:
  * <PrimeDataTable
  *   data={salesData}
  *   dropdownFilterColumns={["salesteam", "status"]}
  *   datePickerFilterColumns={["createdDate"]}
  *   numberFilterColumns={["amount"]}
- *   customFilterOptions={{
- *     "salesteam": [
- *       { label: "All Teams", value: null },
- *       { label: "Sales Team A", value: "team_a" },
- *       { label: "Sales Team B", value: "team_b" }
- *     ]
+ * />
+ *
+ * Pivot Table:
+ * <PrimeDataTable
+ *   data={salesData}
+ *   enablePivotTable={true}
+ *   pivotConfig={{
+ *     enabled: true,
+ *     rows: ["drName", "salesTeam"],
+ *     columns: ["date"],
+ *     values: [
+ *       { field: "serviceAmount", aggregation: "sum" },
+ *       { field: "supportValue", aggregation: "average" }
+ *     ],
+ *     showGrandTotals: true,
+ *     showRowTotals: true,
+ *     fieldSeparator: "__", // For parsing "2025-04-01__serviceAmount" style fields
+ *     numberFormat: "en-US",
+ *     currency: "USD"
  *   }}
+ *   currencyColumns={["serviceAmount", "supportValue"]}
  * />
  */
 
@@ -144,7 +449,7 @@ const PrimeDataTable = ({
 
   
 
-  
+
   // Event handlers
   onRowClick,
   onRowSelect,
@@ -234,6 +539,83 @@ const PrimeDataTable = ({
     numberFormat: 'en-US',
     currency: 'USD',
     precision: 2
+  },
+  
+  // Pivot Table Props - Excel-like pivot functionality  
+  enablePivotTable = false,
+  
+  // Individual pivot props for Plasmic interface
+  pivotRows = [],
+  pivotColumns = [],
+  pivotValues = [],
+  pivotFilters = [],
+  pivotShowGrandTotals = true,
+  pivotShowRowTotals = true,
+  pivotShowColumnTotals = true,
+  pivotShowSubTotals = true,
+  pivotNumberFormat = "en-US",
+  pivotCurrency = "USD",
+  pivotPrecision = 2,
+  pivotFieldSeparator = "__",
+  pivotSortRows = true,
+  pivotSortColumns = true,
+  pivotSortDirection = "asc",
+  pivotAggregationFunctions = {},
+  
+  // Combined pivot config object (alternative to individual props)
+  pivotConfig = {
+    enabled: false,
+    rows: [], // Array of field names to use as row grouping (like Excel's "Rows" area)
+    columns: [], // Array of field names to use as column headers (like Excel's "Columns" area)  
+    values: [], // Array of objects with field name and aggregation function (like Excel's "Values" area)
+    filters: [], // Array of field names to use as pivot filters (like Excel's "Filters" area)
+    
+    // Aggregation functions
+    aggregationFunctions: {
+      sum: (values) => values.reduce((a, b) => (a || 0) + (b || 0), 0),
+      count: (values) => values.filter(v => v !== null && v !== undefined).length,
+      average: (values) => {
+        const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+        return validValues.length > 0 ? validValues.reduce((a, b) => a + b, 0) / validValues.length : 0;
+      },
+      min: (values) => {
+        const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+        return validValues.length > 0 ? Math.min(...validValues) : 0;
+      },
+      max: (values) => {
+        const validValues = values.filter(v => v !== null && v !== undefined && !isNaN(v));
+        return validValues.length > 0 ? Math.max(...validValues) : 0;
+      },
+      first: (values) => values.find(v => v !== null && v !== undefined) || '',
+      last: (values) => {
+        const validValues = values.filter(v => v !== null && v !== undefined);
+        return validValues.length > 0 ? validValues[validValues.length - 1] : '';
+      }
+    },
+    
+    // Display options
+    showGrandTotals: true,
+    showSubTotals: true,
+    showRowTotals: true,
+    showColumnTotals: true,
+    
+    // Formatting options
+    numberFormat: 'en-US',
+    currency: 'USD',
+    precision: 2,
+    
+    // Data parsing options for complex field names like "2025-04-01__serviceAmount"
+    fieldSeparator: '__', // Separator used in field names to split date/category and metric
+    dateFieldPattern: /^\d{4}-\d{2}-\d{2}$/, // Pattern to identify date fields
+    
+    // Custom field parsing functions
+    parseFieldName: null, // Custom function to parse complex field names
+    formatFieldName: null, // Custom function to format field names for display
+    
+    // Grouping options
+    sortRows: true,
+    sortColumns: true,
+    sortDirection: 'asc' // 'asc' or 'desc'
   }
 }) => {
   // Local state
@@ -266,10 +648,92 @@ const PrimeDataTable = ({
   const [graphqlLoading, setGraphqlLoading] = useState(false);
   const [graphqlError, setGraphqlError] = useState(null);
 
+  // Pivot table state
+  const [pivotDataCache, setPivotDataCache] = useState(null);
+  const [pivotColumnsCache, setPivotColumnsCache] = useState([]);
+
+  // Merge individual pivot props with pivotConfig object
+  // Individual props take priority (for Plasmic usage), fallback to pivotConfig
+  const mergedPivotConfig = useMemo(() => {
+    const hasIndividualProps = pivotRows.length > 0 || pivotColumns.length > 0 || pivotValues.length > 0;
+    
+    if (hasIndividualProps) {
+      // Use individual props (Plasmic interface)
+      return {
+        enabled: enablePivotTable,
+        rows: pivotRows,
+        columns: pivotColumns,
+        values: pivotValues,
+        filters: pivotFilters,
+        showGrandTotals: pivotShowGrandTotals,
+        showRowTotals: pivotShowRowTotals,
+        showColumnTotals: pivotShowColumnTotals,
+        showSubTotals: pivotShowSubTotals,
+        numberFormat: pivotNumberFormat,
+        currency: pivotCurrency,
+        precision: pivotPrecision,
+        fieldSeparator: pivotFieldSeparator,
+        sortRows: pivotSortRows,
+        sortColumns: pivotSortColumns,
+        sortDirection: pivotSortDirection,
+        aggregationFunctions: {
+          ...pivotConfig.aggregationFunctions,
+          ...pivotAggregationFunctions
+        }
+      };
+    }
+    
+    // Use pivotConfig object (direct usage)
+    return {
+      ...pivotConfig,
+      enabled: enablePivotTable && pivotConfig.enabled
+    };
+  }, [
+    enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
+    pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
+    pivotNumberFormat, pivotCurrency, pivotPrecision, pivotFieldSeparator,
+    pivotSortRows, pivotSortColumns, pivotSortDirection, pivotAggregationFunctions,
+    pivotConfig
+  ]);
+
+  const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
+
   // Use GraphQL data if available, otherwise use provided data
   const tableData = graphqlQuery ? graphqlData : data;
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
+
+    // Pivot data transformation
+  const pivotTransformation = useMemo(() => {
+    if (!isPivotEnabled || !mergedPivotConfig.enabled) {
+      return { 
+        pivotData: tableData, 
+        pivotColumns: [], 
+        columnValues: [], 
+        isPivot: false 
+      };
+    }
+
+    try {
+      const result = transformToPivotData(tableData, mergedPivotConfig);
+      return {
+        ...result,
+        isPivot: true
+      };
+    } catch (error) {
+      console.error('Error transforming data to pivot:', error);
+      return { 
+        pivotData: tableData, 
+        pivotColumns: [], 
+        columnValues: [], 
+        isPivot: false 
+      };
+    }
+  }, [tableData, isPivotEnabled, mergedPivotConfig]);
+
+  // Final data source - either original data or pivot data
+  const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+  const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
   const getColumnType = useCallback((column) => {
     const key = column.key;
@@ -370,7 +834,15 @@ const PrimeDataTable = ({
   const defaultColumns = useMemo(() => {
     let cols = [];
 
-    if (columns.length > 0) {
+    // Use pivot columns if pivot is enabled and available
+    if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
+      cols = pivotTransformation.pivotColumns.map(col => ({
+        ...col,
+        sortable: col.sortable !== false,
+        filterable: col.filterable !== false,
+        type: col.type || 'text'
+      }));
+    } else if (columns.length > 0) {
       // ✅ Normalize keys from field/header if missing
       const normalizedColumns = columns.map(col => {
         const key = col.key || col.field || col.header || col.name;
@@ -390,8 +862,8 @@ const PrimeDataTable = ({
         : normalizedColumns;
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
-    } else if (tableData.length > 0) {
-      const sampleRow = tableData[0];
+    } else if (finalTableData.length > 0) {
+      const sampleRow = finalTableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
         let type = 'text';
@@ -421,7 +893,7 @@ const PrimeDataTable = ({
     }
 
     return cols;
-  }, [columns, tableData, hiddenColumns, columnOrder, fields]);
+  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -977,6 +1449,62 @@ const PrimeDataTable = ({
         'text-green-500 pi-check-circle': value, 
         'text-red-500 pi-times-circle': !value 
       })}></i>
+    );
+  };
+
+  // Pivot table specific formatters
+  const pivotValueBodyTemplate = useCallback((rowData, column) => {
+    const value = rowData[column.key];
+    if (value === null || value === undefined) return '-';
+    
+    // Check if this row is a grand total
+    const isGrandTotal = rowData.isGrandTotal;
+    
+    // Format number based on pivot config
+    let formattedValue;
+    if (currencyColumns.includes(column.key) || column.pivotField && currencyColumns.includes(column.pivotField)) {
+      formattedValue = new Intl.NumberFormat(mergedPivotConfig.numberFormat, {
+        style: 'currency',
+        currency: mergedPivotConfig.currency,
+        minimumFractionDigits: mergedPivotConfig.precision,
+        maximumFractionDigits: mergedPivotConfig.precision
+      }).format(value);
+    } else {
+      formattedValue = new Intl.NumberFormat(mergedPivotConfig.numberFormat, {
+        minimumFractionDigits: mergedPivotConfig.precision,
+        maximumFractionDigits: mergedPivotConfig.precision
+      }).format(value);
+    }
+    
+    // Apply special styling for totals
+    const className = classNames({
+      'font-bold': isGrandTotal || column.isPivotTotal,
+      'text-blue-600': column.isPivotTotal && !isGrandTotal,
+      'text-green-600 font-semibold': isGrandTotal,
+      'bg-blue-50': column.isPivotTotal && !isGrandTotal,
+      'bg-green-50': isGrandTotal
+    });
+    
+    return (
+      <span className={className}>
+        {formattedValue}
+      </span>
+    );
+  }, [mergedPivotConfig, currencyColumns]);
+
+  const pivotRowBodyTemplate = (rowData, column) => {
+    const value = rowData[column.key];
+    const isGrandTotal = rowData.isGrandTotal;
+    
+    const className = classNames({
+      'font-bold text-green-600': isGrandTotal,
+      'font-medium': !isGrandTotal
+    });
+    
+    return (
+      <span className={className}>
+        {value || '-'}
+      </span>
     );
   };
 
@@ -1573,7 +2101,7 @@ const PrimeDataTable = ({
       {process.env.NODE_ENV === 'development' && (
         <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em' }}>
           <strong>Debug Info:</strong><br/>
-          <strong>Data:</strong> {data.length} rows<br/>
+          <strong>Data:</strong> {data.length} rows → {finalTableData.length} final rows<br/>
           <strong>Columns:</strong> {columns.length} custom, {defaultColumns.length} total<br/>
           <strong>Custom Formatters:</strong> {Object.keys(customFormatters).length}<br/>
           <strong>Custom Templates:</strong> {Object.keys(customTemplates).length}<br/>
@@ -1584,6 +2112,18 @@ const PrimeDataTable = ({
           <strong>Features:</strong> Search:{enableSearch ? '✓' : '✗'} | Filter:{enableColumnFilter ? '✓' : '✗'} | Sort:{enableSorting ? '✓' : '✗'} | Pagination:{enablePagination ? '✓' : '✗'}<br/>
           <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
           <strong>Auto Grouping:</strong> {enableAutoColumnGrouping ? '✓' : '✗'}<br/>
+          
+          <strong>Pivot Table:</strong> {pivotTransformation.isPivot ? '✓ Enabled' : '✗ Disabled'}<br/>
+          {pivotTransformation.isPivot && (
+            <>
+              <strong>Pivot Rows:</strong> {mergedPivotConfig.rows.join(', ') || 'None'}<br/>
+              <strong>Pivot Columns:</strong> {mergedPivotConfig.columns.join(', ') || 'None'}<br/>
+              <strong>Pivot Values:</strong> {mergedPivotConfig.values.map(v => `${v.field} (${v.aggregation})`).join(', ') || 'None'}<br/>
+              <strong>Generated Columns:</strong> {pivotTransformation.pivotColumns.length}<br/>
+              <strong>Column Values:</strong> {pivotTransformation.columnValues?.join(', ') || 'None'}<br/>
+            </>
+          )}
+          
           <strong>Size:</strong> {tableSize}<br/>
           <strong>Theme:</strong> Native PrimeReact<br/>
           
@@ -1613,7 +2153,7 @@ const PrimeDataTable = ({
 
       {/* DataTable */}
       <DataTable
-        value={tableData}
+        value={finalTableData}
         loading={isLoading}
         filters={filters}
         filterDisplay={
@@ -1634,7 +2174,7 @@ const PrimeDataTable = ({
           // Update filtered data for totals calculation
           if (enableFooterTotals) {
             // Get the filtered data from PrimeReact event
-            let filteredRows = tableData;
+            let filteredRows = finalTableData;
             
             // Try to get filtered data from various event properties
             if (e.filteredValue && Array.isArray(e.filteredValue)) {
@@ -1645,7 +2185,7 @@ const PrimeDataTable = ({
               filteredRows = e.data;
             } else {
               // Apply filters manually using the updated filters
-              filteredRows = applyFiltersToData(tableData, e.filters);
+              filteredRows = applyFiltersToData(finalTableData, e.filters);
             }
             
             // Ensure filtered rows are valid objects
@@ -1662,7 +2202,7 @@ const PrimeDataTable = ({
         rowsPerPageOptions={pageSizeOptions}
         onPage={handlePageChange}
         first={(localCurrentPage - 1) * localPageSize}
-        totalRecords={tableData.length}
+        totalRecords={finalTableData.length}
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
@@ -1758,7 +2298,7 @@ const PrimeDataTable = ({
             const columnType = getColumnType(column);
             
             // Enhanced categorical detection including explicit configuration
-            const uniqueValues = getUniqueValues(tableData, columnKey);
+            const uniqueValues = getUniqueValues(finalTableData, columnKey);
             const isCategorical = (
               dropdownFilterColumns.includes(columnKey) ||
               (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
@@ -1814,6 +2354,12 @@ const PrimeDataTable = ({
                 filterShowMatchModes={enableFilterMatchModes}
 
                 body={
+                  // Pivot table specific templates
+                  pivotTransformation.isPivot && column.isPivotValue ? (rowData) => pivotValueBodyTemplate(rowData, column) :
+                  pivotTransformation.isPivot && column.isPivotTotal ? (rowData) => pivotValueBodyTemplate(rowData, column) :
+                  pivotTransformation.isPivot && column.isPivotRow ? (rowData) => pivotRowBodyTemplate(rowData, column) :
+                  
+                  // Regular templates
                   isImageField ? (rowData) => imageBodyTemplate(rowData, column) :
                   columnType === 'date' || columnType === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                   columnType === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
@@ -1891,7 +2437,7 @@ const PrimeDataTable = ({
           ref={contextMenuRef}
         />
       )}
-    </div>
+            </div>
   );
 };
 
