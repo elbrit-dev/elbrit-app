@@ -1133,6 +1133,46 @@ const PrimeDataTable = ({
     // This groups columns after merging based on their names containing keywords like "service", "support", etc.
     const keywordGroups = {};
     
+    // Auto-detect group keywords from column names
+    const detectGroupKeywords = () => {
+      const allColumnKeys = defaultColumns.map(col => col.key.toLowerCase());
+      const detectedGroups = new Map();
+      
+      // Find common prefixes/suffixes in column names
+      allColumnKeys.forEach(colKey => {
+        // Skip columns that are explicitly ungrouped
+        if (ungroupedColumns.includes(colKey)) return;
+        
+        // Look for patterns like: serviceAmount, serviceId, supportValue, etc.
+        // Extract the first word (before camelCase or underscore)
+        const match = colKey.match(/^([a-zA-Z]+)/);
+        if (match) {
+          const prefix = match[1];
+          
+          // Skip common shared field prefixes
+          const sharedPrefixes = ['dr', 'date', 'id', 'name', 'team', 'hq', 'location', 'code'];
+          if (sharedPrefixes.includes(prefix)) return;
+          
+          // Count how many columns start with this prefix
+          const count = allColumnKeys.filter(key => key.startsWith(prefix)).length;
+          
+          // If multiple columns share this prefix, it's likely a group
+          if (count > 1) {
+            const groupName = prefix.charAt(0).toUpperCase() + prefix.slice(1);
+            if (!detectedGroups.has(groupName)) {
+              detectedGroups.set(groupName, []);
+            }
+            detectedGroups.get(groupName).push(prefix);
+          }
+        }
+      });
+      
+      return detectedGroups;
+    };
+    
+    // Get auto-detected groups
+    const autoDetectedGroups = detectGroupKeywords();
+    
     defaultColumns.forEach(col => {
       if (processedColumns.has(col.key)) return;
       
@@ -1149,7 +1189,17 @@ const PrimeDataTable = ({
         }
       }
       
-      // Default keyword detection if no custom mappings
+      // Auto-detect group based on column prefix
+      if (!assignedGroup) {
+        for (const [groupName, prefixes] of autoDetectedGroups) {
+          if (prefixes.some(prefix => colKey.startsWith(prefix))) {
+            assignedGroup = groupName;
+            break;
+          }
+        }
+      }
+      
+      // Fallback to hardcoded keywords if no auto-detection
       if (!assignedGroup) {
         if (colKey.includes('service')) {
           assignedGroup = 'Service';
