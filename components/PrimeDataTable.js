@@ -657,9 +657,18 @@ const PrimeDataTable = ({
   const mergedPivotConfig = useMemo(() => {
     const hasIndividualProps = pivotRows.length > 0 || pivotColumns.length > 0 || pivotValues.length > 0;
     
+    console.log('MergedPivotConfig Debug:', {
+      hasIndividualProps,
+      enablePivotTable,
+      pivotRows,
+      pivotColumns,
+      pivotValues,
+      pivotConfigEnabled: pivotConfig.enabled
+    });
+    
     if (hasIndividualProps) {
       // Use individual props (Plasmic interface)
-      return {
+      const config = {
         enabled: enablePivotTable,
         rows: pivotRows,
         columns: pivotColumns,
@@ -681,13 +690,17 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
+      console.log('Using individual props config:', config);
+      return config;
     }
     
     // Use pivotConfig object (direct usage)
-    return {
+    const config = {
       ...pivotConfig,
       enabled: enablePivotTable && pivotConfig.enabled
     };
+    console.log('Using pivotConfig object:', config);
+    return config;
   }, [
     enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
     pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
@@ -698,14 +711,26 @@ const PrimeDataTable = ({
 
   const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
 
+  // Update isPivotEnabled when props change
+  useEffect(() => {
+    setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
+  }, [enablePivotTable, mergedPivotConfig.enabled]);
+
   // Use GraphQL data if available, otherwise use provided data
   const tableData = graphqlQuery ? graphqlData : data;
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
-    // Pivot data transformation
+  // Pivot data transformation
   const pivotTransformation = useMemo(() => {
+    console.log('Pivot Transformation Check:', {
+      isPivotEnabled,
+      mergedPivotConfigEnabled: mergedPivotConfig.enabled,
+      mergedPivotConfig: mergedPivotConfig
+    });
+
     if (!isPivotEnabled || !mergedPivotConfig.enabled) {
+      console.log('Pivot disabled - returning original data');
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -715,7 +740,10 @@ const PrimeDataTable = ({
     }
 
     try {
+      console.log('Transforming data to pivot...');
       const result = transformToPivotData(tableData, mergedPivotConfig);
+      console.log('Pivot transformation result:', result);
+      
       return {
         ...result,
         isPivot: true
@@ -834,8 +862,17 @@ const PrimeDataTable = ({
   const defaultColumns = useMemo(() => {
     let cols = [];
 
+    // Debug logging
+    console.log('Pivot Transformation:', {
+      isPivot: pivotTransformation.isPivot,
+      pivotColumnsLength: pivotTransformation.pivotColumns.length,
+      pivotColumns: pivotTransformation.pivotColumns,
+      mergedPivotConfig: mergedPivotConfig
+    });
+
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
+      console.log('Using pivot columns:', pivotTransformation.pivotColumns);
       cols = pivotTransformation.pivotColumns.map(col => ({
         ...col,
         sortable: col.sortable !== false,
