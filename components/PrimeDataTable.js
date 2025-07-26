@@ -1764,7 +1764,7 @@ const PrimeDataTable = ({
               <Column
                 key={column.key}
                 field={column.key}
-                header={enableColumnGrouping && finalColumnStructure.hasGroups ? '' : column.title} // Headers handled by column groups
+                header={column.title} // Keep headers for filters even with grouping
                 sortable={column.sortable && enableSorting}
                 filter={column.filterable && enableColumnFilter}
                 filterElement={(options) => getColumnFilterElement(
