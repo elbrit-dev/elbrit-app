@@ -163,6 +163,7 @@ const PrimeDataTable = ({
   
   // Advanced filter options
   filterDisplay = "menu", // menu, row
+  forceFilterDisplayWithGrouping = false, // Force specific filterDisplay mode even with grouping
   globalFilterFields = [],
   showFilterMatchModes = true,
   filterDelay = 300,
@@ -1615,7 +1616,13 @@ const PrimeDataTable = ({
         value={tableData}
         loading={isLoading}
         filters={filters}
-        filterDisplay={enableColumnGrouping && finalColumnStructure.hasGroups ? "row" : filterDisplay}
+        filterDisplay={
+          enableColumnFilter 
+            ? (enableColumnGrouping && finalColumnStructure.hasGroups && !forceFilterDisplayWithGrouping 
+                ? "row" 
+                : filterDisplay)
+            : undefined
+        }
         globalFilterFields={globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key)}
         sortField={sortField}
         sortOrder={sortOrder}
@@ -1765,13 +1772,13 @@ const PrimeDataTable = ({
                 key={column.key}
                 field={column.key}
                 header={column.title} // Keep headers for filters even with grouping
-                sortable={column.sortable && enableSorting}
-                filter={column.filterable && enableColumnFilter}
-                filterElement={(options) => getColumnFilterElement(
+                sortable={column.sortable !== false && enableSorting}
+                filter={column.filterable !== false && enableColumnFilter}
+                filterElement={column.filterable !== false && enableColumnFilter ? (options) => getColumnFilterElement(
                   column,
                   options.value,
                   options.filterCallback
-                )}
+                ) : undefined}
                 filterPlaceholder={`Filter ${column.title}...`}
                 filterClear={enableFilterClear ? filterClearTemplate : undefined}
                 filterApply={enableFilterApply ? filterApplyTemplate : undefined}
@@ -1779,6 +1786,7 @@ const PrimeDataTable = ({
                 footer={enableFooterTotals && !finalColumnStructure.hasGroups ? () => footerTemplate(column) : undefined}
 
                 showFilterMatchModes={
+                  enableFilterMatchModes && 
                   !['dropdown', 'select', 'categorical', 'date', 'datetime', 'number', 'boolean'].includes(columnType)
                 }
                 filterMatchMode={
