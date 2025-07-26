@@ -937,13 +937,18 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     groupConfig: {
       type: "object",
-      description: "Configuration for column grouping styling and behavior",
+      description: "Configuration for column grouping styling and behavior. Object with properties like enableHeaderGroups, enableFooterGroups, groupSeparator, ungroupedColumns, totalColumns, customGroupMappings, etc.",
       defaultValue: {
         enableHeaderGroups: true,
         enableFooterGroups: true,
         groupStyle: {},
         headerGroupStyle: {},
-        footerGroupStyle: {}
+        footerGroupStyle: {},
+        groupSeparator: '__',
+        ungroupedColumns: [],
+        totalColumns: [],
+        customGroupMappings: {},
+        groupingPatterns: []
       }
     },
 
@@ -1122,6 +1127,63 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "boolean",
       description: "Select row when editing",
       defaultValue: false
+    },
+    
+    // Auto Column Grouping props
+    enableAutoColumnGrouping: {
+      type: "boolean",
+      description: "Enable automatic column grouping based on column name patterns",
+      defaultValue: false
+    },
+    groupSeparator: {
+      type: "string",
+      description: "Separator used to detect column groups (e.g., '__' for '2025-04-01__serviceAmount')",
+      defaultValue: "__"
+    },
+    ungroupedColumns: {
+      type: "object",
+      description: "Array of column keys that should remain ungrouped (e.g., ['drCode', 'drName', 'salesTeam'])",
+      defaultValue: []
+    },
+    totalColumns: {
+      type: "object",
+      description: "Array of column keys that represent totals (e.g., ['serviceAmount Total', 'supportValue Total'])",
+      defaultValue: []
+    },
+    customGroupMappings: {
+      type: "object",
+      description: "Custom mappings for column grouping. Object with keywords as keys and group names as values (e.g., { 'inventory': 'Inventory Management', 'warehouse': 'Warehouse Operations' })",
+      defaultValue: {}
+    },
+    groupingPatterns: {
+      type: "object",
+      description: "Array of custom regex patterns for advanced grouping scenarios",
+      defaultValue: []
+    },
+    enableHeaderGroups: {
+      type: "boolean",
+      description: "Show grouped headers in the table",
+      defaultValue: true
+    },
+    enableFooterGroups: {
+      type: "boolean",
+      description: "Show grouped footers in the table",
+      defaultValue: true
+    },
+    headerGroupStyle: {
+      type: "object",
+      description: "CSS styles for group headers (e.g., { backgroundColor: '#e3f2fd', fontWeight: 'bold', textAlign: 'center' })",
+      defaultValue: {}
+    },
+    groupStyle: {
+      type: "object",
+      description: "CSS styles for sub-headers (e.g., { backgroundColor: '#f5f5f5', fontSize: '0.9em' })",
+      defaultValue: {}
+    },
+    footerGroupStyle: {
+      type: "object",
+      description: "CSS styles for group footers",
+      defaultValue: {}
     }
   },
   
