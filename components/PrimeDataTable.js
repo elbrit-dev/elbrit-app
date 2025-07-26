@@ -435,6 +435,66 @@ const PrimeDataTable = ({
     setFilters(initialFilters);
   }, [defaultColumns, enableColumnFilter, globalFilterValue]);
 
+  // Parse customFormatters from strings to functions using useMemo
+  const parsedCustomFormatters = useMemo(() => {
+    const parsedFormatters = {};
+    
+    // Safety check - ensure customFormatters is an object
+    if (!customFormatters || typeof customFormatters !== 'object') {
+      return parsedFormatters;
+    }
+    
+    Object.keys(customFormatters).forEach(key => {
+      const formatter = customFormatters[key];
+      
+      if (typeof formatter === 'function') {
+        // Already a function, use as is
+        parsedFormatters[key] = formatter;
+      } else if (typeof formatter === 'string') {
+        // String function, try to parse it
+        try {
+          // Handle different function formats
+          let functionBody, paramNames;
+          
+          if (formatter.includes('function(')) {
+            // Standard function format: function(value, rowData) { return ... }
+            functionBody = formatter.replace(/^function\s*\([^)]*\)\s*\{/, '').replace(/\}$/, '');
+            const params = formatter.match(/function\s*\(([^)]*)\)/);
+            paramNames = params ? params[1].split(',').map(p => p.trim()) : ['value', 'rowData'];
+          } else if (formatter.includes('=>')) {
+            // Arrow function format: (value, rowData) => ...
+            const arrowMatch = formatter.match(/\(([^)]*)\)\s*=>\s*(.+)/);
+            if (arrowMatch) {
+              paramNames = arrowMatch[1].split(',').map(p => p.trim());
+              functionBody = `return ${arrowMatch[2]}`;
+            } else {
+              // Simple arrow function: value => ...
+              paramNames = ['value'];
+              functionBody = `return ${formatter.replace(/^[^=]*=>\s*/, '')}`;
+            }
+          } else {
+            // Simple expression, treat as value => expression
+            paramNames = ['value'];
+            functionBody = `return ${formatter}`;
+          }
+          
+          // Create the function
+          const func = new Function(...paramNames, functionBody);
+          parsedFormatters[key] = func;
+        } catch (error) {
+          console.warn(`Failed to parse customFormatter for ${key}:`, error);
+          // Fallback to simple string return
+          parsedFormatters[key] = (value) => String(value || '');
+        }
+      } else {
+        // Fallback for other types
+        parsedFormatters[key] = (value) => String(value || '');
+      }
+    });
+    
+    return parsedFormatters;
+  }, [customFormatters]);
+
   // Debug customFormatters
   useEffect(() => {
     if (Object.keys(customFormatters).length > 0) {
@@ -672,67 +732,7 @@ const PrimeDataTable = ({
     );
   };
 
-  // Parse customFormatters from strings to functions
-  const parseCustomFormatters = useCallback(() => {
-    const parsedFormatters = {};
-    
-    // Safety check - ensure customFormatters is an object
-    if (!customFormatters || typeof customFormatters !== 'object') {
-      return parsedFormatters;
-    }
-    
-    Object.keys(customFormatters).forEach(key => {
-      const formatter = customFormatters[key];
-      
-      if (typeof formatter === 'function') {
-        // Already a function, use as is
-        parsedFormatters[key] = formatter;
-      } else if (typeof formatter === 'string') {
-        // String function, try to parse it
-        try {
-          // Handle different function formats
-          let functionBody, paramNames;
-          
-          if (formatter.includes('function(')) {
-            // Standard function format: function(value, rowData) { return ... }
-            functionBody = formatter.replace(/^function\s*\([^)]*\)\s*\{/, '').replace(/\}$/, '');
-            const params = formatter.match(/function\s*\(([^)]*)\)/);
-            paramNames = params ? params[1].split(',').map(p => p.trim()) : ['value', 'rowData'];
-          } else if (formatter.includes('=>')) {
-            // Arrow function format: (value, rowData) => ...
-            const arrowMatch = formatter.match(/\(([^)]*)\)\s*=>\s*(.+)/);
-            if (arrowMatch) {
-              paramNames = arrowMatch[1].split(',').map(p => p.trim());
-              functionBody = `return ${arrowMatch[2]}`;
-            } else {
-              // Simple arrow function: value => ...
-              paramNames = ['value'];
-              functionBody = `return ${formatter.replace(/^[^=]*=>\s*/, '')}`;
-            }
-          } else {
-            // Simple expression, treat as value => expression
-            paramNames = ['value'];
-            functionBody = `return ${formatter}`;
-          }
-          
-          // Create the function
-          const func = new Function(...paramNames, functionBody);
-          parsedFormatters[key] = func;
-        } catch (error) {
-          console.warn(`Failed to parse customFormatter for ${key}:`, error);
-          // Fallback to simple string return
-          parsedFormatters[key] = (value) => String(value || '');
-        }
-      } else {
-        // Fallback for other types
-        parsedFormatters[key] = (value) => String(value || '');
-      }
-    });
-    
-    return parsedFormatters;
-  }, [customFormatters]);
 
-  const parsedCustomFormatters = parseCustomFormatters();
 
   const dateBodyTemplate = (rowData, column) => {
     const value = rowData[column.key];
