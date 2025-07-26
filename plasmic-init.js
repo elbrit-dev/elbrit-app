@@ -952,6 +952,28 @@ PLASMIC.registerComponent(PrimeDataTable, {
       }
     },
 
+    // Auto-merge configuration props
+    enableAutoMerge: {
+      type: "boolean",
+      description: "Enable automatic data merging for object with arrays (e.g., {service: [...], support: [...]})",
+      defaultValue: false
+    },
+    mergeConfig: {
+      type: "object",
+      description: "Configuration for auto-merge functionality. Object with properties like by, preserve, autoDetectMergeFields, mergeStrategy.",
+      defaultValue: {
+        by: [],
+        preserve: [],
+        autoDetectMergeFields: true,
+        mergeStrategy: "combine"
+      }
+    },
+    enableAutoColumnGrouping: {
+      type: "boolean",
+      description: "Enable automatic column grouping based on merged data or column patterns",
+      defaultValue: false
+    },
+
 
     
     // Advanced filter options

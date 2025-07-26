@@ -25,107 +25,62 @@ import {
   Calendar as CalendarIcon
 } from "lucide-react";
 
+// Merge function for combining data from multiple arrays
+const mergeData = (by = [], preserve = []) => (tables = {}) => {
+  const getKey = row => by.map(k => row?.[k] ?? "").join("||");
+  const preserveKey = preserve.find(k => by.includes(k));
+  const preserveCache = {};
+  
+  Object.values(tables).flat().forEach(row => {
+    const id = row?.[preserveKey];
+    if (!id) return;
+    
+    preserveCache[id] ??= {};
+    preserve.forEach(field => {
+      const value = row?.[field];
+      if (value !== undefined && value !== null && value !== "" && value !== 0 && !preserveCache[id][field]) {
+        preserveCache[id][field] = value;
+      }
+    });
+  });
+  
+  const mergedMap = Object.values(tables).flat().reduce((acc, row) => {
+    const key = getKey(row);
+    const existing = acc[key] || {};
+    const id = row?.[preserveKey];
+    
+    acc[key] = {
+      ...existing,
+      ...row
+    };
+    
+    preserve.forEach(field => {
+      const current = acc[key][field];
+      if ((current === undefined || current === null || current === "" || current === 0) && id && preserveCache[id]?.[field]) {
+        acc[key][field] = preserveCache[id][field];
+      }
+    });
+    
+    return acc;
+  }, {});
+  
+  return Object.values(mergedMap);
+};
+
+// Helper to detect if data needs merging (object with arrays)
+const needsMerging = (data) => {
+  return data && 
+         typeof data === 'object' && 
+         !Array.isArray(data) && 
+         Object.values(data).some(val => Array.isArray(val));
+};
+
 // Helper to get unique values for a column
 const getUniqueValues = (data, key) => {
   return [...new Set(data
     .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
     .map(row => row[key])
     .filter(val => val !== null && val !== undefined))];
-};
-
-// Auto-detection and transformation for grouped data
-const detectAndTransformGroupedData = (data) => {
-  // If data is null, undefined, or already an array, return as is
-  if (!data || Array.isArray(data)) {
-    return { 
-      transformedData: data, 
-      isGrouped: false, 
-      groups: [], 
-      groupField: null,
-      commonColumns: [],
-      uniqueColumns: {}
-    };
-  }
-
-  // Check if data is an object with arrays as values (grouped data structure)
-  const groupKeys = Object.keys(data).filter(key => 
-    Array.isArray(data[key]) && data[key].length > 0
-  );
-
-  // Only group if there are multiple groups (more than 1 array)
-  // This ensures we only group when there are actually multiple different data types
-  if (groupKeys.length <= 1) {
-    return { 
-      transformedData: data, 
-      isGrouped: false, 
-      groups: [], 
-      groupField: null,
-      commonColumns: [],
-      uniqueColumns: {}
-    };
-  }
-
-  // Transform grouped data to flat array with __group property
-  let transformedData = [];
-  let allColumns = new Set();
-  let groupColumns = {};
-  
-  // First pass: collect all columns from each group
-  groupKeys.forEach(groupName => {
-    const groupData = data[groupName];
-    const groupColumnSet = new Set();
-    
-    groupData.forEach(row => {
-      if (row && typeof row === 'object') {
-        Object.keys(row).forEach(key => {
-          allColumns.add(key);
-          groupColumnSet.add(key);
-        });
-      }
-    });
-    
-    groupColumns[groupName] = Array.from(groupColumnSet);
-  });
-
-  // Find common columns (columns that exist in ALL groups)
-  const allColumnArrays = Object.values(groupColumns);
-  const commonColumns = allColumnArrays.reduce((common, groupCols) => {
-    return common.filter(col => groupCols.includes(col));
-  }, allColumnArrays[0] || []);
-
-  // Find unique columns for each group
-  const uniqueColumns = {};
-  groupKeys.forEach(groupName => {
-    uniqueColumns[groupName] = groupColumns[groupName].filter(col => 
-      !commonColumns.includes(col)
-    );
-  });
-  
-  // Transform each group's data
-  groupKeys.forEach(groupName => {
-    const groupData = data[groupName];
-    
-    // Transform each row to include group info
-    groupData.forEach(row => {
-      if (row && typeof row === 'object') {
-        transformedData.push({
-          ...row,
-          __group: groupName,
-          __groupDisplay: groupName.charAt(0).toUpperCase() + groupName.slice(1) // Capitalize for display
-        });
-      }
-    });
-  });
-
-  return {
-    transformedData,
-    isGrouped: true,
-    groups: groupKeys,
-    groupField: '__group',
-    allColumns: Array.from(allColumns),
-    commonColumns,
-    uniqueColumns
-  };
 };
 
 // Pivot Table Helper Functions
@@ -403,7 +358,17 @@ const generatePivotColumns = (config, columnValues) => {
 };
 
 /**
- * PrimeDataTable Component with Configurable Column Filters and Pivot Table Support
+ * PrimeDataTable Component with Configurable Column Filters, Pivot Table Support, and Auto-Merge
+ *
+ * Auto-Merge Configuration:
+ * - enableAutoMerge: Boolean to enable automatic data merging for object with arrays
+ * - mergeConfig: Object with merge configuration
+ *   Example: {
+ *     by: ["drCode", "date"], // Fields to merge by
+ *     preserve: ["drName", "salesTeam"], // Fields to preserve across merges
+ *     autoDetectMergeFields: true, // Auto-detect common fields for merging
+ *     mergeStrategy: "combine" // "combine" or "replace"
+ *   }
  *
  * Filter Configuration Props:
  * - dropdownFilterColumns: Array of column keys that should use dropdown filters
@@ -455,6 +420,26 @@ const generatePivotColumns = (config, columnValues) => {
  *   numberFilterColumns={["amount"]}
  * />
  *
+ * Auto-Merge with Column Grouping:
+ * <PrimeDataTable
+ *   data={$queries.serviceVsSupport.data.response.data} // {service: [...], support: [...]}
+ *   enableAutoMerge={true}
+ *   enableColumnGrouping={true}
+ *   enableAutoColumnGrouping={true}
+ *   mergeConfig={{
+ *     by: ["drCode", "date"], // Merge by doctor code and date
+ *     preserve: ["drName", "salesTeam"], // Preserve these fields
+ *     autoDetectMergeFields: true
+ *   }}
+ *   groupConfig={{
+ *     customGroupMappings: {
+ *       service: "Service",
+ *       support: "Support"
+ *     },
+ *     ungroupedColumns: ["drCode", "drName", "salesTeam", "date"]
+ *   }}
+ * />
+ *
  * Pivot Table:
  * <PrimeDataTable
  *   data={salesData}
@@ -487,6 +472,15 @@ const PrimeDataTable = ({
   imageFields = [],
   popupImageFields = [],
   currencyColumns = [], // Array of column keys that should be formatted as currency in footer totals
+  
+  // Auto-merge configuration
+  enableAutoMerge = false, // Enable automatic data merging for object with arrays
+  mergeConfig = {
+    by: [], // Fields to merge by (e.g., ['drCode', 'date'])
+    preserve: [], // Fields to preserve across merges (e.g., ['drName', 'salesTeam'])
+    autoDetectMergeFields: true, // Auto-detect common fields for merging
+    mergeStrategy: 'combine' // 'combine' or 'replace'
+  },
   
   // Filter configuration props
   dropdownFilterColumns = [], // Array of column keys that should use dropdown filters
@@ -811,23 +805,101 @@ const PrimeDataTable = ({
     setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
   }, [enablePivotTable, mergedPivotConfig.enabled]);
 
-  // Use GraphQL data if available, otherwise use provided data
-  const rawTableData = graphqlQuery ? graphqlData : data;
+  // Process data - handle merging if needed
+  const processedData = useMemo(() => {
+    let rawData = graphqlQuery ? graphqlData : data;
+    
+    // Check if data needs merging (object with arrays)
+    if (enableAutoMerge && needsMerging(rawData)) {
+      console.log('Auto-merging data:', rawData);
+      
+      const { by, preserve, autoDetectMergeFields, mergeStrategy } = mergeConfig;
+      
+      // Auto-detect merge fields if enabled
+      let mergeBy = by;
+      let mergePreserve = preserve;
+      
+      if (autoDetectMergeFields) {
+        // Get all unique keys from all arrays
+        const allKeys = new Set();
+        Object.values(rawData).forEach(array => {
+          if (Array.isArray(array)) {
+            array.forEach(row => {
+              if (row && typeof row === 'object') {
+                Object.keys(row).forEach(key => allKeys.add(key));
+              }
+            });
+          }
+        });
+        
+        // Find common fields across all arrays (potential merge keys)
+        const commonFields = Array.from(allKeys).filter(key => {
+          return Object.values(rawData).every(array => 
+            Array.isArray(array) && array.some(row => row && key in row)
+          );
+        });
+        
+        // Auto-detect merge fields (common fields that look like IDs or dates)
+        if (mergeBy.length === 0) {
+          mergeBy = commonFields.filter(field => 
+            field.toLowerCase().includes('id') || 
+            field.toLowerCase().includes('code') || 
+            field.toLowerCase().includes('date') ||
+            field.toLowerCase().includes('key')
+          );
+          
+          // If no obvious merge fields, use first common field
+          if (mergeBy.length === 0 && commonFields.length > 0) {
+            mergeBy = [commonFields[0]];
+          }
+        }
+        
+        // Auto-detect preserve fields (common fields that should be preserved)
+        if (mergePreserve.length === 0) {
+          mergePreserve = commonFields.filter(field => 
+            field.toLowerCase().includes('name') || 
+            field.toLowerCase().includes('team') || 
+            field.toLowerCase().includes('hq') ||
+            field.toLowerCase().includes('location')
+          );
+        }
+      }
+      
+      console.log('Merge configuration:', { mergeBy, mergePreserve });
+      
+      // Perform the merge
+      if (mergeBy.length > 0) {
+        const mergeFunction = mergeData(mergeBy, mergePreserve);
+        const mergedData = mergeFunction(rawData);
+        console.log('Merged data:', mergedData);
+        return mergedData;
+      } else {
+        // If no merge fields detected, flatten the data with group markers
+        console.log('No merge fields detected, flattening data with group markers');
+        const flattenedData = [];
+        Object.entries(rawData).forEach(([groupKey, array]) => {
+          if (Array.isArray(array)) {
+            array.forEach(row => {
+              if (row && typeof row === 'object') {
+                flattenedData.push({
+                  ...row,
+                  __group: groupKey // Add group marker for column grouping
+                });
+              }
+            });
+          }
+        });
+        return flattenedData;
+      }
+    }
+    
+    return rawData;
+  }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig]);
+
+  // Use processed data
+  const tableData = processedData;
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
-
-  // Auto-detect and transform grouped data
-  const groupedDataInfo = useMemo(() => {
-    return detectAndTransformGroupedData(rawTableData);
-  }, [rawTableData]);
-
-  const tableData = groupedDataInfo.transformedData;
-  const isGroupedData = groupedDataInfo.isGrouped;
-  const detectedGroups = groupedDataInfo.groups;
-  const groupField = groupedDataInfo.groupField;
-  const allColumnsFromGroups = groupedDataInfo.allColumns;
-  const commonColumns = groupedDataInfo.commonColumns;
-  const uniqueColumns = groupedDataInfo.uniqueColumns;
 
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
@@ -978,13 +1050,6 @@ const PrimeDataTable = ({
       mergedPivotConfig: mergedPivotConfig
     });
 
-    console.log('Grouped Data Info:', {
-      isGroupedData,
-      detectedGroups,
-      groupField,
-      allColumnsFromGroups
-    });
-
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
       console.log('Using pivot columns:', pivotTransformation.pivotColumns);
@@ -1015,25 +1080,8 @@ const PrimeDataTable = ({
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (finalTableData.length > 0) {
-      // For grouped data, prioritize common columns first, then unique columns
       const sampleRow = finalTableData[0];
-      let keysToUse;
-      
-      if (isGroupedData && allColumnsFromGroups.length > 0) {
-        // For grouped data: common columns first, then unique columns
-        const orderedKeys = [
-          ...commonColumns, // Common columns first
-          ...allColumnsFromGroups.filter(key => !commonColumns.includes(key)) // Then unique columns
-        ];
-        keysToUse = orderedKeys;
-      } else {
-        keysToUse = Object.keys(sampleRow);
-      }
-      
-      const autoColumns = keysToUse.map(key => {
-        // Skip internal group fields
-        if (key === '__group' || key === '__groupDisplay') return null;
-        
+      const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
         let type = 'text';
         if (typeof value === 'number') type = 'number';
@@ -1041,20 +1089,14 @@ const PrimeDataTable = ({
         else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) type = 'date';
         else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) type = 'datetime';
 
-        // Determine if this is a common or unique column for styling
-        const isCommonColumn = commonColumns.includes(key);
-        const isUniqueColumn = !isCommonColumn && isGroupedData;
-        
         return {
           key,
           title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
           sortable: true,
           filterable: true,
-          type,
-          isCommonColumn,
-          isUniqueColumn
+          type
         };
-      }).filter(Boolean); // Remove null entries
+      });
 
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
@@ -1068,7 +1110,7 @@ const PrimeDataTable = ({
     }
 
     return cols;
-  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, isGroupedData, allColumnsFromGroups]);
+  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -1087,127 +1129,214 @@ const PrimeDataTable = ({
     );
     explicitlyUngroupedColumns.forEach(col => processedColumns.add(col.key));
 
-    // Step 2: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
-    const separatorGroups = {};
-    defaultColumns.forEach(col => {
-      if (processedColumns.has(col.key)) return;
+    // Step 2: Check if we have group markers from merged data
+    const hasGroupMarkers = tableData.some(row => row && row.__group);
+    
+    if (hasGroupMarkers) {
+      // Group by __group markers (from merged data)
+      const groupMarkers = [...new Set(tableData.map(row => row?.__group).filter(Boolean))];
       
-      if (col.key.includes(groupSeparator)) {
-        const parts = col.key.split(groupSeparator);
-        if (parts.length >= 2) {
-          const prefix = parts[0]; // e.g., "2025-04-01"
-          const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
+      groupMarkers.forEach(groupMarker => {
+        const groupColumns = defaultColumns.filter(col => {
+          if (processedColumns.has(col.key)) return false;
           
-          // Extract group name from suffix (e.g., "service" from "serviceAmount")
-          let groupName = suffix;
-          const suffixLower = suffix.toLowerCase();
+          // Check if this column has data for this group
+          return tableData.some(row => 
+            row && row.__group === groupMarker && 
+            (row[col.key] !== undefined && row[col.key] !== null)
+          );
+        });
+        
+        if (groupColumns.length > 0) {
+          // Enhanced group name detection
+          let groupName = customGroupMappings[groupMarker];
           
-          // Step 1: Check custom group mappings first
-          let customMatch = false;
-          if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
-            for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
-              if (suffixLower.includes(keyword.toLowerCase())) {
-                groupName = groupNameMapping;
-                customMatch = true;
-                break;
-              }
-            }
-          }
-          
-          // Step 2: If no custom match, try built-in business terms
-          if (!customMatch) {
-            if (suffixLower.includes('service')) {
+          if (!groupName) {
+            // Auto-generate group name based on marker
+            const markerLower = groupMarker.toLowerCase();
+            
+            // Business-specific mappings
+            if (markerLower.includes('service')) {
               groupName = 'Service';
-            } else if (suffixLower.includes('support')) {
+            } else if (markerLower.includes('support')) {
               groupName = 'Support';
-            } else if (suffixLower.includes('sales')) {
+            } else if (markerLower.includes('sales')) {
               groupName = 'Sales';
-            } else if (suffixLower.includes('marketing')) {
+            } else if (markerLower.includes('marketing')) {
               groupName = 'Marketing';
-            } else if (suffixLower.includes('revenue')) {
+            } else if (markerLower.includes('inventory')) {
+              groupName = 'Inventory';
+            } else if (markerLower.includes('warehouse')) {
+              groupName = 'Warehouse';
+            } else if (markerLower.includes('finance')) {
+              groupName = 'Finance';
+            } else if (markerLower.includes('hr')) {
+              groupName = 'Human Resources';
+            } else if (markerLower.includes('it')) {
+              groupName = 'Information Technology';
+            } else if (markerLower.includes('operations')) {
+              groupName = 'Operations';
+            } else if (markerLower.includes('revenue')) {
               groupName = 'Revenue';
-            } else if (suffixLower.includes('cost')) {
+            } else if (markerLower.includes('cost')) {
               groupName = 'Cost';
-            } else if (suffixLower.includes('expense')) {
+            } else if (markerLower.includes('expense')) {
               groupName = 'Expense';
-            } else if (suffixLower.includes('profit')) {
+            } else if (markerLower.includes('profit')) {
               groupName = 'Profit';
-            } else if (suffixLower.includes('budget')) {
+            } else if (markerLower.includes('budget')) {
               groupName = 'Budget';
-            } else if (suffixLower.includes('target')) {
+            } else if (markerLower.includes('target')) {
               groupName = 'Target';
-            } else if (suffixLower.includes('actual')) {
+            } else if (markerLower.includes('actual')) {
               groupName = 'Actual';
-            } else if (suffixLower.includes('forecast')) {
+            } else if (markerLower.includes('forecast')) {
               groupName = 'Forecast';
             } else {
-              // Extract first meaningful word from suffix
-              const firstWord = suffix.match(/^([a-zA-Z]+)/);
-              if (firstWord && firstWord[1].length > 2) {
-                groupName = firstWord[1].charAt(0).toUpperCase() + firstWord[1].slice(1);
-              } else {
-                // If no good match, use the full suffix as group name
-                groupName = suffix.charAt(0).toUpperCase() + suffix.slice(1);
-              }
+              // Default: capitalize first letter and add spaces before capitals
+              groupName = groupMarker
+                .replace(/([A-Z])/g, ' $1')
+                .replace(/^./, str => str.toUpperCase())
+                .trim();
             }
           }
-
-          if (!separatorGroups[groupName]) {
-            separatorGroups[groupName] = [];
-          }
           
-          separatorGroups[groupName].push({
-            ...col,
-            originalKey: col.key,
-            groupPrefix: prefix,
-            groupSuffix: suffix,
-            subHeader: suffix.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+          groups.push({
+            header: groupName,
+            columns: groupColumns.map(col => ({
+              ...col,
+              originalKey: col.key,
+              subHeader: col.title,
+              groupMarker: groupMarker
+            }))
           });
           
-          processedColumns.add(col.key);
+          groupColumns.forEach(col => processedColumns.add(col.key));
         }
-      }
-    });
-
-    // Step 3: Handle custom grouping patterns
-    groupingPatterns.forEach(pattern => {
-      const regex = new RegExp(pattern.regex);
+      });
+    } else {
+      // Step 3: Detect groups by separator pattern (e.g., "2025-04-01__serviceAmount")
+      const separatorGroups = {};
       defaultColumns.forEach(col => {
         if (processedColumns.has(col.key)) return;
         
-        if (regex.test(col.key)) {
-          const match = col.key.match(regex);
-          const groupName = pattern.groupName || match[1] || 'Group';
-          
-          if (!separatorGroups[groupName]) {
-            separatorGroups[groupName] = [];
+        if (col.key.includes(groupSeparator)) {
+          const parts = col.key.split(groupSeparator);
+          if (parts.length >= 2) {
+            const prefix = parts[0]; // e.g., "2025-04-01"
+            const suffix = parts.slice(1).join(groupSeparator); // e.g., "serviceAmount"
+            
+            // Extract group name from suffix (e.g., "service" from "serviceAmount")
+            let groupName = suffix;
+            const suffixLower = suffix.toLowerCase();
+            
+            // Step 1: Check custom group mappings first
+            let customMatch = false;
+            if (customGroupMappings && Object.keys(customGroupMappings).length > 0) {
+              for (const [keyword, groupNameMapping] of Object.entries(customGroupMappings)) {
+                if (suffixLower.includes(keyword.toLowerCase())) {
+                  groupName = groupNameMapping;
+                  customMatch = true;
+                  break;
+                }
+              }
+            }
+            
+            // Step 2: If no custom match, try built-in business terms
+            if (!customMatch) {
+              if (suffixLower.includes('service')) {
+                groupName = 'Service';
+              } else if (suffixLower.includes('support')) {
+                groupName = 'Support';
+              } else if (suffixLower.includes('sales')) {
+                groupName = 'Sales';
+              } else if (suffixLower.includes('marketing')) {
+                groupName = 'Marketing';
+              } else if (suffixLower.includes('revenue')) {
+                groupName = 'Revenue';
+              } else if (suffixLower.includes('cost')) {
+                groupName = 'Cost';
+              } else if (suffixLower.includes('expense')) {
+                groupName = 'Expense';
+              } else if (suffixLower.includes('profit')) {
+                groupName = 'Profit';
+              } else if (suffixLower.includes('budget')) {
+                groupName = 'Budget';
+              } else if (suffixLower.includes('target')) {
+                groupName = 'Target';
+              } else if (suffixLower.includes('actual')) {
+                groupName = 'Actual';
+              } else if (suffixLower.includes('forecast')) {
+                groupName = 'Forecast';
+              } else {
+                // Extract first meaningful word from suffix
+                const firstWord = suffix.match(/^([a-zA-Z]+)/);
+                if (firstWord && firstWord[1].length > 2) {
+                  groupName = firstWord[1].charAt(0).toUpperCase() + firstWord[1].slice(1);
+                } else {
+                  // If no good match, use the full suffix as group name
+                  groupName = suffix.charAt(0).toUpperCase() + suffix.slice(1);
+                }
+              }
+            }
+
+            if (!separatorGroups[groupName]) {
+              separatorGroups[groupName] = [];
+            }
+            
+            separatorGroups[groupName].push({
+              ...col,
+              originalKey: col.key,
+              groupPrefix: prefix,
+              groupSuffix: suffix,
+              subHeader: suffix.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())
+            });
+            
+            processedColumns.add(col.key);
           }
-          
-          separatorGroups[groupName].push({
-            ...col,
-            originalKey: col.key,
-            subHeader: pattern.subHeaderExtractor ? pattern.subHeaderExtractor(col.key) : col.title
-          });
-          
-          processedColumns.add(col.key);
         }
       });
-    });
 
-    // Step 4: Convert separator groups to column groups
-    Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
-      if (groupColumns.length > 0) {
-        groups.push({
-          header: groupName,
-          columns: groupColumns.sort((a, b) => {
-            // Sort by prefix first, then by suffix
-            const prefixCompare = (a.groupPrefix || '').localeCompare(b.groupPrefix || '');
-            if (prefixCompare !== 0) return prefixCompare;
-            return (a.groupSuffix || '').localeCompare(b.groupSuffix || '');
-          })
+      // Step 3: Handle custom grouping patterns
+      groupingPatterns.forEach(pattern => {
+        const regex = new RegExp(pattern.regex);
+        defaultColumns.forEach(col => {
+          if (processedColumns.has(col.key)) return;
+          
+          if (regex.test(col.key)) {
+            const match = col.key.match(regex);
+            const groupName = pattern.groupName || match[1] || 'Group';
+            
+            if (!separatorGroups[groupName]) {
+              separatorGroups[groupName] = [];
+            }
+            
+            separatorGroups[groupName].push({
+              ...col,
+              originalKey: col.key,
+              subHeader: pattern.subHeaderExtractor ? pattern.subHeaderExtractor(col.key) : col.title
+            });
+            
+            processedColumns.add(col.key);
+          }
         });
-      }
-    });
+      });
+
+      // Step 4: Convert separator groups to column groups
+      Object.entries(separatorGroups).forEach(([groupName, groupColumns]) => {
+        if (groupColumns.length > 0) {
+          groups.push({
+            header: groupName,
+            columns: groupColumns.sort((a, b) => {
+              // Sort by prefix first, then by suffix
+              const prefixCompare = (a.groupPrefix || '').localeCompare(b.groupPrefix || '');
+              if (prefixCompare !== 0) return prefixCompare;
+              return (a.groupSuffix || '').localeCompare(b.groupSuffix || '');
+            })
+          });
+        }
+      });
+    }
 
     // Step 5: Handle total columns - try to group them with their parent groups
     const totalCols = defaultColumns.filter(col => 
@@ -1594,35 +1723,6 @@ const PrimeDataTable = ({
           setShowImageModal(true); 
         } : undefined}
       />
-    );
-  };
-
-  // Group header template for grouped data
-  const groupHeaderTemplate = (data) => {
-    const groupName = data.__groupDisplay || data.__group || 'Unknown Group';
-    const groupCount = finalTableData.filter(row => row.__group === data.__group).length;
-    
-    return (
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        padding: '0.5rem 1rem',
-        backgroundColor: 'var(--primary-50)',
-        borderBottom: '1px solid var(--primary-200)',
-        fontWeight: 'bold',
-        fontSize: '1.1em'
-      }}>
-        <span>{groupName}</span>
-        <span style={{ 
-          backgroundColor: 'var(--primary-100)', 
-          padding: '0.25rem 0.5rem', 
-          borderRadius: '4px',
-          fontSize: '0.9em'
-        }}>
-          {groupCount} {groupCount === 1 ? 'record' : 'records'}
-        </span>
-      </div>
     );
   };
 
@@ -2301,32 +2401,6 @@ const PrimeDataTable = ({
 
   return (
     <div className={className} style={style}>
-      {/* Styles for grouped data columns */}
-      <style jsx>{`
-        .common-column-header {
-          background-color: var(--green-50) !important;
-          border-left: 3px solid var(--green-500) !important;
-          font-weight: 600;
-        }
-        .unique-column-header {
-          background-color: var(--blue-50) !important;
-          border-left: 3px solid var(--blue-500) !important;
-          font-weight: 600;
-        }
-        .common-column-header::after {
-          content: " (Common)";
-          font-size: 0.8em;
-          color: var(--green-600);
-          font-weight: normal;
-        }
-        .unique-column-header::after {
-          content: " (Unique)";
-          font-size: 0.8em;
-          color: var(--blue-600);
-          font-weight: normal;
-        }
-      `}</style>
-      
       {/* Debug Info - Remove this in production */}
       {process.env.NODE_ENV === 'development' && (
         <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em' }}>
@@ -2343,6 +2417,15 @@ const PrimeDataTable = ({
           <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
           <strong>Auto Grouping:</strong> {enableAutoColumnGrouping ? '✓' : '✗'}<br/>
           
+          <strong>Auto Merge:</strong> {enableAutoMerge ? '✓ Enabled' : '✗ Disabled'}<br/>
+          {enableAutoMerge && (
+            <>
+              <strong>Merge By:</strong> {mergeConfig.by.join(', ') || 'Auto-detected'}<br/>
+              <strong>Merge Preserve:</strong> {mergeConfig.preserve.join(', ') || 'Auto-detected'}<br/>
+              <strong>Merge Strategy:</strong> {mergeConfig.mergeStrategy}<br/>
+            </>
+          )}
+          
           <strong>Pivot Table:</strong> {pivotTransformation.isPivot ? '✓ Enabled' : '✗ Disabled'}<br/>
           {pivotTransformation.isPivot && (
             <>
@@ -2351,17 +2434,6 @@ const PrimeDataTable = ({
               <strong>Pivot Values:</strong> {mergedPivotConfig.values.map(v => `${v.field} (${v.aggregation})`).join(', ') || 'None'}<br/>
               <strong>Generated Columns:</strong> {pivotTransformation.pivotColumns.length}<br/>
               <strong>Column Values:</strong> {pivotTransformation.columnValues?.join(', ') || 'None'}<br/>
-            </>
-          )}
-          
-          <strong>Grouped Data:</strong> {isGroupedData ? '✓ Auto-detected' : '✗ Not grouped'}<br/>
-          {isGroupedData && (
-            <>
-              <strong>Detected Groups:</strong> {detectedGroups.join(', ')}<br/>
-              <strong>Group Field:</strong> {groupField}<br/>
-              <strong>Common Columns:</strong> {commonColumns.join(', ') || 'None'}<br/>
-              <strong>Unique Columns:</strong> {Object.entries(uniqueColumns).map(([group, cols]) => `${group}: ${cols.join(', ')}`).join(' | ') || 'None'}<br/>
-              <strong>All Columns:</strong> {allColumnsFromGroups.join(', ')}<br/>
             </>
           )}
           
@@ -2482,11 +2554,9 @@ const PrimeDataTable = ({
         reorderableColumns={enableReorderableColumns}
         virtualScrollerOptions={enableVirtualScrolling ? { itemSize: 46 } : undefined}
         lazy={enableLazyLoading}
-        rowGroupMode={(enableRowGrouping || isGroupedData) ? 'subheader' : undefined}
-        groupField={isGroupedData ? groupField : undefined}
-        expandableRowGroups={enableRowGrouping || isGroupedData}
+        rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
+        expandableRowGroups={enableRowGrouping}
         rowExpansionTemplate={enableRowExpansion ? (data) => <div>Expanded content for {data.name}</div> : undefined}
-        rowGroupHeaderTemplate={isGroupedData ? groupHeaderTemplate : undefined}
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2611,7 +2681,6 @@ const PrimeDataTable = ({
                   customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                   column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
                 }
-                headerClassName={column.isUniqueColumn ? 'unique-column-header' : column.isCommonColumn ? 'common-column-header' : undefined}
 
                 frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
               />
