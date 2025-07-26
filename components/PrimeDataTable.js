@@ -33,6 +33,101 @@ const getUniqueValues = (data, key) => {
     .filter(val => val !== null && val !== undefined))];
 };
 
+// Auto-detection and transformation for grouped data
+const detectAndTransformGroupedData = (data) => {
+  // If data is null, undefined, or already an array, return as is
+  if (!data || Array.isArray(data)) {
+    return { 
+      transformedData: data, 
+      isGrouped: false, 
+      groups: [], 
+      groupField: null,
+      commonColumns: [],
+      uniqueColumns: {}
+    };
+  }
+
+  // Check if data is an object with arrays as values (grouped data structure)
+  const groupKeys = Object.keys(data).filter(key => 
+    Array.isArray(data[key]) && data[key].length > 0
+  );
+
+  // Only group if there are multiple groups (more than 1 array)
+  // This ensures we only group when there are actually multiple different data types
+  if (groupKeys.length <= 1) {
+    return { 
+      transformedData: data, 
+      isGrouped: false, 
+      groups: [], 
+      groupField: null,
+      commonColumns: [],
+      uniqueColumns: {}
+    };
+  }
+
+  // Transform grouped data to flat array with __group property
+  let transformedData = [];
+  let allColumns = new Set();
+  let groupColumns = {};
+  
+  // First pass: collect all columns from each group
+  groupKeys.forEach(groupName => {
+    const groupData = data[groupName];
+    const groupColumnSet = new Set();
+    
+    groupData.forEach(row => {
+      if (row && typeof row === 'object') {
+        Object.keys(row).forEach(key => {
+          allColumns.add(key);
+          groupColumnSet.add(key);
+        });
+      }
+    });
+    
+    groupColumns[groupName] = Array.from(groupColumnSet);
+  });
+
+  // Find common columns (columns that exist in ALL groups)
+  const allColumnArrays = Object.values(groupColumns);
+  const commonColumns = allColumnArrays.reduce((common, groupCols) => {
+    return common.filter(col => groupCols.includes(col));
+  }, allColumnArrays[0] || []);
+
+  // Find unique columns for each group
+  const uniqueColumns = {};
+  groupKeys.forEach(groupName => {
+    uniqueColumns[groupName] = groupColumns[groupName].filter(col => 
+      !commonColumns.includes(col)
+    );
+  });
+  
+  // Transform each group's data
+  groupKeys.forEach(groupName => {
+    const groupData = data[groupName];
+    
+    // Transform each row to include group info
+    groupData.forEach(row => {
+      if (row && typeof row === 'object') {
+        transformedData.push({
+          ...row,
+          __group: groupName,
+          __groupDisplay: groupName.charAt(0).toUpperCase() + groupName.slice(1) // Capitalize for display
+        });
+      }
+    });
+  });
+
+  return {
+    transformedData,
+    isGrouped: true,
+    groups: groupKeys,
+    groupField: '__group',
+    allColumns: Array.from(allColumns),
+    commonColumns,
+    uniqueColumns
+  };
+};
+
 // Pivot Table Helper Functions
 const parsePivotFieldName = (fieldName, config) => {
   if (config.parseFieldName && typeof config.parseFieldName === 'function') {
@@ -717,9 +812,22 @@ const PrimeDataTable = ({
   }, [enablePivotTable, mergedPivotConfig.enabled]);
 
   // Use GraphQL data if available, otherwise use provided data
-  const tableData = graphqlQuery ? graphqlData : data;
+  const rawTableData = graphqlQuery ? graphqlData : data;
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
+
+  // Auto-detect and transform grouped data
+  const groupedDataInfo = useMemo(() => {
+    return detectAndTransformGroupedData(rawTableData);
+  }, [rawTableData]);
+
+  const tableData = groupedDataInfo.transformedData;
+  const isGroupedData = groupedDataInfo.isGrouped;
+  const detectedGroups = groupedDataInfo.groups;
+  const groupField = groupedDataInfo.groupField;
+  const allColumnsFromGroups = groupedDataInfo.allColumns;
+  const commonColumns = groupedDataInfo.commonColumns;
+  const uniqueColumns = groupedDataInfo.uniqueColumns;
 
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
@@ -870,6 +978,13 @@ const PrimeDataTable = ({
       mergedPivotConfig: mergedPivotConfig
     });
 
+    console.log('Grouped Data Info:', {
+      isGroupedData,
+      detectedGroups,
+      groupField,
+      allColumnsFromGroups
+    });
+
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
       console.log('Using pivot columns:', pivotTransformation.pivotColumns);
@@ -900,8 +1015,25 @@ const PrimeDataTable = ({
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
     } else if (finalTableData.length > 0) {
+      // For grouped data, prioritize common columns first, then unique columns
       const sampleRow = finalTableData[0];
-      const autoColumns = Object.keys(sampleRow).map(key => {
+      let keysToUse;
+      
+      if (isGroupedData && allColumnsFromGroups.length > 0) {
+        // For grouped data: common columns first, then unique columns
+        const orderedKeys = [
+          ...commonColumns, // Common columns first
+          ...allColumnsFromGroups.filter(key => !commonColumns.includes(key)) // Then unique columns
+        ];
+        keysToUse = orderedKeys;
+      } else {
+        keysToUse = Object.keys(sampleRow);
+      }
+      
+      const autoColumns = keysToUse.map(key => {
+        // Skip internal group fields
+        if (key === '__group' || key === '__groupDisplay') return null;
+        
         const value = sampleRow[key];
         let type = 'text';
         if (typeof value === 'number') type = 'number';
@@ -909,14 +1041,20 @@ const PrimeDataTable = ({
         else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) type = 'date';
         else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) type = 'datetime';
 
+        // Determine if this is a common or unique column for styling
+        const isCommonColumn = commonColumns.includes(key);
+        const isUniqueColumn = !isCommonColumn && isGroupedData;
+        
         return {
           key,
           title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
           sortable: true,
           filterable: true,
-          type
+          type,
+          isCommonColumn,
+          isUniqueColumn
         };
-      });
+      }).filter(Boolean); // Remove null entries
 
       const orderedColumns = columnOrder.length > 0 
         ? columnOrder.map(key => autoColumns.find(col => col.key === key)).filter(Boolean)
@@ -930,7 +1068,7 @@ const PrimeDataTable = ({
     }
 
     return cols;
-  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns]);
+  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, isGroupedData, allColumnsFromGroups]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -1456,6 +1594,35 @@ const PrimeDataTable = ({
           setShowImageModal(true); 
         } : undefined}
       />
+    );
+  };
+
+  // Group header template for grouped data
+  const groupHeaderTemplate = (data) => {
+    const groupName = data.__groupDisplay || data.__group || 'Unknown Group';
+    const groupCount = finalTableData.filter(row => row.__group === data.__group).length;
+    
+    return (
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        padding: '0.5rem 1rem',
+        backgroundColor: 'var(--primary-50)',
+        borderBottom: '1px solid var(--primary-200)',
+        fontWeight: 'bold',
+        fontSize: '1.1em'
+      }}>
+        <span>{groupName}</span>
+        <span style={{ 
+          backgroundColor: 'var(--primary-100)', 
+          padding: '0.25rem 0.5rem', 
+          borderRadius: '4px',
+          fontSize: '0.9em'
+        }}>
+          {groupCount} {groupCount === 1 ? 'record' : 'records'}
+        </span>
+      </div>
     );
   };
 
@@ -2134,6 +2301,32 @@ const PrimeDataTable = ({
 
   return (
     <div className={className} style={style}>
+      {/* Styles for grouped data columns */}
+      <style jsx>{`
+        .common-column-header {
+          background-color: var(--green-50) !important;
+          border-left: 3px solid var(--green-500) !important;
+          font-weight: 600;
+        }
+        .unique-column-header {
+          background-color: var(--blue-50) !important;
+          border-left: 3px solid var(--blue-500) !important;
+          font-weight: 600;
+        }
+        .common-column-header::after {
+          content: " (Common)";
+          font-size: 0.8em;
+          color: var(--green-600);
+          font-weight: normal;
+        }
+        .unique-column-header::after {
+          content: " (Unique)";
+          font-size: 0.8em;
+          color: var(--blue-600);
+          font-weight: normal;
+        }
+      `}</style>
+      
       {/* Debug Info - Remove this in production */}
       {process.env.NODE_ENV === 'development' && (
         <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em' }}>
@@ -2158,6 +2351,17 @@ const PrimeDataTable = ({
               <strong>Pivot Values:</strong> {mergedPivotConfig.values.map(v => `${v.field} (${v.aggregation})`).join(', ') || 'None'}<br/>
               <strong>Generated Columns:</strong> {pivotTransformation.pivotColumns.length}<br/>
               <strong>Column Values:</strong> {pivotTransformation.columnValues?.join(', ') || 'None'}<br/>
+            </>
+          )}
+          
+          <strong>Grouped Data:</strong> {isGroupedData ? '✓ Auto-detected' : '✗ Not grouped'}<br/>
+          {isGroupedData && (
+            <>
+              <strong>Detected Groups:</strong> {detectedGroups.join(', ')}<br/>
+              <strong>Group Field:</strong> {groupField}<br/>
+              <strong>Common Columns:</strong> {commonColumns.join(', ') || 'None'}<br/>
+              <strong>Unique Columns:</strong> {Object.entries(uniqueColumns).map(([group, cols]) => `${group}: ${cols.join(', ')}`).join(' | ') || 'None'}<br/>
+              <strong>All Columns:</strong> {allColumnsFromGroups.join(', ')}<br/>
             </>
           )}
           
@@ -2278,9 +2482,11 @@ const PrimeDataTable = ({
         reorderableColumns={enableReorderableColumns}
         virtualScrollerOptions={enableVirtualScrolling ? { itemSize: 46 } : undefined}
         lazy={enableLazyLoading}
-        rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
-        expandableRowGroups={enableRowGrouping}
+        rowGroupMode={(enableRowGrouping || isGroupedData) ? 'subheader' : undefined}
+        groupField={isGroupedData ? groupField : undefined}
+        expandableRowGroups={enableRowGrouping || isGroupedData}
         rowExpansionTemplate={enableRowExpansion ? (data) => <div>Expanded content for {data.name}</div> : undefined}
+        rowGroupHeaderTemplate={isGroupedData ? groupHeaderTemplate : undefined}
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2405,6 +2611,7 @@ const PrimeDataTable = ({
                   customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                   column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
                 }
+                headerClassName={column.isUniqueColumn ? 'unique-column-header' : column.isCommonColumn ? 'common-column-header' : undefined}
 
                 frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
               />
