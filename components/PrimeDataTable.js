@@ -2609,7 +2609,7 @@ const PrimeDataTable = ({
                 filterClear={enableFilterClear ? filterClearTemplate : undefined}
                 filterApply={enableFilterApply ? filterApplyTemplate : undefined}
                 filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
-                footer={enableFooterTotals && !finalColumnStructure.hasGroups ? () => footerTemplate(column) : undefined}
+                footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
 
                 showFilterMatchModes={
                   enableFilterMatchModes && 
