@@ -1207,12 +1207,10 @@ const PrimeDataTable = ({
           assignedGroup = 'Support';
         } else if (colKey.includes('inventory')) {
           assignedGroup = 'Inventory';
-        } else if (colKey.includes('finance')) {
-          assignedGroup = 'Finance';
-        } else if (colKey.includes('marketing')) {
-          assignedGroup = 'Marketing';
-        } else if (colKey.includes('sales')) {
-          assignedGroup = 'Sales';
+        } else if (colKey.includes('empVisit')) {
+          assignedGroup = 'EmpVisit';
+        } else if (colKey.includes('drVisit')) {
+          assignedGroup = 'DrVisit';
         }
       }
       
