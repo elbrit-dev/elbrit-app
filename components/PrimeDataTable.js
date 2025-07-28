@@ -1177,6 +1177,10 @@ const PrimeDataTable = ({
       if (processedColumns.has(col.key)) return;
       
       const colKey = col.key.toLowerCase();
+      
+      // Explicitly exclude salesTeam from any grouping
+      if (colKey.includes('salesteam') || col.key === 'salesTeam') return;
+      
       let assignedGroup = null;
       
       // Check for keyword-based grouping (post-merge logic)
