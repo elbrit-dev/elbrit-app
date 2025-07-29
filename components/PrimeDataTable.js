@@ -930,9 +930,45 @@ const PrimeDataTable = ({
     plasmicApiToken || process.env.PLASMIC_API_TOKEN
   );
 
-  // Choose between direct CMS integration or callback props
-  const finalSaveToCMS = useDirectCMSIntegration && directSaveToCMS ? directSaveToCMS : onSavePivotConfig;
-  const finalLoadFromCMS = useDirectCMSIntegration && directLoadFromCMS ? directLoadFromCMS : onLoadPivotConfig;
+  // Built-in default save function for local storage fallback
+  const defaultSaveToCMS = useCallback(async (configKey, config) => {
+    try {
+      // Save to localStorage as fallback
+      const storageKey = `pivotConfig_${configKey}`;
+      localStorage.setItem(storageKey, JSON.stringify(config));
+      console.log('✅ Pivot config saved to localStorage:', storageKey, config);
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to save pivot config:', error);
+      return false;
+    }
+  }, []);
+
+  const defaultLoadFromCMS = useCallback(async (configKey) => {
+    try {
+      // Load from localStorage as fallback
+      const storageKey = `pivotConfig_${configKey}`;
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        const config = JSON.parse(stored);
+        console.log('✅ Pivot config loaded from localStorage:', storageKey, config);
+        return config;
+      }
+      return null;
+    } catch (error) {
+      console.error('❌ Failed to load pivot config:', error);
+      return null;
+    }
+  }, []);
+
+  // Choose between direct CMS integration, callback props, or built-in defaults
+  const finalSaveToCMS = useDirectCMSIntegration && directSaveToCMS 
+    ? directSaveToCMS 
+    : (onSavePivotConfig || defaultSaveToCMS);
+  
+  const finalLoadFromCMS = useDirectCMSIntegration && directLoadFromCMS 
+    ? directLoadFromCMS 
+    : (onLoadPivotConfig || defaultLoadFromCMS);
 
   // Load pivot configuration from CMS on component mount
   useEffect(() => {
