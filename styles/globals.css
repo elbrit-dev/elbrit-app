@@ -1,422 +1,568 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --foreground-rgb: 0, 0, 0;
+  --background-start-rgb: 214, 219, 220;
+  --background-end-rgb: 255, 255, 255;
 }
 
-[data-theme="light"] {
-  --background: #ffffff;
-  --foreground: #374151;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-/* ----------------------------
-   PrimeDataTable + PrimeReact Styling
----------------------------- */
-
-/* Global fix: inherit fonts */
-.p-datatable {
-  font-family: inherit;
-}
-
-/* Toolbar Layout */
-.p-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.p-toolbar .p-toolbar-group-left,
-.p-toolbar .p-toolbar-group-right {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
-/* Input Defaults */
-.p-inputtext {
-  width: 100%;
-  padding: 0.75rem;
-  border-radius: 6px;
-}
-
-.p-dropdown {
-  min-width: 200px;
-}
-
-.p-dropdown .p-dropdown-label {
-  padding: 0.75rem;
-}
-
-.p-inputtext:hover,
-.p-dropdown:hover,
-.p-calendar:hover,
-.p-inputnumber:hover {
-  border-color: var(--primary-color, #3b82f6);
-}
-
-.p-inputtext:focus-within,
-.p-dropdown:focus-within,
-.p-calendar:focus-within,
-.p-inputnumber:focus-within {
-  box-shadow: 0 0 0 2px var(--primary-200, #bfdbfe);
-}
-
-/* Buttons */
-.p-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--primary-color, #3b82f6);
-  border: 1px solid var(--primary-color, #3b82f6);
-  color: var(--primary-color-text, #ffffff);
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  line-height: 1;
-}
-
-.p-button:hover {
-  background: var(--primary-600, #2563eb);
-  border-color: var(--primary-600, #2563eb);
-  color: var(--primary-color-text, #ffffff);
-}
-
-.p-button:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--primary-200, #bfdbfe);
-}
-
-.p-button:active {
-  background: var(--primary-700, #1d4ed8);
-  border-color: var(--primary-700, #1d4ed8);
-}
-
-.p-button + .p-button {
-  margin-left: 0.5rem;
-}
-
-.p-button.p-button-outlined {
-  background: transparent;
-  color: var(--primary-color, #3b82f6);
-  border-color: var(--primary-color, #3b82f6);
-}
-
-.p-button.p-button-outlined:hover {
-  background: var(--primary-color, #3b82f6);
-  color: var(--primary-color-text, #ffffff);
-}
-
-.p-button.p-button-text {
-  background: transparent;
-  color: var(--primary-color, #3b82f6);
-  border-color: transparent;
-}
-
-.p-button.p-button-text:hover {
-  background: var(--primary-50, #eff6ff);
-  color: var(--primary-color, #3b82f6);
-}
-
-.p-button.p-button-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.75rem;
-}
-
-.p-button.p-button-lg {
-  padding: 1rem 2rem;
-  font-size: 1rem;
-}
-
-/* Filter Overlay Panel */
-.p-column-filter-overlay {
-  position: absolute;
-  z-index: 1000;
-  background: #fff;
-  border-radius: 8px;
-  padding: 1rem;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  border: 1px solid #e5e7eb;
-  min-width: 250px;
-  max-width: 300px;
-  animation: fadeIn 0.2s ease-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Filter Menu Content */
-.p-column-filter-menu .p-column-filter-constraint {
-  margin-bottom: 1rem;
-}
-
-.p-column-filter-menu .p-column-filter-add-rule {
-  margin-top: 0.5rem;
-}
-
-.p-column-filter-menu .p-column-filter-remove-rule {
-  margin-left: 0.5rem;
-}
-
-.p-column-filter-menu .p-button {
-  padding: 0.5rem 1rem;
-  font-size: 0.8rem;
-  border-radius: 6px;
-}
-
-.p-column-filter-menu .p-button + .p-button {
-  margin-left: 0.5rem;
-}
-
-/* Icon Field Fixes */
-.p-icon-field {
-  position: relative;
-}
-
-.p-icon-field .p-input-icon {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 1;
-}
-
-.p-icon-field-left .p-input-icon {
-  left: 0.75rem;
-}
-
-.p-icon-field-left .p-inputtext {
-  padding-left: 2.5rem;
-}
-
-/* Table Cell Padding */
-.p-datatable .p-datatable-thead > tr > th,
-.p-datatable .p-datatable-tbody > tr > td {
-  padding: 1rem 0.75rem;
-  vertical-align: middle;
-  text-align: left;
-  border-bottom: 1px solid var(--surface-border);
-}
-
-.p-datatable .p-datatable-thead > tr > th {
-  position: relative;
-}
-
-/* Paginator Layout */
-.p-paginator {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.p-paginator .p-paginator-pages {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.p-paginator .p-paginator-first,
-.p-paginator .p-paginator-prev,
-.p-paginator .p-paginator-next,
-.p-paginator .p-paginator-last,
-.p-paginator .p-paginator-page {
-  margin: 0 0.25rem;
-}
-
-/* Responsive Table Fix */
-@media (max-width: 768px) {
-  .p-datatable .p-datatable-thead > tr > th,
-  .p-datatable .p-datatable-tbody > tr > td {
-    padding: 0.5rem;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --foreground-rgb: 255, 255, 255;
+    --background-start-rgb: 0, 0, 0;
+    --background-end-rgb: 0, 0, 0;
   }
+}
 
-  .p-toolbar {
-    flex-direction: column;
+body {
+  color: rgb(var(--foreground-rgb));
+  background: linear-gradient(
+      to bottom,
+      transparent,
+      rgb(var(--background-end-rgb))
+    )
+    rgb(var(--background-start-rgb));
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* =================================
+   OPTIMIZED PRIME DATA TABLE STYLES
+   ================================= */
+
+/* Main optimized component styling */
+.prime-data-table-optimized {
+  position: relative;
+}
+
+.prime-data-table-optimized .p-datatable {
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.prime-data-table-optimized .p-datatable .p-datatable-thead > tr > th {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  padding: 1rem 0.75rem;
+}
+
+.prime-data-table-optimized .p-datatable .p-datatable-tbody > tr {
+  transition: all 0.2s ease;
+}
+
+.prime-data-table-optimized .p-datatable .p-datatable-tbody > tr:hover {
+  background: #f8fafc !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Optimized debug panel styling */
+.prime-data-table-optimized .p-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Optimized toolbar styling */
+.prime-data-table-optimized .p-toolbar {
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.prime-data-table-optimized .p-toolbar .p-button {
+  transition: all 0.2s ease;
+}
+
+.prime-data-table-optimized .p-toolbar .p-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.prime-data-table-optimized .p-toolbar .p-inputtext {
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  transition: all 0.2s ease;
+}
+
+.prime-data-table-optimized .p-toolbar .p-inputtext:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* =================================
+   PIVOT CONFIGURATION DIALOG STYLES
+   ================================= */
+
+/* Main Dialog Styling */
+.pivot-config-dialog .p-dialog-content {
+  padding: 0 !important;
+  border-radius: 12px;
+}
+
+.pivot-config-dialog .p-dialog-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px 12px 0 0;
+  padding: 1.5rem 2rem;
+  border-bottom: none;
+}
+
+.pivot-config-dialog .p-dialog-header .p-dialog-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+}
+
+.pivot-config-dialog .p-dialog-header .p-dialog-header-icon {
+  color: white;
+}
+
+.pivot-config-dialog .p-dialog-header .p-dialog-header-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+/* Main Content Area */
+.pivot-config-content {
+  padding: 2rem;
+  background: #fafbfc;
+  min-height: 500px;
+}
+
+/* Enable Pivot Checkbox */
+.pivot-enable-section {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.pivot-enable-section .p-checkbox .p-checkbox-box {
+  border-color: rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.pivot-enable-section .p-checkbox .p-checkbox-box.p-highlight {
+  border-color: white;
+  background-color: white;
+}
+
+.pivot-enable-section .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
+  color: #667eea;
+}
+
+.pivot-enable-section label {
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+/* Configuration Grid */
+.pivot-config-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .pivot-config-grid {
+    grid-template-columns: 1fr;
     gap: 1rem;
   }
-
-  .p-toolbar .p-toolbar-group-left,
-  .p-toolbar .p-toolbar-group-right {
-    width: 100%;
-    justify-content: center;
-  }
 }
 
-/* Spinner Animation */
-@keyframes spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+/* Section Cards */
+.pivot-section {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  transition: all 0.3s ease;
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+.pivot-section:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
 }
 
-/* ✨ Organized PrimeReact Filter Panel Styling ✨ */
-
-.p-column-filter-menu {
-  padding: 1rem;
-  border-radius: 4px;
-  background: #fff;
+/* Section Headers */
+.pivot-section-header {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #f3f4f6;
 }
 
-/* Match mode & rules area */
-.p-column-filter-menu .p-column-filter-constraint {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.pivot-section-header.rows-header {
+  border-bottom-color: #3b82f6;
 }
 
-.p-column-filter-menu .p-column-filter-operator {
-  margin-bottom: 0.5rem;
-  font-weight: 500;
+.pivot-section-header.columns-header {
+  border-bottom-color: #10b981;
+}
+
+.pivot-section-header.values-header {
+  border-bottom-color: #f59e0b;
+}
+
+.pivot-section-header i {
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
+}
+
+.pivot-section-header.rows-header i {
+  color: #3b82f6;
+}
+
+.pivot-section-header.columns-header i {
+  color: #10b981;
+}
+
+.pivot-section-header.values-header i {
+  color: #f59e0b;
+}
+
+.pivot-section-label {
+  font-weight: 600;
+  font-size: 1rem;
   color: #374151;
 }
 
-/* Input dropdown / calendar / text */
-.p-column-filter-menu .p-dropdown,
-.p-column-filter-menu .p-inputtext,
-.p-column-filter-menu .p-calendar,
-.p-column-filter-menu .p-inputnumber {
-  min-width: 100%;
-  border-radius: 6px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-}
-
-/* Rule control buttons */
-.p-column-filter-menu .p-column-filter-add-rule {
-  margin-top: 0.25rem;
-  text-align: right;
-}
-
-.p-column-filter-menu .p-column-filter-remove-rule {
-  margin-top: 0.25rem;
-  align-self: flex-end;
-}
-
-/* Better spacing between rule blocks */
-.p-column-filter-menu .p-column-filter-constraints {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-
-/* Fix dropdown list height + spacing */
-.p-dropdown-panel .p-dropdown-items {
-  max-height: 200px;
-  padding: 0.5rem;
-}
-
-.p-dropdown-item {
-  padding: 0.5rem 0.75rem;
-  border-radius: 4px;
-}
-
-.p-dropdown-item:hover {
-  background-color: #f3f4f6;
-}
-
-/* Clean separator under 'Match All' */
-.p-column-filter-operator + .p-column-filter-constraints::before {
-  content: "";
-  display: block;
-  height: 1px;
-  background: #e5e7eb;
-  margin: 0.25rem 0 0.5rem;
-}
-
-/* 📅 PrimeReact Calendar Filter Enhancements */
-
-.p-column-filter-menu .p-calendar {
+/* Dropdown Styling */
+.pivot-section .p-dropdown {
   width: 100%;
-  border-radius: 4px;
-  padding: 0.5rem 0.75rem;
-  font-size: 0.85rem;
-}
-
-.p-column-filter-menu .p-calendar .p-inputtext {
-  padding: 0.65rem 0.75rem;
-  font-size: 0.85rem;
-  border-radius: 6px;
-}
-
-.p-calendar .p-inputtext::placeholder {
-  color: #9ca3af;
-  font-style: italic;
-}
-
-/* Calendar popup panel */
-.p-datepicker {
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1rem;
   border-radius: 8px;
-  padding: 0.75rem;
-  font-size: 0.875rem;
+  border: 2px solid #e5e7eb;
+  transition: all 0.3s ease;
+}
+
+.pivot-section .p-dropdown:hover {
+  border-color: #d1d5db;
+}
+
+.pivot-section .p-dropdown.p-focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Selected Items */
+.pivot-selected-items {
+  min-height: 120px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.pivot-selected-item {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.pivot-selected-item:hover {
+  background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.pivot-selected-item.rows-item {
+  border-left: 4px solid #3b82f6;
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.pivot-selected-item.columns-item {
+  border-left: 4px solid #10b981;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+}
+
+.pivot-selected-item.values-item {
+  border-left: 4px solid #f59e0b;
+  background: linear-gradient(135deg, #fef3c7 0%, #fcd34d 100%);
+}
+
+.pivot-selected-item-label {
+  font-weight: 500;
+  color: #374151;
+  flex-grow: 1;
+}
+
+.pivot-selected-item .p-button {
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+/* Values Section Special Styling */
+.pivot-values-section {
+  grid-column: 1 / -1;
+}
+
+.pivot-value-item {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #f59e0b;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 0.75rem;
+  animation: slideIn 0.3s ease-out;
+}
+
+.pivot-value-item-header {
+  display: flex;
+  align-items: center;
+  justify-content: between;
+  margin-bottom: 0.75rem;
+}
+
+.pivot-value-item-label {
+  font-weight: 600;
+  color: #92400e;
+  flex-grow: 1;
+}
+
+.pivot-value-item .p-dropdown {
+  border-color: #f59e0b;
+  background: white;
+}
+
+.pivot-value-item .p-dropdown.p-focus {
+  border-color: #d97706;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+}
+
+/* Display Options */
+.pivot-display-section {
+  grid-column: 1 / -1;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   border: 1px solid #e5e7eb;
 }
 
-/* Range styling */
-.p-datepicker td > span {
-  border-radius: 4px;
+.pivot-display-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid #6366f1;
 }
 
-.p-datepicker td > span:hover {
-  background-color: #e5e7eb;
+.pivot-display-header i {
+  color: #6366f1;
+  font-size: 1.1rem;
+  margin-right: 0.5rem;
 }
 
-.p-datepicker td.p-datepicker-today > span {
-  background: #3b82f6;
-  color: white;
-  font-weight: 600;
+.pivot-display-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
 }
 
-/* Footer optional spacing */
-.p-column-filter-footer {
-  padding-top: 0.5rem;
-  text-align: center;
-  font-size: 0.75rem;
+.pivot-display-option {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.pivot-display-option:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.pivot-display-option .p-checkbox {
+  margin-right: 0.75rem;
+}
+
+.pivot-display-option label {
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+}
+
+/* Action Buttons */
+.pivot-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 1.5rem 2rem;
+  background: #f8fafc;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0 0 12px 12px;
+}
+
+.pivot-actions .p-button {
+  padding: 0.75rem 1.5rem;
+  font-weight: 500;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.pivot-actions .p-button.p-button-outlined.p-button-secondary {
+  background: white;
   color: #6b7280;
+  border-color: #d1d5db;
 }
 
+.pivot-actions .p-button.p-button-outlined.p-button-secondary:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+  color: #374151;
+}
 
-/* Enhanced PrimeDataTable styles - REMOVED CUSTOM OVERRIDES */
-/* Native PrimeReact theme will be used instead */
+.pivot-actions .p-button.p-button-outlined {
+  background: white;
+  color: #374151;
+  border-color: #d1d5db;
+}
 
-/* Icon field styling - REMOVED CUSTOM OVERRIDES */
-/* Native PrimeReact theme will be used instead */
+.pivot-actions .p-button.p-button-outlined:hover {
+  background: #f9fafb;
+  border-color: #9ca3af;
+}
 
-/* Enhanced table responsiveness - REMOVED CUSTOM OVERRIDES */
-/* Native PrimeReact theme will be used instead */
+.pivot-actions .p-button.p-button-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
+
+.pivot-actions .p-button.p-button-success:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(16, 185, 129, 0.3);
+}
+
+.pivot-actions .p-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Scrollbar Styling */
+.pivot-selected-items::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pivot-selected-items::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.pivot-selected-items::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.pivot-selected-items::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Empty State */
+.pivot-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.pivot-empty-state i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .pivot-config-content {
+    padding: 1rem;
+  }
+  
+  .pivot-section {
+    padding: 1rem;
+  }
+  
+  .pivot-actions {
+    padding: 1rem;
+    flex-direction: column;
+  }
+  
+  .pivot-actions .p-button {
+    width: 100%;
+  }
+  
+  .pivot-display-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.pivot-config-dialog {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Hover Effects */
+.pivot-section-header:hover i {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* Focus States */
+.pivot-section .p-dropdown:focus-within {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+/* Success State for Apply Button */
+.pivot-actions .p-button.p-button-success:not(:disabled):active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
+}
 

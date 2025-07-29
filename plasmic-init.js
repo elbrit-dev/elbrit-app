@@ -3,6 +3,7 @@ import MicrosoftSSOLogin from "./components/MicrosoftSSOLogin";
 import PlasmicDataContext from "./components/PlasmicDataContext";
 import AdvancedTable from "./components/AdvancedTable";
 import PrimeDataTable from "./components/PrimeDataTable";
+// import PrimeDataTableOptimized from "./components/PrimeDataTableOptimized";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
@@ -10,8 +11,8 @@ import PrimeDataTab from "./components/pimereact";
 export const PLASMIC = initPlasmicLoader({
   projects: [
     {
-      id: process.env.NEXT_PUBLIC_PLASMIC_PROJECT_ID,  // ID of a project you are using
-      token: process.env.PLASMIC_API_TOKEN  // API token for that project
+      id: 'oiawYdGgGKrh1ZZAv15gDZ',  // ID of a project you are using
+      token: 'at5jesnXc89u9hbeOAv8HEZRXhbDHtJCVKm7DsJoRGxuRCGXsNP4LynYxAea6cDCjlePUmjN5TIX3ImE35A'  // API token for that project
     }
   ],
 
@@ -1214,6 +1215,88 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable Excel-like pivot table functionality",
       defaultValue: false
     },
+    
+    // NEW: Pivot UI Configuration Props
+    enablePivotUI: {
+      type: "boolean",
+      description: "Enable pivot table configuration UI panel with dropdowns populated from data",
+      defaultValue: true
+    },
+    pivotUIPosition: {
+      type: "choice",
+      options: ["toolbar", "panel", "sidebar"],
+      description: "Position of the pivot configuration UI",
+      defaultValue: "toolbar"
+    },
+    
+    // NEW: CMS Persistence Props
+    enablePivotPersistence: {
+      type: "boolean",
+      description: "Enable saving pivot configuration to CMS for persistence across refreshes",
+      defaultValue: true
+    },
+    pivotConfigKey: {
+      type: "string",
+      description: "Key for storing pivot configuration in CMS (unique identifier)",
+      defaultValue: "pivotConfig"
+    },
+    autoSavePivotConfig: {
+      type: "boolean",
+      description: "Automatically save pivot configuration changes to CMS (disable for manual save with 'Apply & Save' button)",
+      defaultValue: false
+    },
+    
+    // NEW: Direct Plasmic CMS Integration Props
+    plasmicWorkspaceId: {
+      type: "string",
+      description: "Plasmic workspace ID for CMS integration (optional - uses env var if not provided)",
+      defaultValue: ""
+    },
+    plasmicTableConfigsId: {
+      type: "string",
+      description: "TableConfigs table ID for CMS integration (optional - uses env var if not provided)",
+      defaultValue: ""
+    },
+    plasmicApiToken: {
+      type: "string",
+      description: "Plasmic API token for direct CMS integration (optional - uses env var if not provided)",
+      defaultValue: ""
+    },
+    useDirectCMSIntegration: {
+      type: "boolean",
+      description: "Use direct CMS integration instead of callback props",
+      defaultValue: true
+    },
+    
+    // DEPRECATED: Callback-based CMS Props (use direct integration instead)
+    onSavePivotConfig: {
+      type: "eventHandler",
+      description: "DEPRECATED: Called to save pivot configuration to CMS (use direct integration instead)",
+      argTypes: [
+        {
+          name: "configKey",
+          type: "string",
+          description: "The configuration key"
+        },
+        {
+          name: "pivotConfig",
+          type: "object",
+          description: "The pivot configuration object to save"
+        }
+      ]
+    },
+    onLoadPivotConfig: {
+      type: "eventHandler",
+      description: "DEPRECATED: Called to load pivot configuration from CMS (use direct integration instead)",
+      argTypes: [
+        {
+          name: "configKey",
+          type: "string",
+          description: "The configuration key to load"
+        }
+      ]
+    },
+    
     pivotRows: {
       type: "object",
       description: "Array of field names to use as row grouping (like Excel's 'Rows' area). Example: ['drName', 'salesTeam']",
@@ -1299,3 +1382,868 @@ PLASMIC.registerComponent(PrimeDataTable, {
   
   importPath: "./components/PrimeDataTable"
 });
+
+// Register the Optimized PrimeReact Data Table component
+// PLASMIC.registerComponent(PrimeDataTableOptimized, {
+//   name: "PrimeDataTableOptimized",
+//   displayName: "Optimized PrimeReact Data Table",
+//   description: "OPTIMIZED VERSION: A comprehensive data table component built with PrimeReact DataTable, featuring advanced search, filtering, sorting, pagination, pivot tables, auto-merge, column grouping, and CMS integration. Reduced from 3349 lines to 904 lines (73% smaller) while maintaining all features.",
+  
+//   props: {
+//     // Data props
+//     data: {
+//       type: "object",
+//       description: "Array of data objects to display in the table",
+//       defaultValue: []
+//     },
+//     columns: {
+//       type: "object",
+//       description: "Array of column definitions with key, title, sortable, filterable, type, etc.",
+//       defaultValue: []
+//     },
+//     loading: {
+//       type: "boolean",
+//       description: "Whether the table is in loading state",
+//       defaultValue: false
+//     },
+//     error: {
+//       type: "string",
+//       description: "Error message to display",
+//       defaultValue: null
+//     },
+    
+//     // GraphQL props
+//     graphqlQuery: {
+//       type: "string",
+//       description: "GraphQL query string to fetch data",
+//       defaultValue: null
+//     },
+//     graphqlVariables: {
+//       type: "object",
+//       description: "Variables for the GraphQL query",
+//       defaultValue: {}
+//     },
+//     refetchInterval: {
+//       type: "number",
+//       description: "Interval in milliseconds to refetch GraphQL data (0 = disabled)",
+//       defaultValue: 0
+//     },
+    
+//     // Table configuration
+//     enableSearch: {
+//       type: "boolean",
+//       description: "Enable global search functionality",
+//       defaultValue: true
+//     },
+//     enableColumnFilter: {
+//       type: "boolean",
+//       description: "Enable column-specific filtering",
+//       defaultValue: true
+//     },
+//     enableSorting: {
+//       type: "boolean",
+//       description: "Enable column sorting",
+//       defaultValue: true
+//     },
+//     enablePagination: {
+//       type: "boolean",
+//       description: "Enable pagination controls",
+//       defaultValue: true
+//     },
+//     enableRowSelection: {
+//       type: "boolean",
+//       description: "Enable row selection with checkboxes",
+//       defaultValue: false
+//     },
+//     enableExport: {
+//       type: "boolean",
+//       description: "Enable CSV export functionality",
+//       defaultValue: true
+//     },
+//     enableRefresh: {
+//       type: "boolean",
+//       description: "Enable manual refresh button",
+//       defaultValue: false
+//     },
+//     enableColumnManagement: {
+//       type: "boolean",
+//       description: "Enable column visibility management",
+//       defaultValue: true
+//     },
+//     enableBulkActions: {
+//       type: "boolean",
+//       description: "Enable bulk actions for selected rows",
+//       defaultValue: false
+//     },
+    
+//     // Pagination
+//     pageSize: {
+//       type: "number",
+//       description: "Number of items per page",
+//       defaultValue: 10
+//     },
+//     currentPage: {
+//       type: "number",
+//       description: "Current page number",
+//       defaultValue: 1
+//     },
+//     pageSizeOptions: {
+//       type: "object",
+//       description: "Array of page size options",
+//       defaultValue: [5, 10, 25, 50, 100]
+//     },
+    
+//     // Styling
+//     className: {
+//       type: "string",
+//       description: "Additional CSS classes for the table container",
+//       defaultValue: ""
+//     },
+//     style: {
+//       type: "object",
+//       description: "Inline styles for the table container",
+//       defaultValue: {}
+//     },
+    
+//     // Event handlers
+//     onRowClick: {
+//       type: "eventHandler",
+//       description: "Called when a row is clicked",
+//       argTypes: [
+//         {
+//           name: "row",
+//           type: "object",
+//           description: "The clicked row data"
+//         },
+//         {
+//           name: "index",
+//           type: "number",
+//           description: "The row index"
+//         }
+//       ]
+//     },
+//     onRowSelect: {
+//       type: "eventHandler",
+//       description: "Called when row selection changes",
+//       argTypes: [
+//         {
+//           name: "selectedRows",
+//           type: "object",
+//           description: "Array of selected row data"
+//         }
+//       ]
+//     },
+//     onExport: {
+//       type: "eventHandler",
+//       description: "Called when export is triggered",
+//       argTypes: [
+//         {
+//           name: "data",
+//           type: "object",
+//           description: "The data being exported"
+//         }
+//       ]
+//     },
+//     onRefresh: {
+//       type: "eventHandler",
+//       description: "Called when refresh is triggered",
+//       argTypes: []
+//     },
+//     onPageChange: {
+//       type: "eventHandler",
+//       description: "Called when page changes",
+//       argTypes: [
+//         {
+//           name: "page",
+//           type: "number",
+//           description: "The new page number"
+//         }
+//       ]
+//     },
+//     onFilterChange: {
+//       type: "eventHandler",
+//       description: "Called when filters change",
+//       argTypes: [
+//         {
+//           name: "filters",
+//           type: "object",
+//           description: "The current filters state"
+//         }
+//       ]
+//     },
+//     onSortChange: {
+//       type: "eventHandler",
+//       description: "Called when sorting changes",
+//       argTypes: [
+//         {
+//           name: "sortField",
+//           type: "string",
+//           description: "The column being sorted"
+//         },
+//         {
+//           name: "sortOrder",
+//           type: "number",
+//           description: "The sort order (1 for asc, -1 for desc)"
+//         }
+//       ]
+//     },
+//     onSearch: {
+//       type: "eventHandler",
+//       description: "Called when search term changes",
+//       argTypes: [
+//         {
+//           name: "searchTerm",
+//           type: "string",
+//           description: "The search term"
+//         }
+//       ]
+//     },
+//     onBulkAction: {
+//       type: "eventHandler",
+//       description: "Called when bulk action is triggered",
+//       argTypes: [
+//         {
+//           name: "action",
+//           type: "object",
+//           description: "The bulk action configuration"
+//         },
+//         {
+//           name: "selectedRows",
+//           type: "object",
+//           description: "Array of selected row data"
+//         }
+//       ]
+//     },
+//     onGraphqlData: {
+//       type: "eventHandler",
+//       description: "Called when GraphQL data is received",
+//       argTypes: [
+//         {
+//           name: "data",
+//           type: "object",
+//           description: "The GraphQL response data"
+//         }
+//       ]
+//     },
+    
+//     // Action buttons
+//     rowActions: {
+//       type: "object",
+//       description: "Array of action buttons for each row",
+//       defaultValue: []
+//     },
+//     bulkActions: {
+//       type: "object",
+//       description: "Array of bulk action buttons",
+//       defaultValue: []
+//     },
+//     enableRowActions: {
+//       type: "boolean",
+//       description: "Enable row action buttons",
+//       defaultValue: false
+//     },
+//     fields: {
+//       type: "object",
+//       description: "Array of field keys to display as columns in the table. If empty, all fields are shown.",
+//       defaultValue: []
+//     },
+//     imageFields: {
+//       type: "object",
+//       description: "Array of field keys to render as images.",
+//       defaultValue: []
+//     },
+//     popupImageFields: {
+//       type: "object",
+//       description: "Array of image field keys that should open a popup modal when clicked.",
+//       defaultValue: []
+//     },
+    
+//     // Filter configuration props
+//     dropdownFilterColumns: {
+//       type: "object",
+//       description: "Array of column keys that should use dropdown filters. Example: ['salesteam', 'status', 'category']",
+//       defaultValue: []
+//     },
+//     datePickerFilterColumns: {
+//       type: "object",
+//       description: "Array of column keys that should use date picker filters. Example: ['createdDate', 'updatedDate', 'dueDate']",
+//       defaultValue: []
+//     },
+//     numberFilterColumns: {
+//       type: "object",
+//       description: "Array of column keys that should use number filters. Example: ['amount', 'quantity', 'price']",
+//       defaultValue: []
+//     },
+//     textFilterColumns: {
+//       type: "object",
+//       description: "Array of column keys that should use text filters. Example: ['name', 'description', 'notes']",
+//       defaultValue: []
+//     },
+//     booleanFilterColumns: {
+//       type: "object",
+//       description: "Array of column keys that should use boolean filters. Example: ['isActive', 'isCompleted', 'isPublished']",
+//       defaultValue: []
+//     },
+//     customFilterOptions: {
+//       type: "object",
+//       description: "Object with column keys as keys and array of filter options as values. Example: { 'salesteam': [{ label: 'All', value: null }, { label: 'Team A', value: 'team_a' }] }",
+//       defaultValue: {}
+//     },
+    
+//     // Advanced toggle features
+//     enableGlobalFilter: {
+//       type: "boolean",
+//       description: "Enable global filter functionality",
+//       defaultValue: true
+//     },
+//     enableFilterMenu: {
+//       type: "boolean",
+//       description: "Enable filter menu display",
+//       defaultValue: true
+//     },
+//     enableFilterMatchModes: {
+//       type: "boolean",
+//       description: "Show filter match modes in filter menus",
+//       defaultValue: true
+//     },
+//     enableFilterClear: {
+//       type: "boolean",
+//       description: "Show clear filter button in filter menus",
+//       defaultValue: true
+//     },
+//     enableFilterApply: {
+//       type: "boolean",
+//       description: "Show apply filter button in filter menus",
+//       defaultValue: true
+//     },
+//     enableFilterFooter: {
+//       type: "boolean",
+//       description: "Show filter footer in filter menus",
+//       defaultValue: true
+//     },
+//     enableGridLines: {
+//       type: "boolean",
+//       description: "Show grid lines in the table",
+//       defaultValue: true
+//     },
+//     enableStripedRows: {
+//       type: "boolean",
+//       description: "Enable striped row styling",
+//       defaultValue: true
+//     },
+//     enableHoverEffect: {
+//       type: "boolean",
+//       description: "Enable hover effects on rows",
+//       defaultValue: true
+//     },
+//     enableResizableColumns: {
+//       type: "boolean",
+//       description: "Allow column resizing",
+//       defaultValue: false
+//     },
+//     enableReorderableColumns: {
+//       type: "boolean",
+//       description: "Allow column reordering",
+//       defaultValue: false
+//     },
+//     enableVirtualScrolling: {
+//       type: "boolean",
+//       description: "Enable virtual scrolling for large datasets",
+//       defaultValue: false
+//     },
+//     enableLazyLoading: {
+//       type: "boolean",
+//       description: "Enable lazy loading for data",
+//       defaultValue: false
+//     },
+//     enableRowGrouping: {
+//       type: "boolean",
+//       description: "Enable row grouping functionality",
+//       defaultValue: false
+//     },
+//     enableRowExpansion: {
+//       type: "boolean",
+//       description: "Enable row expansion functionality",
+//       defaultValue: false
+//     },
+//     enableFrozenColumns: {
+//       type: "boolean",
+//       description: "Enable frozen columns",
+//       defaultValue: false
+//     },
+//     enableFrozenRows: {
+//       type: "boolean",
+//       description: "Enable frozen rows",
+//       defaultValue: false
+//     },
+    
+//     // Advanced filter options
+//     filterDisplay: {
+//       type: "choice",
+//       options: ["menu", "row"],
+//       description: "Display mode for filters",
+//       defaultValue: "menu"
+//     },
+//     globalFilterFields: {
+//       type: "object",
+//       description: "Array of field names to include in global filter",
+//       defaultValue: []
+//     },
+//     showFilterMatchModes: {
+//       type: "boolean",
+//       description: "Show filter match modes",
+//       defaultValue: true
+//     },
+    
+//     // Table styling options
+//     tableSize: {
+//       type: "choice",
+//       options: ["small", "normal", "large"],
+//       description: "Size of the table",
+//       defaultValue: "normal"
+//     },
+    
+//     // Custom templates
+//     customTemplates: {
+//       type: "object",
+//       description: "Custom cell templates for specific columns",
+//       defaultValue: {}
+//     },
+//     customFormatters: {
+//       type: "object",
+//       description: "Custom formatters for specific columns",
+//       defaultValue: {}
+//     },
+    
+//     // Footer totals props
+//     enableFooterTotals: {
+//       type: "boolean",
+//       description: "Enable footer totals for numeric columns",
+//       defaultValue: false
+//     },
+//     footerTotalsConfig: {
+//       type: "object",
+//       description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
+//       defaultValue: {
+//         showTotals: true,
+//         showAverages: false,
+//         showCounts: true,
+//         numberFormat: 'en-US',
+//         currency: 'USD',
+//         precision: 2
+//       }
+//     },
+//     currencyColumns: {
+//       type: "object",
+//       description: "Array of column keys to be formatted as currency in footer totals",
+//       defaultValue: []
+//     },
+
+//     // Column grouping props
+//     enableColumnGrouping: {
+//       type: "boolean",
+//       description: "Enable column grouping functionality",
+//       defaultValue: false
+//     },
+//     headerColumnGroup: {
+//       type: "object",
+//       description: "Custom header column group component",
+//       defaultValue: null
+//     },
+//     footerColumnGroup: {
+//       type: "object",
+//       description: "Custom footer column group component",
+//       defaultValue: null
+//     },
+//     columnGroups: {
+//       type: "object",
+//       description: "Array of column group configurations",
+//       defaultValue: []
+//     },
+//     groupConfig: {
+//       type: "object",
+//       description: "Configuration for column grouping styling and behavior. Object with properties like enableHeaderGroups, enableFooterGroups, groupSeparator, ungroupedColumns, totalColumns, customGroupMappings, etc.",
+//       defaultValue: {
+//         enableHeaderGroups: true,
+//         enableFooterGroups: true,
+//         groupStyle: {},
+//         headerGroupStyle: {},
+//         footerGroupStyle: {},
+//         groupSeparator: '__',
+//         ungroupedColumns: [],
+//         totalColumns: [],
+//         customGroupMappings: {},
+//         groupingPatterns: []
+//       }
+//     },
+
+//     // Auto-merge configuration props
+//     enableAutoMerge: {
+//       type: "boolean",
+//       description: "Enable automatic data merging for object with arrays (e.g., {service: [...], support: [...]})",
+//       defaultValue: false
+//     },
+//     mergeConfig: {
+//       type: "object",
+//       description: "Configuration for auto-merge functionality. Object with properties like by, preserve, autoDetectMergeFields, mergeStrategy.",
+//       defaultValue: {
+//         by: [],
+//         preserve: [],
+//         autoDetectMergeFields: true,
+//         mergeStrategy: "combine"
+//       }
+//     },
+//     enableAutoColumnGrouping: {
+//       type: "boolean",
+//       description: "Enable automatic column grouping based on merged data or column patterns",
+//       defaultValue: false
+//     },
+    
+//     // Advanced filter options
+//     filterDelay: {
+//       type: "number",
+//       description: "Delay in milliseconds before applying filter",
+//       defaultValue: 300
+//     },
+//     globalFilterPlaceholder: {
+//       type: "string",
+//       description: "Placeholder text for global search input",
+//       defaultValue: "Search..."
+//     },
+//     filterLocale: {
+//       type: "string",
+//       description: "Locale for filter formatting",
+//       defaultValue: "en"
+//     },
+    
+//     // Inline editing
+//     enableInlineEditing: {
+//       type: "boolean",
+//       description: "Enable inline row editing",
+//       defaultValue: false
+//     },
+//     editingRows: {
+//       type: "object",
+//       description: "Currently editing rows",
+//       defaultValue: null
+//     },
+//     onRowEditSave: {
+//       type: "eventHandler",
+//       description: "Called when row edit is saved",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Row edit save event"
+//         }
+//       ]
+//     },
+//     onRowEditCancel: {
+//       type: "eventHandler",
+//       description: "Called when row edit is cancelled",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Row edit cancel event"
+//         }
+//       ]
+//     },
+//     onRowEditInit: {
+//       type: "eventHandler",
+//       description: "Called when row edit is initialized",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Row edit init event"
+//         }
+//       ]
+//     },
+//     onEditingRowsChange: {
+//       type: "eventHandler",
+//       description: "Called when editing rows change",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Editing rows change event"
+//         }
+//       ]
+//     },
+    
+//     // Context menu
+//     enableContextMenu: {
+//       type: "boolean",
+//       description: "Enable context menu on right-click",
+//       defaultValue: false
+//     },
+//     contextMenu: {
+//       type: "object",
+//       description: "Context menu items configuration",
+//       defaultValue: null
+//     },
+//     contextMenuSelection: {
+//       type: "object",
+//       description: "Currently selected context menu item",
+//       defaultValue: null
+//     },
+//     onContextMenuSelectionChange: {
+//       type: "eventHandler",
+//       description: "Called when context menu selection changes",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Context menu selection change event"
+//         }
+//       ]
+//     },
+//     onContextMenu: {
+//       type: "eventHandler",
+//       description: "Called when context menu is triggered",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Context menu event"
+//         }
+//       ]
+//     },
+    
+//     // Advanced pagination
+//     showFirstLastIcon: {
+//       type: "boolean",
+//       description: "Show first/last page icons in pagination",
+//       defaultValue: true
+//     },
+//     showPageLinks: {
+//       type: "boolean",
+//       description: "Show page number links in pagination",
+//       defaultValue: true
+//     },
+//     showCurrentPageReport: {
+//       type: "boolean",
+//       description: "Show current page report in pagination",
+//       defaultValue: true
+//     },
+//     currentPageReportTemplate: {
+//       type: "string",
+//       description: "Template for current page report",
+//       defaultValue: "Showing {first} to {last} of {totalRecords} entries"
+//     },
+    
+//     // Advanced export
+//     exportFilename: {
+//       type: "string",
+//       description: "Filename for exported data",
+//       defaultValue: "data"
+//     },
+//     exportFileType: {
+//       type: "choice",
+//       options: ["csv", "excel", "pdf"],
+//       description: "File type for export",
+//       defaultValue: "csv"
+//     },
+//     enableExcelExport: {
+//       type: "boolean",
+//       description: "Enable Excel export functionality",
+//       defaultValue: false
+//     },
+//     enablePdfExport: {
+//       type: "boolean",
+//       description: "Enable PDF export functionality",
+//       defaultValue: false
+//     },
+    
+//     // Advanced selection
+//     selectionMode: {
+//       type: "choice",
+//       options: ["single", "multiple", "checkbox"],
+//       description: "Selection mode for rows",
+//       defaultValue: "multiple"
+//     },
+//     metaKeySelection: {
+//       type: "boolean",
+//       description: "Enable meta key selection",
+//       defaultValue: true
+//     },
+//     selectOnEdit: {
+//       type: "boolean",
+//       description: "Select row when editing",
+//       defaultValue: false
+//     },
+    
+//     // Pivot Table Props - Excel-like pivot functionality
+//     enablePivotTable: {
+//       type: "boolean",
+//       description: "Enable Excel-like pivot table functionality",
+//       defaultValue: false
+//     },
+    
+//     // NEW: Pivot UI Configuration Props
+//     enablePivotUI: {
+//       type: "boolean",
+//       description: "Enable pivot table configuration UI panel with dropdowns populated from data",
+//       defaultValue: true
+//     },
+//     pivotUIPosition: {
+//       type: "choice",
+//       options: ["toolbar", "panel", "sidebar"],
+//       description: "Position of the pivot configuration UI",
+//       defaultValue: "toolbar"
+//     },
+    
+//     // NEW: CMS Persistence Props
+//     enablePivotPersistence: {
+//       type: "boolean",
+//       description: "Enable saving pivot configuration to CMS for persistence across refreshes",
+//       defaultValue: true
+//     },
+//     pivotConfigKey: {
+//       type: "string",
+//       description: "Key for storing pivot configuration in CMS (unique identifier)",
+//       defaultValue: "pivotConfig"
+//     },
+//     autoSavePivotConfig: {
+//       type: "boolean",
+//       description: "Automatically save pivot configuration changes to CMS (disable for manual save with 'Apply & Save' button)",
+//       defaultValue: false
+//     },
+    
+//     // NEW: Direct Plasmic CMS Integration Props
+//     plasmicWorkspaceId: {
+//       type: "string",
+//       description: "Plasmic workspace ID for CMS integration (optional - uses env var if not provided)",
+//       defaultValue: ""
+//     },
+//     plasmicTableConfigsId: {
+//       type: "string",
+//       description: "TableConfigs table ID for CMS integration (optional - uses env var if not provided)",
+//       defaultValue: ""
+//     },
+//     plasmicApiToken: {
+//       type: "string",
+//       description: "Plasmic API token for direct CMS integration (optional - uses env var if not provided)",
+//       defaultValue: ""
+//     },
+//     useDirectCMSIntegration: {
+//       type: "boolean",
+//       description: "Use direct CMS integration instead of callback props",
+//       defaultValue: true
+//     },
+    
+//     // DEPRECATED: Callback-based CMS Props (use direct integration instead)
+//     onSavePivotConfig: {
+//       type: "eventHandler",
+//       description: "DEPRECATED: Called to save pivot configuration to CMS (use direct integration instead)",
+//       argTypes: [
+//         {
+//           name: "configKey",
+//           type: "string",
+//           description: "The configuration key"
+//         },
+//         {
+//           name: "pivotConfig",
+//           type: "object",
+//           description: "The pivot configuration object to save"
+//         }
+//       ]
+//     },
+//     onLoadPivotConfig: {
+//       type: "eventHandler",
+//       description: "DEPRECATED: Called to load pivot configuration from CMS (use direct integration instead)",
+//       argTypes: [
+//         {
+//           name: "configKey",
+//           type: "string",
+//           description: "The configuration key to load"
+//         }
+//       ]
+//     },
+    
+//     pivotRows: {
+//       type: "object",
+//       description: "Array of field names to use as row grouping (like Excel's 'Rows' area). Example: ['drName', 'salesTeam']",
+//       defaultValue: []
+//     },
+//     pivotColumns: {
+//       type: "object", 
+//       description: "Array of field names to use as column headers (like Excel's 'Columns' area). Example: ['date', 'category']",
+//       defaultValue: []
+//     },
+//     pivotValues: {
+//       type: "object",
+//       description: "Array of value configuration objects with field and aggregation. Example: [{ field: 'serviceAmount', aggregation: 'sum' }, { field: 'supportValue', aggregation: 'average' }]",
+//       defaultValue: []
+//     },
+//     pivotFilters: {
+//       type: "object",
+//       description: "Array of field names to use as pivot filters (like Excel's 'Filters' area). Example: ['region', 'status']",
+//       defaultValue: []
+//     },
+//     pivotShowGrandTotals: {
+//       type: "boolean",
+//       description: "Show grand total row in pivot table",
+//       defaultValue: true
+//     },
+//     pivotShowRowTotals: {
+//       type: "boolean",
+//       description: "Show row totals column in pivot table",
+//       defaultValue: true
+//     },
+//     pivotShowColumnTotals: {
+//       type: "boolean",
+//       description: "Show column totals in pivot table",
+//       defaultValue: true
+//     },
+//     pivotShowSubTotals: {
+//       type: "boolean",
+//       description: "Show subtotals in pivot table",
+//       defaultValue: true
+//     },
+//     pivotNumberFormat: {
+//       type: "string",
+//       description: "Number format locale for pivot table (e.g., 'en-US', 'de-DE')",
+//       defaultValue: "en-US"
+//     },
+//     pivotCurrency: {
+//       type: "string",
+//       description: "Currency code for pivot table formatting (e.g., 'USD', 'EUR', 'GBP')",
+//       defaultValue: "USD"
+//     },
+//     pivotPrecision: {
+//       type: "number",
+//       description: "Number of decimal places for pivot table numbers",
+//       defaultValue: 2
+//     },
+//     pivotFieldSeparator: {
+//       type: "string",
+//       description: "Separator for parsing complex field names like '2025-04-01__serviceAmount'",
+//       defaultValue: "__"
+//     },
+//     pivotSortRows: {
+//       type: "boolean",
+//       description: "Sort row values in pivot table",
+//       defaultValue: true
+//     },
+//     pivotSortColumns: {
+//       type: "boolean",
+//       description: "Sort column values in pivot table",
+//       defaultValue: true
+//     },
+//     pivotSortDirection: {
+//       type: "choice",
+//       options: ["asc", "desc"],
+//       description: "Sort direction for pivot table",
+//       defaultValue: "asc"
+//     },
+//     pivotAggregationFunctions: {
+//       type: "object",
+//       description: "Custom aggregation functions for pivot table. Object with function names as keys",
+//       defaultValue: {}
+//     }
+//   },
+  
+//   importPath: "./components/PrimeDataTableOptimized"
+// });

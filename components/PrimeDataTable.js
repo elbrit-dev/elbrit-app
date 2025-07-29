@@ -25,6 +25,149 @@ import {
   Calendar as CalendarIcon
 } from "lucide-react";
 
+import { useAuth } from './AuthContext';
+
+// NEW: Direct Plasmic CMS integration functions
+const usePlasmicCMS = (workspaceId, tableId, apiToken) => {
+  const { user } = useAuth();
+  
+  // Helper function to check if user has admin permissions
+  const isAdminUser = useCallback(() => {
+    const ADMIN_ROLE_ID = '6c2a85c7-116e-43b3-a4ff-db11b7858487';
+    const userRole = user?.role || user?.roleId;
+    return userRole === ADMIN_ROLE_ID;
+  }, [user]);
+  
+  // Helper function to parse page and table names from configKey
+  const parseConfigKey = useCallback((configKey) => {
+    const parts = configKey.split('_');
+    return {
+      pageName: parts[0] || 'defaultPage',
+      tableName: parts[1] || 'defaultTable'
+    };
+  }, []);
+  
+  const saveToCMS = useCallback(async (configKey, pivotConfig) => {
+    if (!workspaceId) {
+      console.warn('Plasmic workspace ID not provided for CMS integration');
+      return null;
+    }
+
+    // Check if user has admin permissions
+    if (!isAdminUser()) {
+      console.warn('🚫 User does not have admin permissions to save configurations');
+      throw new Error('Access denied: Only admin users can save pivot configurations');
+    }
+
+    // Parse page and table names from configKey
+    const { pageName, tableName } = parseConfigKey(configKey);
+
+    // Always use secure API route to avoid CORS issues and improve security
+    try {
+      const response = await fetch('/api/plasmic-cms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'save',
+          configKey,
+          pivotConfig,
+          pageName,
+          tableName,
+          userId: user?.email || null,
+          userRole: user?.role || user?.roleId || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        if (response.status === 403) {
+          throw new Error(errorData.message || 'Access denied: Only admin users can save pivot configurations');
+        }
+        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data;
+    } catch (error) {
+      console.error('❌ CMS SAVE FAILED (API route):', error);
+      throw error;
+    }
+  }, [workspaceId, user, isAdminUser, parseConfigKey]);
+  
+  const loadFromCMS = useCallback(async (configKey, filterByPage = null, filterByTable = null) => {
+    if (!workspaceId) {
+      console.warn('Plasmic workspace ID not provided for CMS integration');
+      return null;
+    }
+
+    // Always use secure API route to avoid CORS issues and improve security
+    try {
+      const response = await fetch('/api/plasmic-cms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'load',
+          configKey,
+          filterByPage,
+          filterByTable
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      if (result.data) {
+        return result.data;
+      } else {
+        return null;
+      }
+    } catch (error) {
+      console.error('❌ CMS LOAD FAILED (API route):', error);
+      return null;
+    }
+  }, [workspaceId]);
+  
+  const listConfigurationsFromCMS = useCallback(async (filterByPage = null, filterByTable = null) => {
+    if (!workspaceId) {
+      console.warn('Plasmic workspace ID not provided for CMS integration');
+      return [];
+    }
+
+    // Always use secure API route to avoid CORS issues and improve security
+    try {
+      const response = await fetch('/api/plasmic-cms', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'list',
+          filterByPage,
+          filterByTable
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      return result.data || [];
+    } catch (error) {
+      console.error('❌ CMS LIST FAILED (API route):', error);
+      throw error;
+    }
+  }, [workspaceId]);
+
+  return { saveToCMS, loadFromCMS, listConfigurationsFromCMS, isAdminUser };
+};
+
 // Merge function for combining data from multiple arrays
 const mergeData = (by = [], preserve = []) => (tables = {}) => {
   const getKey = row => by.map(k => row?.[k] ?? "").join("||");
@@ -630,8 +773,28 @@ const PrimeDataTable = ({
     precision: 2
   },
   
+  // NEW: Total display preference - controls which type of totals to show
+  totalDisplayMode = "auto", // "auto" (smart), "pivot" (only pivot), "footer" (only footer), "both" (show both), "none" (no totals)
+  
   // Pivot Table Props - Excel-like pivot functionality  
   enablePivotTable = false,
+  
+  // NEW: Pivot UI Configuration Props
+  enablePivotUI = true, // Enable pivot configuration UI panel
+  pivotUIPosition = "toolbar", // "toolbar", "panel", "sidebar"
+  
+  // NEW: CMS Persistence Props
+  enablePivotPersistence = true, // Enable saving pivot config to CMS
+  pivotConfigKey = "pivotConfig", // Key for storing in CMS (e.g., "dashboardPage_salesTable_pivotConfig")
+  onSavePivotConfig = null, // Callback to save config to CMS (deprecated - use direct integration)
+  onLoadPivotConfig = null, // Callback to load config from CMS (deprecated - use direct integration)
+  autoSavePivotConfig = false, // Auto-save changes to CMS (disabled by default for explicit control)
+  
+  // NEW: Direct Plasmic CMS Integration Props
+  plasmicWorkspaceId = null, // Plasmic workspace ID for CMS integration
+  plasmicTableConfigsId = null, // TableConfigs table ID for CMS integration
+  plasmicApiToken = null, // Plasmic API token for direct CMS integration
+  useDirectCMSIntegration = true, // Use direct CMS integration instead of callback props
   
   // Individual pivot props for Plasmic interface
   pivotRows = [],
@@ -740,20 +903,119 @@ const PrimeDataTable = ({
   // Pivot table state
   const [pivotDataCache, setPivotDataCache] = useState(null);
   const [pivotColumnsCache, setPivotColumnsCache] = useState([]);
+  
+  // NEW: Pivot UI Configuration State
+  const [showPivotConfig, setShowPivotConfig] = useState(false);
+  const [localPivotConfig, setLocalPivotConfig] = useState({
+    enabled: enablePivotTable,
+    rows: [],
+    columns: [],
+    values: [],
+    filters: [],
+    showGrandTotals: true,
+    showRowTotals: true,
+    showColumnTotals: true,
+    showSubTotals: true
+  });
+  
+  // NEW: CMS Persistence State
+  const [isLoadingPivotConfig, setIsLoadingPivotConfig] = useState(false);
+  const [isSavingPivotConfig, setIsSavingPivotConfig] = useState(false);
+  const [pivotConfigLoaded, setPivotConfigLoaded] = useState(false);
+
+  // NEW: Direct Plasmic CMS Integration
+  const { saveToCMS: directSaveToCMS, loadFromCMS: directLoadFromCMS, listConfigurationsFromCMS, isAdminUser } = usePlasmicCMS(
+    plasmicWorkspaceId || process.env.PLASMIC_WORKSPACE_ID || 'uP7RbyUnivSX75FTKL9RLp',
+    plasmicTableConfigsId || process.env.PLASMIC_TABLE_CONFIGS_ID || 'o4o5VRFTDgHHmQ31fCfkuz',
+    plasmicApiToken || process.env.PLASMIC_API_TOKEN
+  );
+
+  // Choose between direct CMS integration or callback props
+  const finalSaveToCMS = useDirectCMSIntegration && directSaveToCMS ? directSaveToCMS : onSavePivotConfig;
+  const finalLoadFromCMS = useDirectCMSIntegration && directLoadFromCMS ? directLoadFromCMS : onLoadPivotConfig;
+
+  // Load pivot configuration from CMS on component mount
+  useEffect(() => {
+    const loadPivotConfig = async () => {
+      if (!enablePivotPersistence || !finalLoadFromCMS || pivotConfigLoaded) return;
+      
+      setIsLoadingPivotConfig(true);
+      try {
+        // console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
+        
+        const savedConfig = await finalLoadFromCMS(pivotConfigKey);
+        if (savedConfig && typeof savedConfig === 'object') {
+          // console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
+          setLocalPivotConfig(prev => ({
+            ...prev,
+            ...savedConfig
+          }));
+          
+          // If config was enabled, set pivot enabled state
+          if (savedConfig.enabled) {
+            setIsPivotEnabled(true);
+          }
+        } else {
+          // console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
+        }
+      } catch (error) {
+        console.error('❌ CMS LOAD FAILED:', error);
+      } finally {
+        setIsLoadingPivotConfig(false);
+        setPivotConfigLoaded(true);
+      }
+    };
+
+    loadPivotConfig();
+  }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded]);
+
+  // Save pivot configuration to CMS when it changes
+  useEffect(() => {
+    const savePivotConfig = async () => {
+      if (!enablePivotPersistence || !finalSaveToCMS || !autoSavePivotConfig || !pivotConfigLoaded || !isAdminUser()) return;
+      
+      setIsSavingPivotConfig(true);
+      try {
+        // console.log('Auto-saving pivot config to CMS:', localPivotConfig);
+        await finalSaveToCMS(pivotConfigKey, localPivotConfig);
+      } catch (error) {
+        console.error('❌ AUTO-SAVE FAILED:', error);
+      } finally {
+        setIsSavingPivotConfig(false);
+      }
+    };
+
+    // Debounce save operations to avoid too many CMS calls
+    const saveTimeout = setTimeout(savePivotConfig, 1000);
+    return () => clearTimeout(saveTimeout);
+  }, [localPivotConfig, enablePivotPersistence, finalSaveToCMS, autoSavePivotConfig, pivotConfigKey, pivotConfigLoaded, isAdminUser]);
 
   // Merge individual pivot props with pivotConfig object
-  // Individual props take priority (for Plasmic usage), fallback to pivotConfig
   const mergedPivotConfig = useMemo(() => {
+    // NEW: If pivot UI is enabled, use local config
+    if (enablePivotUI && localPivotConfig) {
+      const config = {
+        ...pivotConfig.aggregationFunctions && { aggregationFunctions: pivotConfig.aggregationFunctions },
+        ...localPivotConfig,
+        aggregationFunctions: {
+          ...pivotConfig.aggregationFunctions,
+          ...pivotAggregationFunctions
+        }
+      };
+      // console.log('Using pivot UI config:', config);
+      return config;
+    }
+    
     const hasIndividualProps = pivotRows.length > 0 || pivotColumns.length > 0 || pivotValues.length > 0;
     
-    console.log('MergedPivotConfig Debug:', {
-      hasIndividualProps,
-      enablePivotTable,
-      pivotRows,
-      pivotColumns,
-      pivotValues,
-      pivotConfigEnabled: pivotConfig.enabled
-    });
+    // console.log('MergedPivotConfig Debug:', {
+    //   hasIndividualProps,
+    //   enablePivotTable,
+    //   pivotRows,
+    //   pivotColumns,
+    //   pivotValues,
+    //   pivotConfigEnabled: pivotConfig.enabled
+    // });
     
     if (hasIndividualProps) {
       // Use individual props (Plasmic interface)
@@ -779,7 +1041,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      console.log('Using individual props config:', config);
+      // console.log('Using individual props config:', config);
       return config;
     }
     
@@ -788,14 +1050,14 @@ const PrimeDataTable = ({
       ...pivotConfig,
       enabled: enablePivotTable && pivotConfig.enabled
     };
-    console.log('Using pivotConfig object:', config);
+    // console.log('Using pivotConfig object:', config);
     return config;
   }, [
     enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
     pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
     pivotNumberFormat, pivotCurrency, pivotPrecision, pivotFieldSeparator,
     pivotSortRows, pivotSortColumns, pivotSortDirection, pivotAggregationFunctions,
-    pivotConfig
+    pivotConfig, enablePivotUI, localPivotConfig
   ]);
 
   const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
@@ -805,13 +1067,100 @@ const PrimeDataTable = ({
     setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
   }, [enablePivotTable, mergedPivotConfig.enabled]);
 
+  // Compute effective total display settings based on totalDisplayMode
+  const effectiveTotalSettings = useMemo(() => {
+    const isPivotActive = isPivotEnabled && mergedPivotConfig?.enabled;
+    
+    switch (totalDisplayMode) {
+      case "pivot":
+        return {
+          showPivotTotals: true,
+          showFooterTotals: false
+        };
+      case "footer":
+        return {
+          showPivotTotals: false,
+          showFooterTotals: true
+        };
+      case "both":
+        return {
+          showPivotTotals: true,
+          showFooterTotals: true
+        };
+      case "none":
+        return {
+          showPivotTotals: false,
+          showFooterTotals: false
+        };
+      case "auto":
+      default:
+        // Auto mode: prefer pivot totals when pivot is active, footer totals otherwise
+        if (isPivotActive) {
+          return {
+            showPivotTotals: true,
+            showFooterTotals: false // Hide footer totals when pivot is active
+          };
+        } else {
+          return {
+            showPivotTotals: false,
+            showFooterTotals: enableFooterTotals
+          };
+        }
+    }
+  }, [totalDisplayMode, isPivotEnabled, mergedPivotConfig?.enabled, enableFooterTotals]);
+
+  // Apply effective total settings to pivot config
+  const adjustedPivotConfig = useMemo(() => {
+    // Ensure we always have valid formatting defaults
+    const defaultConfig = {
+      enabled: false,
+      rows: [],
+      columns: [],
+      values: [],
+      filters: [],
+      showGrandTotals: false,
+      showRowTotals: false,
+      showColumnTotals: false,
+      showSubTotals: false,
+      numberFormat: 'en-US',
+      currency: 'USD',
+      precision: 2,
+      fieldSeparator: '__',
+      sortRows: true,
+      sortColumns: true,
+      sortDirection: 'asc',
+      aggregationFunctions: {}
+    };
+
+    if (!mergedPivotConfig) {
+      return defaultConfig;
+    }
+
+    if (!effectiveTotalSettings.showPivotTotals) {
+      // If pivot totals are disabled, turn off all pivot totals but preserve formatting
+      return {
+        ...defaultConfig,
+        ...mergedPivotConfig,
+        showGrandTotals: false,
+        showRowTotals: false,
+        showColumnTotals: false,
+        showSubTotals: false
+      };
+    }
+
+    // Merge with defaults to ensure all formatting properties exist
+    return {
+      ...defaultConfig,
+      ...mergedPivotConfig
+    };
+  }, [mergedPivotConfig, effectiveTotalSettings.showPivotTotals]);
+
   // Process data - handle merging if needed
   const processedData = useMemo(() => {
     let rawData = graphqlQuery ? graphqlData : data;
     
     // Check if data needs merging (object with arrays)
     if (enableAutoMerge && needsMerging(rawData)) {
-      console.log('Auto-merging data:', rawData);
       
       const { by, preserve, autoDetectMergeFields, mergeStrategy } = mergeConfig;
       
@@ -871,11 +1220,9 @@ const PrimeDataTable = ({
       if (mergeBy.length > 0) {
         const mergeFunction = mergeData(mergeBy, mergePreserve);
         const mergedData = mergeFunction(rawData);
-        console.log('Merged data:', mergedData);
         return mergedData;
       } else {
         // If no merge fields detected, flatten the data with group markers
-        console.log('No merge fields detected, flattening data with group markers');
         const flattenedData = [];
         Object.entries(rawData).forEach(([groupKey, array]) => {
           if (Array.isArray(array)) {
@@ -903,14 +1250,14 @@ const PrimeDataTable = ({
 
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
-    console.log('Pivot Transformation Check:', {
-      isPivotEnabled,
-      mergedPivotConfigEnabled: mergedPivotConfig.enabled,
-      mergedPivotConfig: mergedPivotConfig
-    });
+    // console.log('Pivot Transformation Check:', {
+    //   isPivotEnabled,
+    //   mergedPivotConfigEnabled: mergedPivotConfig.enabled,
+    //   mergedPivotConfig: mergedPivotConfig
+    // });
 
-    if (!isPivotEnabled || !mergedPivotConfig.enabled) {
-      console.log('Pivot disabled - returning original data');
+    if (!isPivotEnabled || !adjustedPivotConfig.enabled) {
+      // console.log('Pivot disabled - returning original data');
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -920,9 +1267,9 @@ const PrimeDataTable = ({
     }
 
     try {
-      console.log('Transforming data to pivot...');
-      const result = transformToPivotData(tableData, mergedPivotConfig);
-      console.log('Pivot transformation result:', result);
+      // console.log('Transforming data to pivot...');
+      const result = transformToPivotData(tableData, adjustedPivotConfig);
+      // console.log('Pivot transformation result:', result);
       
       return {
         ...result,
@@ -937,11 +1284,140 @@ const PrimeDataTable = ({
         isPivot: false 
       };
     }
-  }, [tableData, isPivotEnabled, mergedPivotConfig]);
+  }, [tableData, isPivotEnabled, adjustedPivotConfig]);
 
   // Final data source - either original data or pivot data
   const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
+
+  // NEW: Helper functions for pivot configuration UI
+  const getAvailableFields = useMemo(() => {
+    if (!tableData || tableData.length === 0) return [];
+    
+    const sampleRow = tableData[0];
+    if (!sampleRow || typeof sampleRow !== 'object') return [];
+    
+    return Object.keys(sampleRow).map(key => ({
+      label: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+      value: key,
+      type: typeof sampleRow[key] === 'number' ? 'number' : 
+            typeof sampleRow[key] === 'boolean' ? 'boolean' :
+            typeof sampleRow[key] === 'string' && /^\d{4}-\d{2}-\d{2}/.test(sampleRow[key]) ? 'date' : 'text'
+    }));
+  }, [tableData]);
+
+  const getNumericFields = useMemo(() => {
+    return getAvailableFields.filter(field => field.type === 'number');
+  }, [getAvailableFields]);
+
+  const getCategoricalFields = useMemo(() => {
+    return getAvailableFields.filter(field => field.type !== 'number');
+  }, [getAvailableFields]);
+
+  const aggregationOptions = [
+    { label: 'Sum', value: 'sum' },
+    { label: 'Count', value: 'count' },
+    { label: 'Average', value: 'average' },
+    { label: 'Min', value: 'min' },
+    { label: 'Max', value: 'max' },
+    { label: 'First', value: 'first' },
+    { label: 'Last', value: 'last' }
+  ];
+
+  // Apply pivot configuration (UI only - temporary)
+  const applyPivotConfig = useCallback(() => {
+    if (enablePivotUI) {
+      // Update the merged pivot config with local config
+      const newConfig = { ...mergedPivotConfig, ...localPivotConfig };
+      // console.log('Applying pivot config (UI only):', newConfig);
+      setIsPivotEnabled(newConfig.enabled && newConfig.rows.length > 0);
+    }
+    setShowPivotConfig(false);
+  }, [localPivotConfig, mergedPivotConfig, enablePivotUI]);
+
+  // Apply AND Save pivot configuration to CMS
+  const applyAndSavePivotConfig = useCallback(async () => {
+    if (enablePivotUI) {
+      // First apply to UI
+      const newConfig = { ...mergedPivotConfig, ...localPivotConfig };
+      // console.log('Applying and saving pivot config:', newConfig);
+      setIsPivotEnabled(newConfig.enabled && newConfig.rows.length > 0);
+      
+      // Then save to CMS (only if user is admin)
+      if (enablePivotPersistence && finalSaveToCMS && isAdminUser()) {
+        try {
+          setIsSavingPivotConfig(true);
+          await finalSaveToCMS(pivotConfigKey, localPivotConfig);
+        } catch (error) {
+          console.error('❌ CMS SAVE FAILED:', error);
+          // Optionally show error notification to user
+        } finally {
+          setIsSavingPivotConfig(false);
+        }
+      } else if (enablePivotPersistence && !isAdminUser()) {
+        // Pivot config applied locally but not saved to CMS (requires admin permissions)
+      }
+    }
+    setShowPivotConfig(false);
+  }, [localPivotConfig, mergedPivotConfig, enablePivotUI, enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
+
+  // Reset pivot configuration
+  const resetPivotConfig = useCallback(async () => {
+    const defaultConfig = {
+      enabled: false,
+      rows: [],
+      columns: [],
+      values: [],
+      filters: [],
+      showGrandTotals: true,
+      showRowTotals: true,
+      showColumnTotals: true,
+      showSubTotals: true
+    };
+    
+    setLocalPivotConfig(defaultConfig);
+    setIsPivotEnabled(false);
+    
+    // Save reset config to CMS (only if user is admin)
+    if (enablePivotPersistence && finalSaveToCMS && isAdminUser()) {
+      try {
+        setIsSavingPivotConfig(true);
+        await finalSaveToCMS(pivotConfigKey, defaultConfig);
+        // console.log('🔄 RESET CONFIG SAVED TO CMS');
+      } catch (error) {
+        console.error('❌ FAILED TO SAVE RESET CONFIG:', error);
+      } finally {
+        setIsSavingPivotConfig(false);
+      }
+    } else if (enablePivotPersistence && !isAdminUser()) {
+      // Pivot config reset locally but not saved to CMS (requires admin permissions)
+    }
+  }, [enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
+
+  // Manual save function for CMS persistence (admin only)
+  const savePivotConfigManually = useCallback(async () => {
+    if (!enablePivotPersistence || !finalSaveToCMS) return;
+    
+    if (!isAdminUser()) {
+      console.warn('🚫 Manual save denied: Only admin users can save pivot configurations');
+      throw new Error('Access denied: Only admin users can save pivot configurations');
+    }
+    
+    setIsSavingPivotConfig(true);
+    try {
+      // console.log('💾 MANUAL SAVE TO CMS - Config Key:', pivotConfigKey);
+      // console.log('📊 MANUAL SAVE TO CMS - Pivot Config:', localPivotConfig);
+      
+      await finalSaveToCMS(pivotConfigKey, localPivotConfig);
+      
+      // console.log('✅ MANUAL CMS SAVE SUCCESSFUL!');
+    } catch (error) {
+      console.error('❌ MANUAL CMS SAVE FAILED:', error);
+      throw error;
+    } finally {
+      setIsSavingPivotConfig(false);
+    }
+  }, [localPivotConfig, enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
 
   const getColumnType = useCallback((column) => {
     const key = column.key;
@@ -1043,16 +1519,16 @@ const PrimeDataTable = ({
     let cols = [];
 
     // Debug logging
-    console.log('Pivot Transformation:', {
-      isPivot: pivotTransformation.isPivot,
-      pivotColumnsLength: pivotTransformation.pivotColumns.length,
-      pivotColumns: pivotTransformation.pivotColumns,
-      mergedPivotConfig: mergedPivotConfig
-    });
+    // console.log('Pivot Transformation:', {
+    //   isPivot: pivotTransformation.isPivot,
+    //   pivotColumnsLength: pivotTransformation.pivotColumns.length,
+    //   pivotColumns: pivotTransformation.pivotColumns,
+    //   mergedPivotConfig: mergedPivotConfig
+    // });
 
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
-      console.log('Using pivot columns:', pivotTransformation.pivotColumns);
+      // console.log('Using pivot columns:', pivotTransformation.pivotColumns);
       cols = pivotTransformation.pivotColumns.map(col => ({
         ...col,
         sortable: col.sortable !== false,
@@ -1462,14 +1938,7 @@ const PrimeDataTable = ({
     return parsedFormatters;
   }, [customFormatters]);
 
-  // Debug customFormatters
-  useEffect(() => {
-    if (Object.keys(customFormatters).length > 0) {
-      console.log('Original Custom Formatters:', customFormatters);
-      console.log('Parsed Custom Formatters:', parsedCustomFormatters);
-      console.log('Custom Formatters Keys:', Object.keys(customFormatters));
-    }
-  }, [customFormatters, parsedCustomFormatters]);
+
 
   // Enhanced event handlers
   const handleSort = useCallback((event) => {
@@ -1737,19 +2206,34 @@ const PrimeDataTable = ({
     // Check if this row is a grand total
     const isGrandTotal = rowData.isGrandTotal;
     
-    // Format number based on pivot config
+    // Format number based on pivot config with safe fallbacks
     let formattedValue;
-    if (currencyColumns.includes(column.key) || column.pivotField && currencyColumns.includes(column.pivotField)) {
-      formattedValue = new Intl.NumberFormat(mergedPivotConfig.numberFormat, {
-        style: 'currency',
-        currency: mergedPivotConfig.currency,
-        minimumFractionDigits: mergedPivotConfig.precision,
-        maximumFractionDigits: mergedPivotConfig.precision
-      }).format(value);
-    } else {
-      formattedValue = new Intl.NumberFormat(mergedPivotConfig.numberFormat, {
-        minimumFractionDigits: mergedPivotConfig.precision,
-        maximumFractionDigits: mergedPivotConfig.precision
+    
+    const isCurrencyColumn = currencyColumns.includes(column.key) || (column.pivotField && currencyColumns.includes(column.pivotField));
+    const currency = adjustedPivotConfig.currency || 'USD';
+    const numberFormat = adjustedPivotConfig.numberFormat || 'en-US';
+    const precision = adjustedPivotConfig.precision || 2;
+    
+    try {
+      if (isCurrencyColumn && currency) {
+        formattedValue = new Intl.NumberFormat(numberFormat, {
+          style: 'currency',
+          currency: currency,
+          minimumFractionDigits: precision,
+          maximumFractionDigits: precision
+        }).format(value);
+      } else {
+        formattedValue = new Intl.NumberFormat(numberFormat, {
+          minimumFractionDigits: precision,
+          maximumFractionDigits: precision
+        }).format(value);
+      }
+    } catch (error) {
+      console.warn('Pivot value formatting error:', error, { currency, numberFormat, precision });
+      // Fallback to simple number formatting
+      formattedValue = new Intl.NumberFormat('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
       }).format(value);
     }
     
@@ -1767,7 +2251,7 @@ const PrimeDataTable = ({
         {formattedValue}
       </span>
     );
-  }, [mergedPivotConfig, currencyColumns]);
+  }, [adjustedPivotConfig, currencyColumns]);
 
   const pivotRowBodyTemplate = (rowData, column) => {
     const value = rowData[column.key];
@@ -2061,7 +2545,7 @@ const PrimeDataTable = ({
 
   // Footer template for column totals
   const footerTemplate = (column) => {
-    if (!enableFooterTotals || column.type !== 'number') return null;
+    if (!effectiveTotalSettings.showFooterTotals || column.type !== 'number') return null;
     
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
@@ -2073,19 +2557,32 @@ const PrimeDataTable = ({
     const formatNumber = (value, column) => {
       if (typeof value !== 'number') return '';
 
-      if (currencyColumns.includes(column.key)) {
-        return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-          style: 'currency',
-          currency: footerTotalsConfig.currency,
-          minimumFractionDigits: footerTotalsConfig.precision,
-          maximumFractionDigits: footerTotalsConfig.precision
+      const currency = footerTotalsConfig.currency || 'USD';
+      const numberFormat = footerTotalsConfig.numberFormat || 'en-US';
+      const precision = footerTotalsConfig.precision || 2;
+
+      try {
+        if (currencyColumns.includes(column.key) && currency) {
+          return new Intl.NumberFormat(numberFormat, {
+            style: 'currency',
+            currency: currency,
+            minimumFractionDigits: precision,
+            maximumFractionDigits: precision
+          }).format(value);
+        }
+
+        return new Intl.NumberFormat(numberFormat, {
+          minimumFractionDigits: precision,
+          maximumFractionDigits: precision
+        }).format(value);
+      } catch (error) {
+        console.warn('Footer formatting error:', error, { currency, numberFormat, precision });
+        // Fallback to simple formatting
+        return new Intl.NumberFormat('en-US', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
         }).format(value);
       }
-
-      return new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-        minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(value);
     };
 
     
@@ -2145,6 +2642,19 @@ const PrimeDataTable = ({
             />
           ))}
         </div>
+      )}
+
+      {/* NEW: Pivot Configuration Button */}
+      {enablePivotUI && (
+        <Button
+          icon={isLoadingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-chart-bar"}
+          label={isLoadingPivotConfig ? "Loading..." : "Pivot"}
+          onClick={() => setShowPivotConfig(!showPivotConfig)}
+          className={`p-button-outlined p-button-sm ${isPivotEnabled ? 'p-button-success' : ''}`}
+          tooltip={isLoadingPivotConfig ? "Loading pivot configuration..." : "Configure pivot table"}
+          tooltipOptions={{ position: 'top' }}
+          disabled={isLoadingPivotConfig}
+        />
       )}
 
       {enableColumnManagement && (
@@ -2295,7 +2805,7 @@ const PrimeDataTable = ({
       footerColumns.push(
         <Column
           key={`footer-ungrouped-${col.key}`}
-          footer={enableFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
+          footer={effectiveTotalSettings.showFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
           field={col.key}
         />
       );
@@ -2307,7 +2817,7 @@ const PrimeDataTable = ({
         footerColumns.push(
           <Column
             key={`footer-grouped-${col.originalKey || col.key}`}
-            footer={enableFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
+            footer={effectiveTotalSettings.showFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
             field={col.originalKey || col.key}
           />
         );
@@ -2321,7 +2831,7 @@ const PrimeDataTable = ({
         </Row>
       </ColumnGroup>
     );
-  }, [enableColumnGrouping, footerColumnGroup, finalColumnStructure, groupConfig.enableFooterGroups, enableFooterTotals, footerTemplate]);
+  }, [enableColumnGrouping, footerColumnGroup, finalColumnStructure, groupConfig.enableFooterGroups, effectiveTotalSettings.showFooterTotals, footerTemplate]);
 
   // Helper function to create column groups easily
   const createColumnGroup = useCallback((groups) => {
@@ -2374,59 +2884,7 @@ const PrimeDataTable = ({
 
   return (
     <div className={className} style={style}>
-      {/* Debug Info - Remove this in production */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#f5f5f5', borderRadius: '4px', fontSize: '0.85em' }}>
-          <strong>Debug Info:</strong><br/>
-          <strong>Data:</strong> {data.length} rows → {finalTableData.length} final rows<br/>
-          <strong>Columns:</strong> {columns.length} custom, {defaultColumns.length} total<br/>
-          <strong>Custom Formatters:</strong> {Object.keys(customFormatters).length}<br/>
-          <strong>Custom Templates:</strong> {Object.keys(customTemplates).length}<br/>
 
-          <strong>Row Actions:</strong> {rowActions.length}<br/>
-          <strong>Bulk Actions:</strong> {bulkActions.length}<br/>
-          <strong>Column Groups:</strong> {columnGroups.length}<br/>
-          <strong>Features:</strong> Search:{enableSearch ? '✓' : '✗'} | Filter:{enableColumnFilter ? '✓' : '✗'} | Sort:{enableSorting ? '✓' : '✗'} | Pagination:{enablePagination ? '✓' : '✗'}<br/>
-          <strong>Column Grouping:</strong> {enableColumnGrouping ? '✓' : '✗'}<br/>
-          <strong>Auto Grouping:</strong> {enableAutoColumnGrouping ? '✓' : '✗'}<br/>
-          
-          <strong>Auto Merge:</strong> {enableAutoMerge ? '✓ Enabled' : '✗ Disabled'}<br/>
-          {enableAutoMerge && (
-            <>
-              <strong>Merge By:</strong> {mergeConfig.by.join(', ') || 'Auto-detected'}<br/>
-              <strong>Merge Preserve:</strong> {mergeConfig.preserve.join(', ') || 'Auto-detected'}<br/>
-              <strong>Merge Strategy:</strong> {mergeConfig.mergeStrategy}<br/>
-            </>
-          )}
-          
-          <strong>Pivot Table:</strong> {pivotTransformation.isPivot ? '✓ Enabled' : '✗ Disabled'}<br/>
-          {pivotTransformation.isPivot && (
-            <>
-              <strong>Pivot Rows:</strong> {mergedPivotConfig.rows.join(', ') || 'None'}<br/>
-              <strong>Pivot Columns:</strong> {mergedPivotConfig.columns.join(', ') || 'None'}<br/>
-              <strong>Pivot Values:</strong> {mergedPivotConfig.values.map(v => `${v.field} (${v.aggregation})`).join(', ') || 'None'}<br/>
-              <strong>Generated Columns:</strong> {pivotTransformation.pivotColumns.length}<br/>
-              <strong>Column Values:</strong> {pivotTransformation.columnValues?.join(', ') || 'None'}<br/>
-            </>
-          )}
-          
-          <strong>Size:</strong> {tableSize}<br/>
-          <strong>Theme:</strong> Native PrimeReact<br/>
-          
-          {enableAutoColumnGrouping && (
-            <>
-              <strong>Auto-detected Groups:</strong> {autoDetectedColumnGroups.groups.length}<br/>
-              {autoDetectedColumnGroups.groups.map((group, idx) => (
-                <div key={idx} style={{ marginLeft: '1rem' }}>
-                  <strong>{group.header}:</strong> {group.columns.map(col => col.originalKey || col.key).join(', ')}
-                </div>
-              ))}
-              <strong>Ungrouped Columns:</strong> {autoDetectedColumnGroups.ungroupedColumns.map(col => col.key).join(', ')}<br/>
-              <strong>Group Separator:</strong> {groupConfig.groupSeparator}<br/>
-            </>
-          )}
-        </div>
-      )}
       
 
       
@@ -2609,7 +3067,7 @@ const PrimeDataTable = ({
                 filterClear={enableFilterClear ? filterClearTemplate : undefined}
                 filterApply={enableFilterApply ? filterApplyTemplate : undefined}
                 filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
-                footer={enableFooterTotals ? () => footerTemplate(column) : undefined}
+                footer={effectiveTotalSettings.showFooterTotals ? () => footerTemplate(column) : undefined}
 
                 showFilterMatchModes={
                   enableFilterMatchModes && 
@@ -2716,13 +3174,296 @@ const PrimeDataTable = ({
         </div>
       </Dialog>
 
-      {/* Context Menu */}
-      {enableContextMenu && contextMenu && (
-        <ContextMenu
-          model={contextMenu}
-          ref={contextMenuRef}
-        />
-      )}
+      {/* NEW: Pivot Configuration Dialog */}
+      <Dialog
+        visible={showPivotConfig}
+        onHide={() => setShowPivotConfig(false)}
+        header="Configure Pivot Table"
+        style={{ width: '90vw', maxWidth: '800px' }}
+        modal
+        closable
+        draggable={false}
+        resizable={false}
+        className="pivot-config-dialog"
+      >
+        <div className="pivot-config-content">
+          {/* Pivot Table Enable/Disable */}
+          <div className="pivot-enable-section">
+            <div className="field-checkbox">
+              <Checkbox
+                inputId="enablePivot"
+                checked={localPivotConfig.enabled}
+                onChange={(e) => setLocalPivotConfig(prev => ({ ...prev, enabled: e.checked }))}
+              />
+              <label htmlFor="enablePivot" className="ml-2">Enable Pivot Table</label>
+            </div>
+          </div>
+
+          {localPivotConfig.enabled && (
+            <div className="pivot-config-grid">
+              {/* Rows Configuration */}
+              <div className="pivot-section">
+                <div className="pivot-section-header rows-header">
+                  <i className="pi pi-bars"></i>
+                  <span className="pivot-section-label">Rows (Group By)</span>
+                </div>
+                <Dropdown
+                  value={null}
+                  options={getCategoricalFields}
+                  onChange={(e) => {
+                    if (e.value && !localPivotConfig.rows.includes(e.value)) {
+                      setLocalPivotConfig(prev => ({
+                        ...prev,
+                        rows: [...prev.rows, e.value]
+                      }));
+                    }
+                  }}
+                  placeholder="Add row grouping..."
+                  className="w-full"
+                />
+                <div className="pivot-selected-items">
+                  {localPivotConfig.rows.length === 0 ? (
+                    <div className="pivot-empty-state">
+                      <i className="pi pi-plus"></i>
+                      <div>No row grouping selected</div>
+                    </div>
+                  ) : (
+                    localPivotConfig.rows.map((row, index) => (
+                      <div key={index} className="pivot-selected-item rows-item">
+                        <span className="pivot-selected-item-label">
+                          {getCategoricalFields.find(f => f.value === row)?.label || row}
+                        </span>
+                        <Button
+                          icon="pi pi-times"
+                          className="p-button-text p-button-sm p-button-danger"
+                          onClick={() => {
+                            setLocalPivotConfig(prev => ({
+                              ...prev,
+                              rows: prev.rows.filter((_, i) => i !== index)
+                            }));
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Columns Configuration */}
+              <div className="pivot-section">
+                <div className="pivot-section-header columns-header">
+                  <i className="pi pi-table"></i>
+                  <span className="pivot-section-label">Columns (Pivot By)</span>
+                </div>
+                <Dropdown
+                  value={null}
+                  options={getCategoricalFields}
+                  onChange={(e) => {
+                    if (e.value && !localPivotConfig.columns.includes(e.value)) {
+                      setLocalPivotConfig(prev => ({
+                        ...prev,
+                        columns: [...prev.columns, e.value]
+                      }));
+                    }
+                  }}
+                  placeholder="Add column grouping..."
+                  className="w-full"
+                />
+                <div className="pivot-selected-items">
+                  {localPivotConfig.columns.length === 0 ? (
+                    <div className="pivot-empty-state">
+                      <i className="pi pi-plus"></i>
+                      <div>No column grouping selected</div>
+                    </div>
+                  ) : (
+                    localPivotConfig.columns.map((col, index) => (
+                      <div key={index} className="pivot-selected-item columns-item">
+                        <span className="pivot-selected-item-label">
+                          {getCategoricalFields.find(f => f.value === col)?.label || col}
+                        </span>
+                        <Button
+                          icon="pi pi-times"
+                          className="p-button-text p-button-sm p-button-danger"
+                          onClick={() => {
+                            setLocalPivotConfig(prev => ({
+                              ...prev,
+                              columns: prev.columns.filter((_, i) => i !== index)
+                            }));
+                          }}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Values Configuration */}
+              <div className="pivot-section pivot-values-section">
+                <div className="pivot-section-header values-header">
+                  <i className="pi pi-calculator"></i>
+                  <span className="pivot-section-label">Values (Aggregations)</span>
+                </div>
+                <Dropdown
+                  value={null}
+                  options={getNumericFields}
+                  onChange={(e) => {
+                    if (e.value && !localPivotConfig.values.find(v => v.field === e.value)) {
+                      setLocalPivotConfig(prev => ({
+                        ...prev,
+                        values: [...prev.values, { field: e.value, aggregation: 'sum' }]
+                      }));
+                    }
+                  }}
+                  placeholder="Add value field..."
+                  className="w-full"
+                />
+                <div className="pivot-selected-items">
+                  {localPivotConfig.values.length === 0 ? (
+                    <div className="pivot-empty-state">
+                      <i className="pi pi-plus"></i>
+                      <div>No value fields selected</div>
+                    </div>
+                  ) : (
+                    localPivotConfig.values.map((value, index) => (
+                      <div key={index} className="pivot-value-item">
+                        <div className="pivot-value-item-header">
+                          <span className="pivot-value-item-label">
+                            {getNumericFields.find(f => f.value === value.field)?.label || value.field}
+                          </span>
+                          <Button
+                            icon="pi pi-times"
+                            className="p-button-text p-button-sm p-button-danger"
+                            onClick={() => {
+                              setLocalPivotConfig(prev => ({
+                                ...prev,
+                                values: prev.values.filter((_, i) => i !== index)
+                              }));
+                            }}
+                          />
+                        </div>
+                        <Dropdown
+                          value={value.aggregation}
+                          options={aggregationOptions}
+                          onChange={(e) => {
+                            setLocalPivotConfig(prev => ({
+                              ...prev,
+                              values: prev.values.map((v, i) => 
+                                i === index ? { ...v, aggregation: e.value } : v
+                              )
+                            }));
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Display Options */}
+              <div className="pivot-display-section">
+                <div className="pivot-display-header">
+                  <i className="pi pi-cog"></i>
+                  <span className="pivot-section-label">Display Options</span>
+                </div>
+                <div className="pivot-display-options">
+                  <div className="pivot-display-option">
+                    <Checkbox
+                      inputId="showGrandTotals"
+                      checked={localPivotConfig.showGrandTotals}
+                      onChange={(e) => setLocalPivotConfig(prev => ({ ...prev, showGrandTotals: e.checked }))}
+                    />
+                    <label htmlFor="showGrandTotals">Grand Totals</label>
+                  </div>
+                  <div className="pivot-display-option">
+                    <Checkbox
+                      inputId="showRowTotals"
+                      checked={localPivotConfig.showRowTotals}
+                      onChange={(e) => setLocalPivotConfig(prev => ({ ...prev, showRowTotals: e.checked }))}
+                    />
+                    <label htmlFor="showRowTotals">Row Totals</label>
+                  </div>
+                  <div className="pivot-display-option">
+                    <Checkbox
+                      inputId="showColumnTotals"
+                      checked={localPivotConfig.showColumnTotals}
+                      onChange={(e) => setLocalPivotConfig(prev => ({ ...prev, showColumnTotals: e.checked }))}
+                    />
+                    <label htmlFor="showColumnTotals">Column Totals</label>
+                  </div>
+                  <div className="pivot-display-option">
+                    <Checkbox
+                      inputId="showSubTotals"
+                      checked={localPivotConfig.showSubTotals}
+                      onChange={(e) => setLocalPivotConfig(prev => ({ ...prev, showSubTotals: e.checked }))}
+                    />
+                    <label htmlFor="showSubTotals">Sub Totals</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="pivot-actions">
+            <Button
+              label="Reset"
+              icon="pi pi-refresh"
+              className="p-button-outlined p-button-secondary"
+              onClick={resetPivotConfig}
+              disabled={isSavingPivotConfig}
+            />
+            
+            {/* Manual Save Button - only show if auto-save is disabled */}
+            {enablePivotPersistence && onSavePivotConfig && !autoSavePivotConfig && (
+              <Button
+                label={isSavingPivotConfig ? "Saving..." : "Save"}
+                icon={isSavingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-save"}
+                className="p-button-outlined p-button-info"
+                onClick={savePivotConfigManually}
+                disabled={isSavingPivotConfig}
+              />
+            )}
+            
+            <Button
+              label="Cancel"
+              icon="pi pi-times"
+              className="p-button-outlined"
+              onClick={() => setShowPivotConfig(false)}
+              disabled={isSavingPivotConfig}
+            />
+            
+            {/* Apply (Temporary UI Only) */}
+            <Button
+              label="Apply"
+              icon="pi pi-eye"
+              className="p-button-outlined p-button-info"
+              onClick={applyPivotConfig}
+              disabled={
+                localPivotConfig.enabled && (localPivotConfig.rows.length === 0 || localPivotConfig.values.length === 0)
+              }
+              tooltip="Apply temporarily (not saved to CMS)"
+              tooltipOptions={{ position: 'top' }}
+            />
+            
+            {/* Apply & Save (Persistent) */}
+            {enablePivotPersistence && onSavePivotConfig && (
+              <Button
+                label={isSavingPivotConfig ? "Applying & Saving..." : "Apply & Save"}
+                icon={isSavingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-check"}
+                className="p-button-success"
+                onClick={applyAndSavePivotConfig}
+                disabled={
+                  isSavingPivotConfig || 
+                  (localPivotConfig.enabled && (localPivotConfig.rows.length === 0 || localPivotConfig.values.length === 0))
+                }
+                tooltip="Apply and save to CMS for persistence"
+                tooltipOptions={{ position: 'top' }}
+              />
+            )}
+          </div>
+      </Dialog>
             </div>
   );
 };

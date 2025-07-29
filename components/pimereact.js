@@ -237,23 +237,33 @@ const PrimeDataTable = ({
     const parts = [];
     
     if (footerTotalsConfig.showTotals && totals[field] !== undefined) {
-      const formattedTotal = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
-        currency: footerTotalsConfig.currency,
-        minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(totals[field]);
-      parts.push(`Total: ${formattedTotal}`);
+      try {
+        const formattedTotal = new Intl.NumberFormat(footerTotalsConfig.numberFormat || 'en-US', {
+          style: footerTotalsConfig.currency ? 'currency' : 'decimal',
+          currency: footerTotalsConfig.currency,
+          minimumFractionDigits: footerTotalsConfig.precision || 2,
+          maximumFractionDigits: footerTotalsConfig.precision || 2
+        }).format(totals[field]);
+        parts.push(`Total: ${formattedTotal}`);
+      } catch (error) {
+        console.warn('Footer total formatting error:', error);
+        parts.push(`Total: ${totals[field].toLocaleString()}`);
+      }
     }
     
     if (footerTotalsConfig.showAverages && averages[field] !== undefined) {
-      const formattedAvg = new Intl.NumberFormat(footerTotalsConfig.numberFormat, {
-        style: footerTotalsConfig.currency ? 'currency' : 'decimal',
-        currency: footerTotalsConfig.currency,
-        minimumFractionDigits: footerTotalsConfig.precision,
-        maximumFractionDigits: footerTotalsConfig.precision
-      }).format(averages[field]);
-      parts.push(`Avg: ${formattedAvg}`);
+      try {
+        const formattedAvg = new Intl.NumberFormat(footerTotalsConfig.numberFormat || 'en-US', {
+          style: footerTotalsConfig.currency ? 'currency' : 'decimal',
+          currency: footerTotalsConfig.currency,
+          minimumFractionDigits: footerTotalsConfig.precision || 2,
+          maximumFractionDigits: footerTotalsConfig.precision || 2
+        }).format(averages[field]);
+        parts.push(`Avg: ${formattedAvg}`);
+      } catch (error) {
+        console.warn('Footer average formatting error:', error);
+        parts.push(`Avg: ${averages[field].toLocaleString()}`);
+      }
     }
     
     if (footerTotalsConfig.showCounts && counts[field] !== undefined) {
