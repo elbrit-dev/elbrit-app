@@ -3452,7 +3452,7 @@ const PrimeDataTable = ({
             />
             
             {/* Manual Save Button - only show if auto-save is disabled */}
-            {enablePivotPersistence && onSavePivotConfig && !autoSavePivotConfig && (
+            {enablePivotPersistence && finalSaveToCMS && !autoSavePivotConfig && (
               <Button
                 label={isSavingPivotConfig ? "Saving..." : "Save"}
                 icon={isSavingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-save"}
@@ -3484,7 +3484,7 @@ const PrimeDataTable = ({
             />
             
             {/* Apply & Save (Persistent) */}
-            {enablePivotPersistence && onSavePivotConfig && (
+            {enablePivotPersistence && finalSaveToCMS && (
               <Button
                 label={isSavingPivotConfig ? "Applying & Saving..." : "Apply & Save"}
                 icon={isSavingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-check"}
