@@ -325,11 +325,11 @@ const transformToPivotData = (data, config) => {
   // Step 5: Create pivot structure
   const pivotData = [];
   
-  // Store aggregated values for meta-aggregation
-  const metaAggregationCollector = {};
-  
   rowGroups.forEach(rowGroup => {
     const pivotRow = { ...rowGroup.groupValues };
+    
+    // Store row-specific aggregated values for meta-aggregation
+    const rowMetaAggregationValues = {};
     
     // Add row totals
     if (config.showRowTotals && values.length > 0) {
@@ -347,15 +347,15 @@ const transformToPivotData = (data, config) => {
           const aggregatedValue = aggregateFunc(allValues);
           pivotRow[totalKey] = aggregatedValue;
           
-          // Collect values for meta-aggregation
+          // Collect row-specific values for meta-aggregation
           const metaAggregations = config.metaAggregations || [];
           metaAggregations.forEach(metaAgg => {
             if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
               const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
-              if (!metaAggregationCollector[metaKey]) {
-                metaAggregationCollector[metaKey] = [];
+              if (!rowMetaAggregationValues[metaKey]) {
+                rowMetaAggregationValues[metaKey] = [];
               }
-              metaAggregationCollector[metaKey].push(aggregatedValue);
+              rowMetaAggregationValues[metaKey].push(aggregatedValue);
             }
           });
         }
@@ -383,15 +383,15 @@ const transformToPivotData = (data, config) => {
             const aggregatedValue = colValues.length > 0 ? aggregateFunc(colValues) : 0;
             pivotRow[columnKey] = aggregatedValue;
             
-            // Collect values for meta-aggregation
+            // Collect row-specific values for meta-aggregation
             const metaAggregations = config.metaAggregations || [];
             metaAggregations.forEach(metaAgg => {
               if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
                 const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
-                if (!metaAggregationCollector[metaKey]) {
-                  metaAggregationCollector[metaKey] = [];
+                if (!rowMetaAggregationValues[metaKey]) {
+                  rowMetaAggregationValues[metaKey] = [];
                 }
-                metaAggregationCollector[metaKey].push(aggregatedValue);
+                rowMetaAggregationValues[metaKey].push(aggregatedValue);
               }
             });
           }
@@ -413,44 +413,40 @@ const transformToPivotData = (data, config) => {
           const aggregatedValue = aggregateFunc(allValues);
           pivotRow[valueKey] = aggregatedValue;
           
-          // Collect values for meta-aggregation
+          // Collect row-specific values for meta-aggregation
           const metaAggregations = config.metaAggregations || [];
           metaAggregations.forEach(metaAgg => {
             if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
               const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
-              if (!metaAggregationCollector[metaKey]) {
-                metaAggregationCollector[metaKey] = [];
+              if (!rowMetaAggregationValues[metaKey]) {
+                rowMetaAggregationValues[metaKey] = [];
               }
-              metaAggregationCollector[metaKey].push(aggregatedValue);
+              rowMetaAggregationValues[metaKey].push(aggregatedValue);
             }
           });
         }
       });
     }
     
-    pivotData.push(pivotRow);
-  });
-  
-  // Step 5.5: Calculate meta-aggregation results
-  const metaAggregationResults = {};
-  Object.keys(metaAggregationCollector).forEach(metaKey => {
-    const [fieldName, primaryAggregation, metaAggregation] = metaKey.split('_');
-    const metaAggregateFunc = config.aggregationFunctions[metaAggregation];
-    
-    if (metaAggregateFunc && metaAggregationCollector[metaKey].length > 0) {
-      const metaResult = metaAggregateFunc(metaAggregationCollector[metaKey]);
-      metaAggregationResults[metaKey] = metaResult;
-    }
-  });
-  
-  // Step 5.6: Add meta-aggregation results as columns to each pivot row
-  pivotData.forEach(pivotRow => {
-    // Don't add meta-aggregation columns to grand total rows
-    if (!pivotRow.isGrandTotal) {
-      Object.keys(metaAggregationResults).forEach(metaKey => {
-        pivotRow[metaKey] = metaAggregationResults[metaKey];
+    // Step 5.5: Calculate row-specific meta-aggregation results
+    Object.keys(rowMetaAggregationValues).forEach(metaKey => {
+      const [fieldName, primaryAggregation, metaAggregation] = metaKey.split('_');
+      const metaAggregateFunc = config.aggregationFunctions[metaAggregation];
+      
+      console.log(`🔍 Row-specific meta-aggregation for ${metaKey}:`, {
+        rowGroup: rowGroup.groupValues,
+        values: rowMetaAggregationValues[metaKey],
+        functionExists: !!metaAggregateFunc
       });
-    }
+      
+      if (metaAggregateFunc && rowMetaAggregationValues[metaKey].length > 0) {
+        const metaResult = metaAggregateFunc(rowMetaAggregationValues[metaKey]);
+        pivotRow[metaKey] = metaResult;
+        console.log(`✅ Row-specific meta-aggregation result for ${metaKey}:`, metaResult);
+      }
+    });
+    
+    pivotData.push(pivotRow);
   });
   
   // Step 6: Add grand totals row if needed
@@ -497,11 +493,6 @@ const transformToPivotData = (data, config) => {
           grandTotalRow[valueKey] = aggregateFunc(allValues);
         }
       }
-    });
-    
-    // Add meta-aggregation results to grand total row
-    Object.keys(metaAggregationResults).forEach(metaKey => {
-      grandTotalRow[metaKey] = metaAggregationResults[metaKey];
     });
     
     pivotData.push(grandTotalRow);
