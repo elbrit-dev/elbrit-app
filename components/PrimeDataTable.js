@@ -1609,16 +1609,13 @@ const PrimeDataTable = ({
   }, [tableData, isPivotEnabled, adjustedPivotConfig, pivotConfigLoaded, mergedPivotConfig]);
 
   // Final data source - either original data or pivot data
-  const finalTableData = useMemo(() => {
-    const result = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
-    console.log('📊 Final table data computed:', {
-      isPivot: pivotTransformation.isPivot,
-      dataLength: result?.length || 0,
-      pivotConfigLoaded,
-      isPivotEnabled
-    });
-    return result;
-  }, [pivotTransformation, tableData, pivotConfigLoaded, isPivotEnabled]);
+  const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+  console.log('📊 Final table data computed:', {
+    isPivot: pivotTransformation.isPivot,
+    dataLength: finalTableData?.length || 0,
+    pivotConfigLoaded,
+    isPivotEnabled
+  });
   
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
@@ -1933,7 +1930,7 @@ const PrimeDataTable = ({
     }
 
     return cols;
-  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, enableROICalculation, roiConfig]);
+  }, [columns, tableData, hiddenColumns, columnOrder, fields, pivotTransformation, enableROICalculation, roiConfig]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -2378,10 +2375,9 @@ const PrimeDataTable = ({
         case 'excel':
           if (enableExcelExport) {
             // Excel export using jspdf-autotable
-            const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
+              ...finalTableData.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2398,10 +2394,9 @@ const PrimeDataTable = ({
         case 'pdf':
           if (enablePdfExport) {
             // PDF export using jspdf-autotable
-            const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
+              ...finalTableData.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2417,10 +2412,9 @@ const PrimeDataTable = ({
           break;
         default:
           // Default CSV export
-          const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
           const csvContent = [
             defaultColumns.map(col => col.title).join(','),
-            ...dataToExport.map(row => 
+            ...finalTableData.map(row => 
               defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
             )
           ].join('\n');
