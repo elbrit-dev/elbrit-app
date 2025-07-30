@@ -56,10 +56,10 @@ const LinkTestPage = () => {
 
       <div style={{ marginBottom: '20px' }}>
         <h3>How to Use in Plasmic</h3>
-        <p>1. In Plasmic Studio, drag the "Link Component" from the component library</p>
-        <p>2. Set the "href" prop to your page URL (e.g., "/dashboard", "/about")</p>
+        <p>1. In Plasmic Studio, drag the &quot;Link Component&quot; from the component library</p>
+        <p>2. Set the &quot;href&quot; prop to your page URL (e.g., &quot;/dashboard&quot;, &quot;/about&quot;)</p>
         <p>3. Add your content in the children slot</p>
-        <p>4. Style it using the "style" prop or "className" prop</p>
+        <p>4. Style it using the &quot;style&quot; prop or &quot;className&quot; prop</p>
       </div>
     </div>
   );
