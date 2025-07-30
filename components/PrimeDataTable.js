@@ -1618,7 +1618,7 @@ const PrimeDataTable = ({
       isPivotEnabled
     });
     return result;
-  }, [pivotTransformation.isPivot, pivotTransformation.pivotData, tableData, pivotConfigLoaded, isPivotEnabled]);
+  }, [pivotTransformation, tableData, pivotConfigLoaded, isPivotEnabled]);
   
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
@@ -2378,9 +2378,10 @@ const PrimeDataTable = ({
         case 'excel':
           if (enableExcelExport) {
             // Excel export using jspdf-autotable
+            const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...finalTableData.map(row => 
+              ...dataToExport.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2397,9 +2398,10 @@ const PrimeDataTable = ({
         case 'pdf':
           if (enablePdfExport) {
             // PDF export using jspdf-autotable
+            const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...finalTableData.map(row => 
+              ...dataToExport.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2415,9 +2417,10 @@ const PrimeDataTable = ({
           break;
         default:
           // Default CSV export
+          const dataToExport = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
           const csvContent = [
             defaultColumns.map(col => col.title).join(','),
-            ...finalTableData.map(row => 
+            ...dataToExport.map(row => 
               defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
             )
           ].join('\n');
@@ -2707,14 +2710,15 @@ const PrimeDataTable = ({
     tableData.filter(row => row && typeof row === 'object')
   );
 
-  // Update filtered data for totals when finalTableData changes
+  // Update filtered data for totals when pivot transformation changes
   useEffect(() => {
     if (enableFooterTotals) {
-      const validData = finalTableData.filter(row => row && typeof row === 'object');
+      const dataSource = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+      const validData = dataSource.filter(row => row && typeof row === 'object');
       setFilteredDataForTotals(validData);
-      console.log('📊 Updated filteredDataForTotals after finalTableData change:', validData.length, 'rows');
+      console.log('📊 Updated filteredDataForTotals after data change:', validData.length, 'rows');
     }
-  }, [finalTableData, enableFooterTotals]);
+  }, [pivotTransformation, tableData, enableFooterTotals]);
 
   // Helper function to match filter values
   const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
@@ -2919,9 +2923,12 @@ const PrimeDataTable = ({
     // If column has predefined options, use them
     if (column.filterOptions) return column.filterOptions;
     
+    // Get the appropriate data source for filter generation
+    const dataForFilters = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+    
     // Check if column is explicitly configured as dropdown
     if (dropdownFilterColumns.includes(columnKey)) {
-      const uniqueValues = [...new Set(finalTableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+      const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
       return uniqueValues.map(value => ({
         label: String(value),
         value: value
@@ -2930,7 +2937,7 @@ const PrimeDataTable = ({
     
     // For categorical columns, generate options from unique values
     if (column.isCategorical || column.type === 'select' || column.type === 'dropdown' || column.type === 'categorical') {
-      const uniqueValues = [...new Set(finalTableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+      const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
       return uniqueValues.map(value => ({
         label: String(value),
         value: value
@@ -2938,7 +2945,7 @@ const PrimeDataTable = ({
     }
     
     // Auto-detect categorical columns based on data analysis
-    const uniqueValues = [...new Set(finalTableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+    const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
     
     // If column has limited unique values (categorical data)
     if (uniqueValues.length > 0 && uniqueValues.length <= 30) {
@@ -2960,7 +2967,7 @@ const PrimeDataTable = ({
     }
     
     return undefined;
-  }, [finalTableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
+  }, [pivotTransformation, tableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
