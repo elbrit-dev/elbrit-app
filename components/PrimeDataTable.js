@@ -325,6 +325,9 @@ const transformToPivotData = (data, config) => {
   // Step 5: Create pivot structure
   const pivotData = [];
   
+  // Store aggregated values for meta-aggregation
+  const metaAggregationCollector = {};
+  
   rowGroups.forEach(rowGroup => {
     const pivotRow = { ...rowGroup.groupValues };
     
@@ -341,7 +344,17 @@ const transformToPivotData = (data, config) => {
           const totalKey = values.filter(v => v.field === fieldName).length > 1 
             ? `${fieldName}_${aggregation}_total` 
             : `${fieldName}_total`;
-          pivotRow[totalKey] = aggregateFunc(allValues);
+          const aggregatedValue = aggregateFunc(allValues);
+          pivotRow[totalKey] = aggregatedValue;
+          
+          // Collect values for meta-aggregation
+          if (valueConfig.metaAggregation) {
+            const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
+            if (!metaAggregationCollector[metaKey]) {
+              metaAggregationCollector[metaKey] = [];
+            }
+            metaAggregationCollector[metaKey].push(aggregatedValue);
+          }
         }
       });
     }
@@ -364,7 +377,17 @@ const transformToPivotData = (data, config) => {
             const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
             // Include aggregation type in key to support multiple aggregations for same field
             const columnKey = `${colValue}_${fieldName}_${aggregation}`;
-            pivotRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
+            const aggregatedValue = colValues.length > 0 ? aggregateFunc(colValues) : 0;
+            pivotRow[columnKey] = aggregatedValue;
+            
+            // Collect values for meta-aggregation
+            if (valueConfig.metaAggregation) {
+              const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
+              if (!metaAggregationCollector[metaKey]) {
+                metaAggregationCollector[metaKey] = [];
+              }
+              metaAggregationCollector[metaKey].push(aggregatedValue);
+            }
           }
         });
       });
@@ -381,12 +404,46 @@ const transformToPivotData = (data, config) => {
           const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
             ? `${fieldName}_${aggregation}` 
             : fieldName;
-          pivotRow[valueKey] = aggregateFunc(allValues);
+          const aggregatedValue = aggregateFunc(allValues);
+          pivotRow[valueKey] = aggregatedValue;
+          
+          // Collect values for meta-aggregation
+          if (valueConfig.metaAggregation) {
+            const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
+            if (!metaAggregationCollector[metaKey]) {
+              metaAggregationCollector[metaKey] = [];
+            }
+            metaAggregationCollector[metaKey].push(aggregatedValue);
+          }
         }
       });
     }
     
     pivotData.push(pivotRow);
+  });
+  
+  // Step 5.5: Apply meta-aggregation
+  Object.keys(metaAggregationCollector).forEach(metaKey => {
+    const [fieldName, primaryAggregation, metaAggregation] = metaKey.split('_');
+    const metaAggregateFunc = config.aggregationFunctions[metaAggregation];
+    
+    if (metaAggregateFunc && metaAggregationCollector[metaKey].length > 0) {
+      const metaResult = metaAggregateFunc(metaAggregationCollector[metaKey]);
+      
+      // Add meta-aggregation result to the first row (or create a new meta-summary row)
+      // For now, we'll add it as a special row at the end
+      const metaRow = {
+        isMetaAggregation: true,
+        [`${fieldName}_${primaryAggregation}_${metaAggregation}`]: metaResult
+      };
+      
+      // Set descriptive values for row fields
+      rows.forEach(rowField => {
+        metaRow[rowField] = `${metaAggregation.toUpperCase()} of ${fieldName} ${primaryAggregation}`;
+      });
+      
+      pivotData.push(metaRow);
+    }
   });
   
   // Step 6: Add grand totals row if needed
@@ -526,6 +583,29 @@ const generatePivotColumns = (config, columnValues) => {
       });
     });
   }
+  
+  // Add meta-aggregation columns
+  values.forEach(valueConfig => {
+    if (valueConfig.metaAggregation) {
+      const fieldName = valueConfig.field;
+      const primaryAggregation = valueConfig.aggregation || 'sum';
+      const metaAggregation = valueConfig.metaAggregation;
+      
+      const metaKey = `${fieldName}_${primaryAggregation}_${metaAggregation}`;
+      
+      pivotColumns.push({
+        key: metaKey,
+        title: `${metaAggregation.toUpperCase()} of ${fieldName} (${primaryAggregation})`,
+        sortable: true,
+        filterable: true,
+        type: 'number',
+        isPivotMetaAggregation: true,
+        metaAggregation: metaAggregation,
+        primaryField: fieldName,
+        primaryAggregation: primaryAggregation
+      });
+    }
+  });
   
   return pivotColumns;
 };
@@ -3671,7 +3751,58 @@ const PrimeDataTable = ({
                             }));
                           }}
                           className="w-full"
+                          placeholder="Select aggregation..."
                         />
+                        
+                        {/* Meta-Aggregation Controls */}
+                        <div className="meta-aggregation-controls" style={{ marginTop: '8px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #e9ecef' }}>
+                          <div className="meta-aggregation-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
+                            <Checkbox
+                              inputId={`metaAgg_${index}`}
+                              checked={!!value.metaAggregation}
+                              onChange={(e) => {
+                                setLocalPivotConfig(prev => ({
+                                  ...prev,
+                                  values: prev.values.map((v, i) => 
+                                    i === index ? { 
+                                      ...v, 
+                                      metaAggregation: e.checked ? 'max' : undefined 
+                                    } : v
+                                  )
+                                }));
+                              }}
+                            />
+                            <label htmlFor={`metaAgg_${index}`} style={{ marginLeft: '6px', fontSize: '12px', fontWeight: '500' }}>
+                              Enable Meta-Aggregation
+                            </label>
+                          </div>
+                          
+                          {value.metaAggregation && (
+                            <div style={{ marginTop: '6px' }}>
+                              <label style={{ fontSize: '11px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>
+                                Apply to aggregated values:
+                              </label>
+                              <Dropdown
+                                value={value.metaAggregation}
+                                options={aggregationOptions}
+                                onChange={(e) => {
+                                  setLocalPivotConfig(prev => ({
+                                    ...prev,
+                                    values: prev.values.map((v, i) => 
+                                      i === index ? { ...v, metaAggregation: e.value } : v
+                                    )
+                                  }));
+                                }}
+                                className="w-full"
+                                placeholder="Select meta-aggregation..."
+                                style={{ fontSize: '12px' }}
+                              />
+                              <div style={{ fontSize: '10px', color: '#6c757d', marginTop: '2px' }}>
+                                Example: {value.metaAggregation?.toUpperCase()} of {getNumericFields.find(f => f.value === value.field)?.label || value.field} {value.aggregation?.toUpperCase()}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     ))
                   )}
