@@ -7,6 +7,7 @@ import PrimeDataTable from "./components/PrimeDataTable";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
+import LinkComponent from "./components/LinkComponent";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -1381,6 +1382,60 @@ PLASMIC.registerComponent(PrimeDataTable, {
   },
   
   importPath: "./components/PrimeDataTable"
+});
+
+// Register the Link Component
+PLASMIC.registerComponent(LinkComponent, {
+  name: "LinkComponent",
+  displayName: "Link Component",
+  description: "A flexible link component that wraps Next.js Link with support for children content through a slot pattern",
+  
+  props: {
+    href: {
+      type: "string",
+      description: "The URL to navigate to",
+      required: true
+    },
+    children: {
+      type: "slot",
+      description: "Content to display (slot for any content)",
+      defaultValue: []
+    },
+    className: {
+      type: "string",
+      description: "CSS class name for styling",
+      defaultValue: ""
+    },
+    target: {
+      type: "choice",
+      options: ["_self", "_blank", "_parent", "_top"],
+      description: "Link target attribute",
+      defaultValue: "_self"
+    },
+    rel: {
+      type: "string",
+      description: "Link rel attribute (auto-set for external links)",
+      defaultValue: ""
+    },
+    onClick: {
+      type: "eventHandler",
+      description: "Click event handler",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "The click event object"
+        }
+      ]
+    },
+    style: {
+      type: "object",
+      description: "Inline styles for the link",
+      defaultValue: {}
+    }
+  },
+  
+  importPath: "./components/LinkComponent"
 });
 
 // Register the Optimized PrimeReact Data Table component
