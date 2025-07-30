@@ -3119,6 +3119,14 @@ const PrimeDataTable = ({
           header={col.title}
           field={col.key}
           rowSpan={2} // Span both header rows since ungrouped
+          sortable={(col.sortable !== false) && enableSorting}
+          filter={(col.filterable !== false) && enableColumnFilter}
+          filterElement={(col.filterable !== false) && enableColumnFilter ? (options) => getColumnFilterElement(
+            col,
+            options.value,
+            options.filterCallback
+          ) : undefined}
+          filterPlaceholder={`Filter ${col.title}...`}
         />
       );
     });
@@ -3152,11 +3160,24 @@ const PrimeDataTable = ({
     
     groups.forEach(group => {
       group.columns.forEach(col => {
+        // Find the original column definition to get sortable property
+        const originalColumn = defaultColumns.find(originalCol => 
+          originalCol.key === (col.originalKey || col.key)
+        );
+        
         secondRowColumns.push(
           <Column
             key={`sub-${col.originalKey || col.key}`}
             header={col.subHeader || col.title}
             field={col.originalKey || col.key}
+            sortable={(originalColumn?.sortable !== false) && enableSorting}
+            filter={(originalColumn?.filterable !== false) && enableColumnFilter}
+            filterElement={(originalColumn?.filterable !== false) && enableColumnFilter ? (options) => getColumnFilterElement(
+              originalColumn,
+              options.value,
+              options.filterCallback
+            ) : undefined}
+            filterPlaceholder={`Filter ${col.subHeader || col.title}...`}
             style={{
               textAlign: 'center',
               fontSize: '0.9em',
