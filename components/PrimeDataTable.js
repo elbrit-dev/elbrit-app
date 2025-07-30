@@ -2664,7 +2664,45 @@ const PrimeDataTable = ({
     const counts = {};
 
     defaultColumns.forEach(column => {
-      if (column.type === 'number') {
+      // Dynamic numeric column detection (same logic as footerTemplate)
+      const isNumericColumn = (() => {
+        // Check if column type is explicitly set to 'number'
+        if (column.type === 'number') return true;
+        
+        // Check if column key is in currencyColumns
+        if (currencyColumns.includes(column.key)) return true;
+        
+        // Check if column key contains numeric indicators
+        if (column.key && typeof column.key === 'string') {
+          const key = column.key.toLowerCase();
+          if (key.includes('amount') || 
+              key.includes('total') || 
+              key.includes('sum') ||
+              key.includes('revenue') ||
+              key.includes('cost') ||
+              key.includes('profit') ||
+              key.includes('price') ||
+              key.includes('value') ||
+              key.includes('service') ||
+              key.includes('emi') ||
+              key.includes('cheque')) {
+            return true;
+          }
+        }
+        
+        // Check if column data contains numeric values
+        if (filteredDataForTotals && filteredDataForTotals.length > 0) {
+          const sampleValues = filteredDataForTotals.slice(0, 10).map(row => row[column.key]);
+          const hasNumericValues = sampleValues.some(val => 
+            typeof val === 'number' && !isNaN(val)
+          );
+          if (hasNumericValues) return true;
+        }
+        
+        return false;
+      })();
+      
+      if (isNumericColumn) {
         const values = filteredDataForTotals
           .filter(row => row && typeof row === 'object' && column.key in row)
           .map(row => {
@@ -2754,7 +2792,59 @@ const PrimeDataTable = ({
 
   // Footer template for column totals
   const footerTemplate = (column) => {
-    if (!effectiveTotalSettings.showFooterTotals || column.type !== 'number') return null;
+    if (!effectiveTotalSettings.showFooterTotals) return null;
+    
+    // Dynamic numeric column detection
+    const isNumericColumn = (() => {
+      // Check if column type is explicitly set to 'number'
+      if (column.type === 'number') return true;
+      
+      // Check if column key is in currencyColumns
+      if (currencyColumns.includes(column.key)) return true;
+      
+      // Check if column key contains numeric indicators
+      if (column.key && typeof column.key === 'string') {
+        const key = column.key.toLowerCase();
+        if (key.includes('amount') || 
+            key.includes('total') || 
+            key.includes('sum') ||
+            key.includes('revenue') ||
+            key.includes('cost') ||
+            key.includes('profit') ||
+            key.includes('price') ||
+            key.includes('value') ||
+            key.includes('service') ||
+            key.includes('emi') ||
+            key.includes('cheque')) {
+          return true;
+        }
+      }
+      
+      // Check if column data contains numeric values
+      if (tableData && tableData.length > 0) {
+        const sampleValues = tableData.slice(0, 10).map(row => row[column.key]);
+        const hasNumericValues = sampleValues.some(val => 
+          typeof val === 'number' && !isNaN(val)
+        );
+        if (hasNumericValues) return true;
+      }
+      
+      return false;
+    })();
+    
+    if (!isNumericColumn) return null;
+    
+    // Debug log to help troubleshoot
+    console.log('Footer template for column:', column.key, {
+      showFooterTotals: effectiveTotalSettings.showFooterTotals,
+      isNumericColumn,
+      columnType: column.type,
+      currencyColumns,
+      hasData: tableData && tableData.length > 0,
+      totals: calculateFooterTotals.totals[column.key],
+      averages: calculateFooterTotals.averages[column.key],
+      counts: calculateFooterTotals.counts[column.key]
+    });
     
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
