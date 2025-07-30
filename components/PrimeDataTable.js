@@ -3106,7 +3106,7 @@ const PrimeDataTable = ({
   );
 
   // Common filter toolbar for column grouping
-  const commonFilterToolbarTemplate = () => {
+  const commonFilterToolbarTemplate = useCallback(() => {
     if (!enableColumnGrouping || !finalColumnStructure.hasGroups || !enableColumnFilter) {
       return null;
     }
@@ -3130,7 +3130,26 @@ const PrimeDataTable = ({
       if (selectedField) {
         const newFilters = { ...filters };
         delete newFilters[selectedField];
+        
+        // Apply filters and trigger the filtering mechanism
         setFilters(newFilters);
+        
+        // Manually trigger the filter event to ensure DataTable processes the filter
+        const filterEvent = {
+          filters: newFilters,
+          filteredValue: applyFiltersToData(finalTableData, newFilters)
+        };
+        
+        // Update filtered data for totals calculation
+        if (enableFooterTotals) {
+          const validFilteredRows = filterEvent.filteredValue.filter(row => row && typeof row === 'object');
+          setFilteredDataForTotals(validFilteredRows);
+        }
+        
+        // Call onFilterChange if provided
+        if (onFilterChange) {
+          onFilterChange(newFilters);
+        }
       }
     };
 
@@ -3167,7 +3186,25 @@ const PrimeDataTable = ({
             };
           }
           
+          // Apply filters and trigger the filtering mechanism
           setFilters(newFilters);
+          
+          // Manually trigger the filter event to ensure DataTable processes the filter
+          const filterEvent = {
+            filters: newFilters,
+            filteredValue: applyFiltersToData(finalTableData, newFilters)
+          };
+          
+          // Update filtered data for totals calculation
+          if (enableFooterTotals) {
+            const validFilteredRows = filterEvent.filteredValue.filter(row => row && typeof row === 'object');
+            setFilteredDataForTotals(validFilteredRows);
+          }
+          
+          // Call onFilterChange if provided
+          if (onFilterChange) {
+            onFilterChange(newFilters);
+          }
         }
       }
     };
@@ -3177,7 +3214,26 @@ const PrimeDataTable = ({
       if (commonFilterField) {
         const newFilters = { ...filters };
         delete newFilters[commonFilterField];
+        
+        // Apply filters and trigger the filtering mechanism
         setFilters(newFilters);
+        
+        // Manually trigger the filter event to ensure DataTable processes the filter
+        const filterEvent = {
+          filters: newFilters,
+          filteredValue: applyFiltersToData(finalTableData, newFilters)
+        };
+        
+        // Update filtered data for totals calculation
+        if (enableFooterTotals) {
+          const validFilteredRows = filterEvent.filteredValue.filter(row => row && typeof row === 'object');
+          setFilteredDataForTotals(validFilteredRows);
+        }
+        
+        // Call onFilterChange if provided
+        if (onFilterChange) {
+          onFilterChange(newFilters);
+        }
       }
       setCommonFilterField('');
       setCommonFilterValue('');
@@ -3221,7 +3277,22 @@ const PrimeDataTable = ({
         )}
       </div>
     );
-  };
+  }, [
+    enableColumnGrouping, 
+    finalColumnStructure.hasGroups, 
+    enableColumnFilter, 
+    defaultColumns, 
+    commonFilterField, 
+    commonFilterValue, 
+    filters, 
+    finalTableData, 
+    enableFooterTotals, 
+    onFilterChange, 
+    getColumnType, 
+    getColumnFilterElement, 
+    applyFiltersToData, 
+    setFilteredDataForTotals
+  ]);
 
   // Generate column groups from configuration
   const generateColumnGroups = useCallback(() => {
