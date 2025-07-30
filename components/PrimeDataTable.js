@@ -337,7 +337,11 @@ const transformToPivotData = (data, config) => {
         
         if (aggregateFunc) {
           const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-          pivotRow[`${fieldName}_total`] = aggregateFunc(allValues);
+          // Include aggregation type in key to support multiple aggregations for same field
+          const totalKey = values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}_total` 
+            : `${fieldName}_total`;
+          pivotRow[totalKey] = aggregateFunc(allValues);
         }
       });
     }
@@ -358,7 +362,8 @@ const transformToPivotData = (data, config) => {
           
           if (aggregateFunc) {
             const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-            const columnKey = `${colValue}_${fieldName}`;
+            // Include aggregation type in key to support multiple aggregations for same field
+            const columnKey = `${colValue}_${fieldName}_${aggregation}`;
             pivotRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
           }
         });
@@ -372,7 +377,11 @@ const transformToPivotData = (data, config) => {
         
         if (aggregateFunc) {
           const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-          pivotRow[fieldName] = aggregateFunc(allValues);
+          // Include aggregation type in key to support multiple aggregations for same field
+          const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}` 
+            : fieldName;
+          pivotRow[valueKey] = aggregateFunc(allValues);
         }
       });
     }
@@ -399,7 +408,11 @@ const transformToPivotData = (data, config) => {
         const allValues = filteredData.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
         
         if (config.showRowTotals) {
-          grandTotalRow[`${fieldName}_total`] = aggregateFunc(allValues);
+          // Include aggregation type in key to support multiple aggregations for same field
+          const totalKey = values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}_total` 
+            : `${fieldName}_total`;
+          grandTotalRow[totalKey] = aggregateFunc(allValues);
         }
         
         if (columns.length > 0) {
@@ -408,11 +421,16 @@ const transformToPivotData = (data, config) => {
               return columns.some(colField => row[colField] === colValue);
             });
             const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-            const columnKey = `${colValue}_${fieldName}`;
+            // Include aggregation type in key to support multiple aggregations for same field
+            const columnKey = `${colValue}_${fieldName}_${aggregation}`;
             grandTotalRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
         });
       } else {
-          grandTotalRow[fieldName] = aggregateFunc(allValues);
+          // Include aggregation type in key to support multiple aggregations for same field
+          const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}` 
+            : fieldName;
+          grandTotalRow[valueKey] = aggregateFunc(allValues);
         }
       }
     });
@@ -449,8 +467,13 @@ const generatePivotColumns = (config, columnValues) => {
       const fieldName = valueConfig.field;
       const aggregation = valueConfig.aggregation || 'sum';
       
+      // Include aggregation type in key to support multiple aggregations for same field
+      const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
+        ? `${fieldName}_${aggregation}` 
+        : fieldName;
+      
       pivotColumns.push({
-        key: fieldName,
+        key: valueKey,
         title: `${fieldName} (${aggregation})`,
         sortable: true,
         filterable: true,
@@ -464,7 +487,8 @@ const generatePivotColumns = (config, columnValues) => {
       values.forEach(valueConfig => {
         const fieldName = valueConfig.field;
         const aggregation = valueConfig.aggregation || 'sum';
-        const columnKey = `${colValue}_${fieldName}`;
+        // Include aggregation type in key to support multiple aggregations for same field
+        const columnKey = `${colValue}_${fieldName}_${aggregation}`;
         
         pivotColumns.push({
           key: columnKey,
@@ -474,7 +498,8 @@ const generatePivotColumns = (config, columnValues) => {
           type: 'number',
           isPivotValue: true,
           pivotColumn: colValue,
-          pivotField: fieldName
+          pivotField: fieldName,
+          pivotAggregation: aggregation
         });
       });
     });
@@ -486,9 +511,14 @@ const generatePivotColumns = (config, columnValues) => {
       const fieldName = valueConfig.field;
       const aggregation = valueConfig.aggregation || 'sum';
       
+      // Include aggregation type in key to support multiple aggregations for same field
+      const totalKey = values.filter(v => v.field === fieldName).length > 1 
+        ? `${fieldName}_${aggregation}_total` 
+        : `${fieldName}_total`;
+      
       pivotColumns.push({
-        key: `${fieldName}_total`,
-        title: `${fieldName} Total`,
+        key: totalKey,
+        title: `${fieldName} Total (${aggregation})`,
         sortable: true,
         filterable: true,
         type: 'number',
