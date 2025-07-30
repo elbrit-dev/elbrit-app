@@ -1038,6 +1038,10 @@ const PrimeDataTable = ({
   const [sortOrder, setSortOrder] = useState(1);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
   
+  // Common filter state for column grouping
+  const [commonFilterField, setCommonFilterField] = useState('');
+  const [commonFilterValue, setCommonFilterValue] = useState('');
+  
   // Inline editing state
   const [localEditingRows, setLocalEditingRows] = useState(editingRows || {});
   
@@ -2281,6 +2285,10 @@ const PrimeDataTable = ({
   const clearAllFilters = useCallback(() => {
     setGlobalFilterValue("");
     
+    // Clear common filter for column grouping
+    setCommonFilterField('');
+    setCommonFilterValue('');
+    
     // Reset all filters to default state
     const clearedFilters = {
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
@@ -3097,6 +3105,124 @@ const PrimeDataTable = ({
     </div>
   );
 
+  // Common filter toolbar for column grouping
+  const commonFilterToolbarTemplate = () => {
+    if (!enableColumnGrouping || !finalColumnStructure.hasGroups || !enableColumnFilter) {
+      return null;
+    }
+
+    // Get all available columns for filtering
+    const availableColumns = defaultColumns.filter(col => col.filterable !== false);
+    const fieldOptions = [
+      { label: 'Select field to filter...', value: '' },
+      ...availableColumns.map(col => ({
+        label: col.title,
+        value: col.key
+      }))
+    ];
+
+    // Handle common filter field change
+    const handleCommonFilterFieldChange = (selectedField) => {
+      setCommonFilterField(selectedField);
+      setCommonFilterValue('');
+      
+      // Clear any existing filter for this field
+      if (selectedField) {
+        const newFilters = { ...filters };
+        delete newFilters[selectedField];
+        setFilters(newFilters);
+      }
+    };
+
+    // Handle common filter value change and apply filter
+    const handleCommonFilterValueChange = (value) => {
+      setCommonFilterValue(value);
+      
+      if (commonFilterField) {
+        const selectedColumn = defaultColumns.find(col => col.key === commonFilterField);
+        if (selectedColumn) {
+          const newFilters = { ...filters };
+          
+          if (value === null || value === '' || value === undefined) {
+            // Clear filter
+            delete newFilters[commonFilterField];
+          } else {
+            // Set filter based on column type
+            const columnType = getColumnType(selectedColumn);
+            let matchMode = FilterMatchMode.CONTAINS;
+            
+            if (['dropdown', 'select', 'categorical'].includes(columnType)) {
+              matchMode = FilterMatchMode.EQUALS;
+            } else if (['date', 'datetime'].includes(columnType)) {
+              matchMode = FilterMatchMode.BETWEEN;
+            } else if (columnType === 'number') {
+              matchMode = FilterMatchMode.EQUALS;
+            } else if (columnType === 'boolean') {
+              matchMode = FilterMatchMode.EQUALS;
+            }
+            
+            newFilters[commonFilterField] = {
+              operator: FilterOperator.AND,
+              constraints: [{ value: value, matchMode: matchMode }]
+            };
+          }
+          
+          setFilters(newFilters);
+        }
+      }
+    };
+
+    // Clear common filter
+    const clearCommonFilter = () => {
+      if (commonFilterField) {
+        const newFilters = { ...filters };
+        delete newFilters[commonFilterField];
+        setFilters(newFilters);
+      }
+      setCommonFilterField('');
+      setCommonFilterValue('');
+    };
+
+    // Get the appropriate filter element for the selected field
+    const getCommonFilterElement = () => {
+      if (!commonFilterField) return null;
+      
+      const selectedColumn = defaultColumns.find(col => col.key === commonFilterField);
+      if (!selectedColumn) return null;
+
+      return getColumnFilterElement(selectedColumn, commonFilterValue, handleCommonFilterValueChange);
+    };
+
+    return (
+      <div className="flex align-items-center gap-3 p-3 border-round surface-50 mb-3">
+        <i className="pi pi-filter text-primary"></i>
+        <span className="font-semibold text-primary">Common Filter:</span>
+        
+        <Dropdown
+          value={commonFilterField}
+          options={fieldOptions}
+          onChange={(e) => handleCommonFilterFieldChange(e.value)}
+          placeholder="Select field to filter..."
+          className="w-12rem"
+          showClear={false}
+        />
+        
+        {commonFilterField && (
+          <div className="flex align-items-center gap-2">
+            {getCommonFilterElement()}
+            <Button
+              icon="pi pi-times"
+              onClick={clearCommonFilter}
+              className="p-button-text p-button-sm p-button-danger"
+              tooltip="Clear this filter"
+              tooltipOptions={{ position: 'top' }}
+            />
+          </div>
+        )}
+      </div>
+    );
+  };
+
   // Generate column groups from configuration
   const generateColumnGroups = useCallback(() => {
     if (!enableColumnGrouping || !finalColumnStructure.hasGroups) {
@@ -3312,6 +3438,9 @@ const PrimeDataTable = ({
         right={rightToolbarTemplate}
         className="mb-4"
       />
+
+      {/* Common Filter Toolbar for Column Grouping */}
+      {commonFilterToolbarTemplate()}
 
       {/* DataTable */}
       <DataTable
