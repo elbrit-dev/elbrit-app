@@ -7,6 +7,7 @@ import PrimeDataTable from "./components/PrimeDataTable";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
+import LinkComponent from "./components/LinkComponent";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -73,6 +74,45 @@ PLASMIC.registerComponent(EnvironmentCheck, {
   description: "Check if all required environment variables are set",
   props: {},
   importPath: "./components/EnvironmentCheck"
+});
+
+// Register the Link Component
+PLASMIC.registerComponent(LinkComponent, {
+  name: "LinkComponent",
+  displayName: "Link Component",
+  description: "A wrapper component for Next.js Link with slot for children content",
+  props: {
+    href: {
+      type: "string",
+      description: "The URL to navigate to",
+      required: true
+    },
+    children: {
+      type: "slot",
+      description: "Content to render inside the link"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    target: {
+      type: "choice",
+      options: ["_self", "_blank", "_parent", "_top"],
+      description: "Link target attribute",
+      defaultValue: "_self"
+    },
+    rel: {
+      type: "string",
+      description: "Link rel attribute",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles for the component"
+    }
+  },
+  importPath: "./components/LinkComponent"
 });
 
 // Register the Advanced Table component
