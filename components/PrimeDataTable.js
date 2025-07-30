@@ -2834,18 +2834,6 @@ const PrimeDataTable = ({
     
     if (!isNumericColumn) return null;
     
-    // Debug log to help troubleshoot
-    console.log('Footer template for column:', column.key, {
-      showFooterTotals: effectiveTotalSettings.showFooterTotals,
-      isNumericColumn,
-      columnType: column.type,
-      currencyColumns,
-      hasData: tableData && tableData.length > 0,
-      totals: calculateFooterTotals.totals[column.key],
-      averages: calculateFooterTotals.averages[column.key],
-      counts: calculateFooterTotals.counts[column.key]
-    });
-    
     const { totals, averages, counts } = calculateFooterTotals;
     const total = totals[column.key];
     const average = averages[column.key];
