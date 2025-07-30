@@ -348,13 +348,16 @@ const transformToPivotData = (data, config) => {
           pivotRow[totalKey] = aggregatedValue;
           
           // Collect values for meta-aggregation
-          if (valueConfig.metaAggregation) {
-            const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
-            if (!metaAggregationCollector[metaKey]) {
-              metaAggregationCollector[metaKey] = [];
+          const metaAggregations = config.metaAggregations || [];
+          metaAggregations.forEach(metaAgg => {
+            if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
+              const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
+              if (!metaAggregationCollector[metaKey]) {
+                metaAggregationCollector[metaKey] = [];
+              }
+              metaAggregationCollector[metaKey].push(aggregatedValue);
             }
-            metaAggregationCollector[metaKey].push(aggregatedValue);
-          }
+          });
         }
       });
     }
@@ -381,13 +384,16 @@ const transformToPivotData = (data, config) => {
             pivotRow[columnKey] = aggregatedValue;
             
             // Collect values for meta-aggregation
-            if (valueConfig.metaAggregation) {
-              const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
-              if (!metaAggregationCollector[metaKey]) {
-                metaAggregationCollector[metaKey] = [];
+            const metaAggregations = config.metaAggregations || [];
+            metaAggregations.forEach(metaAgg => {
+              if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
+                const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
+                if (!metaAggregationCollector[metaKey]) {
+                  metaAggregationCollector[metaKey] = [];
+                }
+                metaAggregationCollector[metaKey].push(aggregatedValue);
               }
-              metaAggregationCollector[metaKey].push(aggregatedValue);
-            }
+            });
           }
         });
       });
@@ -408,13 +414,16 @@ const transformToPivotData = (data, config) => {
           pivotRow[valueKey] = aggregatedValue;
           
           // Collect values for meta-aggregation
-          if (valueConfig.metaAggregation) {
-            const metaKey = `${fieldName}_${aggregation}_${valueConfig.metaAggregation}`;
-            if (!metaAggregationCollector[metaKey]) {
-              metaAggregationCollector[metaKey] = [];
+          const metaAggregations = config.metaAggregations || [];
+          metaAggregations.forEach(metaAgg => {
+            if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
+              const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
+              if (!metaAggregationCollector[metaKey]) {
+                metaAggregationCollector[metaKey] = [];
+              }
+              metaAggregationCollector[metaKey].push(aggregatedValue);
             }
-            metaAggregationCollector[metaKey].push(aggregatedValue);
-          }
+          });
         }
       });
     }
@@ -585,26 +594,21 @@ const generatePivotColumns = (config, columnValues) => {
   }
   
   // Add meta-aggregation columns
-  values.forEach(valueConfig => {
-    if (valueConfig.metaAggregation) {
-      const fieldName = valueConfig.field;
-      const primaryAggregation = valueConfig.aggregation || 'sum';
-      const metaAggregation = valueConfig.metaAggregation;
-      
-      const metaKey = `${fieldName}_${primaryAggregation}_${metaAggregation}`;
-      
-      pivotColumns.push({
-        key: metaKey,
-        title: `${metaAggregation.toUpperCase()} of ${fieldName} (${primaryAggregation})`,
-        sortable: true,
-        filterable: true,
-        type: 'number',
-        isPivotMetaAggregation: true,
-        metaAggregation: metaAggregation,
-        primaryField: fieldName,
-        primaryAggregation: primaryAggregation
-      });
-    }
+  const metaAggregations = config.metaAggregations || [];
+  metaAggregations.forEach(metaAgg => {
+    const metaKey = `${metaAgg.field}_${metaAgg.sourceAggregation}_${metaAgg.metaAggregation}`;
+    
+    pivotColumns.push({
+      key: metaKey,
+      title: `${metaAgg.metaAggregation.toUpperCase()} of ${metaAgg.field} (${metaAgg.sourceAggregation})`,
+      sortable: true,
+      filterable: true,
+      type: 'number',
+      isPivotMetaAggregation: true,
+      metaAggregation: metaAgg.metaAggregation,
+      primaryField: metaAgg.field,
+      primaryAggregation: metaAgg.sourceAggregation
+    });
   });
   
   return pivotColumns;
@@ -1063,6 +1067,7 @@ const PrimeDataTable = ({
     columns: [],
     values: [],
     filters: [],
+    metaAggregations: [],
     showGrandTotals: true,
     showRowTotals: true,
     showColumnTotals: true,
@@ -3753,55 +3758,97 @@ const PrimeDataTable = ({
                           className="w-full"
                           placeholder="Select aggregation..."
                         />
-                        
-                        {/* Meta-Aggregation Controls */}
-                        <div className="meta-aggregation-controls" style={{ marginTop: '8px', padding: '8px', backgroundColor: '#f8f9fa', borderRadius: '4px', border: '1px solid #e9ecef' }}>
-                          <div className="meta-aggregation-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '4px' }}>
-                            <Checkbox
-                              inputId={`metaAgg_${index}`}
-                              checked={!!value.metaAggregation}
-                              onChange={(e) => {
-                                setLocalPivotConfig(prev => ({
-                                  ...prev,
-                                  values: prev.values.map((v, i) => 
-                                    i === index ? { 
-                                      ...v, 
-                                      metaAggregation: e.checked ? 'max' : undefined 
-                                    } : v
-                                  )
-                                }));
-                              }}
-                            />
-                            <label htmlFor={`metaAgg_${index}`} style={{ marginLeft: '6px', fontSize: '12px', fontWeight: '500' }}>
-                              Enable Meta-Aggregation
-                            </label>
-                          </div>
-                          
-                          {value.metaAggregation && (
-                            <div style={{ marginTop: '6px' }}>
-                              <label style={{ fontSize: '11px', color: '#6c757d', display: 'block', marginBottom: '2px' }}>
-                                Apply to aggregated values:
-                              </label>
-                              <Dropdown
-                                value={value.metaAggregation}
-                                options={aggregationOptions}
-                                onChange={(e) => {
-                                  setLocalPivotConfig(prev => ({
-                                    ...prev,
-                                    values: prev.values.map((v, i) => 
-                                      i === index ? { ...v, metaAggregation: e.value } : v
-                                    )
-                                  }));
-                                }}
-                                className="w-full"
-                                placeholder="Select meta-aggregation..."
-                                style={{ fontSize: '12px' }}
-                              />
-                              <div style={{ fontSize: '10px', color: '#6c757d', marginTop: '2px' }}>
-                                Example: {value.metaAggregation?.toUpperCase()} of {getNumericFields.find(f => f.value === value.field)?.label || value.field} {value.aggregation?.toUpperCase()}
-                              </div>
-                            </div>
-                          )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Value Aggregations (Meta-Aggregations) */}
+              <div className="pivot-section pivot-meta-aggregations-section">
+                <div className="pivot-section-header meta-aggregations-header">
+                  <i className="pi pi-chart-bar"></i>
+                  <span className="pivot-section-label">Value Aggregations</span>
+                  <span className="pivot-section-subtitle" style={{ fontSize: '11px', color: '#6c757d', marginLeft: '8px' }}>
+                    Aggregate the already-aggregated values
+                  </span>
+                </div>
+                
+                {/* Available Value Aggregations Dropdown */}
+                {localPivotConfig.values.length > 0 && (
+                  <Dropdown
+                    value={null}
+                    options={localPivotConfig.values.map(v => ({
+                      label: `${getNumericFields.find(f => f.value === v.field)?.label || v.field} (${v.aggregation})`,
+                      value: `${v.field}_${v.aggregation}`
+                    }))}
+                    onChange={(e) => {
+                      if (e.value && !localPivotConfig.metaAggregations?.find(ma => ma.sourceKey === e.value)) {
+                        const [field, aggregation] = e.value.split('_');
+                        setLocalPivotConfig(prev => ({
+                          ...prev,
+                          metaAggregations: [
+                            ...(prev.metaAggregations || []),
+                            { 
+                              sourceKey: e.value,
+                              field: field,
+                              sourceAggregation: aggregation,
+                              metaAggregation: 'max'
+                            }
+                          ]
+                        }));
+                      }
+                    }}
+                    placeholder="Add aggregation for value..."
+                    className="w-full"
+                  />
+                )}
+                
+                <div className="pivot-selected-items">
+                  {(!localPivotConfig.metaAggregations || localPivotConfig.metaAggregations.length === 0) ? (
+                    <div className="pivot-empty-state">
+                      <i className="pi pi-plus"></i>
+                      <div>
+                        {localPivotConfig.values.length === 0 
+                          ? "Add value fields first to enable value aggregations"
+                          : "No value aggregations selected"
+                        }
+                      </div>
+                    </div>
+                  ) : (
+                    localPivotConfig.metaAggregations.map((metaAgg, index) => (
+                      <div key={index} className="pivot-value-item">
+                        <div className="pivot-value-item-header">
+                          <span className="pivot-value-item-label">
+                            {getNumericFields.find(f => f.value === metaAgg.field)?.label || metaAgg.field} ({metaAgg.sourceAggregation})
+                          </span>
+                          <Button
+                            icon="pi pi-times"
+                            className="p-button-text p-button-sm p-button-danger"
+                            onClick={() => {
+                              setLocalPivotConfig(prev => ({
+                                ...prev,
+                                metaAggregations: prev.metaAggregations.filter((_, i) => i !== index)
+                              }));
+                            }}
+                          />
+                        </div>
+                        <Dropdown
+                          value={metaAgg.metaAggregation}
+                          options={aggregationOptions}
+                          onChange={(e) => {
+                            setLocalPivotConfig(prev => ({
+                              ...prev,
+                              metaAggregations: prev.metaAggregations.map((ma, i) => 
+                                i === index ? { ...ma, metaAggregation: e.value } : ma
+                              )
+                            }));
+                          }}
+                          className="w-full"
+                          placeholder="Select meta-aggregation..."
+                        />
+                        <div style={{ fontSize: '11px', color: '#6c757d', marginTop: '4px' }}>
+                          {metaAgg.metaAggregation?.toUpperCase()} of {getNumericFields.find(f => f.value === metaAgg.field)?.label || metaAgg.field} {metaAgg.sourceAggregation?.toUpperCase()}
                         </div>
                       </div>
                     ))
