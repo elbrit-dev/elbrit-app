@@ -13,17 +13,14 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase Auth
-const auth = getAuth(app);
-
 // Use the 'elbrit' Firestore database
 const db = getFirestore(app, 'elbrit');
 
 // Expose Firebase app and auth to window for Plasmic actions
 if (typeof window !== 'undefined') {
   window.firebaseApp = app;
-  window.firebaseAuth = auth;
+  window.firebaseAuth = getAuth(app);
 }
 
 export default app;
-export { auth, db }; 
+export { db }; 
