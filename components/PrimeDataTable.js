@@ -431,27 +431,25 @@ const transformToPivotData = (data, config) => {
     pivotData.push(pivotRow);
   });
   
-  // Step 5.5: Apply meta-aggregation
+  // Step 5.5: Calculate meta-aggregation results
+  const metaAggregationResults = {};
   Object.keys(metaAggregationCollector).forEach(metaKey => {
     const [fieldName, primaryAggregation, metaAggregation] = metaKey.split('_');
     const metaAggregateFunc = config.aggregationFunctions[metaAggregation];
     
     if (metaAggregateFunc && metaAggregationCollector[metaKey].length > 0) {
       const metaResult = metaAggregateFunc(metaAggregationCollector[metaKey]);
-      
-      // Add meta-aggregation result to the first row (or create a new meta-summary row)
-      // For now, we'll add it as a special row at the end
-      const metaRow = {
-        isMetaAggregation: true,
-        [`${fieldName}_${primaryAggregation}_${metaAggregation}`]: metaResult
-      };
-      
-      // Set descriptive values for row fields
-      rows.forEach(rowField => {
-        metaRow[rowField] = `${metaAggregation.toUpperCase()} of ${fieldName} ${primaryAggregation}`;
+      metaAggregationResults[metaKey] = metaResult;
+    }
+  });
+  
+  // Step 5.6: Add meta-aggregation results as columns to each pivot row
+  pivotData.forEach(pivotRow => {
+    // Don't add meta-aggregation columns to grand total rows
+    if (!pivotRow.isGrandTotal) {
+      Object.keys(metaAggregationResults).forEach(metaKey => {
+        pivotRow[metaKey] = metaAggregationResults[metaKey];
       });
-      
-      pivotData.push(metaRow);
     }
   });
   
@@ -499,6 +497,11 @@ const transformToPivotData = (data, config) => {
           grandTotalRow[valueKey] = aggregateFunc(allValues);
         }
       }
+    });
+    
+    // Add meta-aggregation results to grand total row
+    Object.keys(metaAggregationResults).forEach(metaKey => {
+      grandTotalRow[metaKey] = metaAggregationResults[metaKey];
     });
     
     pivotData.push(grandTotalRow);
