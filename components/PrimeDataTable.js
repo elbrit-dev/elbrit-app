@@ -1204,22 +1204,40 @@ const PrimeDataTable = ({
       
       setIsLoadingPivotConfig(true);
       try {
-        // console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
+        console.log('📥 LOADING PIVOT CONFIG FROM CMS - Config Key:', pivotConfigKey);
         
         const savedConfig = await finalLoadFromCMS(pivotConfigKey);
         if (savedConfig && typeof savedConfig === 'object') {
-          // console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
-          setLocalPivotConfig(prev => ({
-            ...prev,
-            ...savedConfig
-          }));
+          console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
+          
+          // Validate the loaded configuration has essential properties
+          const isValidConfig = savedConfig.hasOwnProperty('enabled') && 
+            (savedConfig.rows || savedConfig.columns || savedConfig.values);
+            
+          if (!isValidConfig) {
+            console.warn('⚠️ Loaded config appears invalid:', savedConfig);
+          }
+          
+          // Update local pivot config with loaded configuration
+          setLocalPivotConfig(prev => {
+            const newConfig = {
+              ...prev,
+              ...savedConfig
+            };
+            console.log('📝 Updated localPivotConfig:', newConfig);
+            return newConfig;
+          });
           
           // If config was enabled, set pivot enabled state
           if (savedConfig.enabled) {
+            console.log('🔄 Enabling pivot table from loaded config');
             setIsPivotEnabled(true);
+          } else {
+            console.log('🔄 Disabling pivot table from loaded config');
+            setIsPivotEnabled(false);
           }
         } else {
-          // console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
+          console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
         }
       } catch (error) {
         console.error('❌ CMS LOAD FAILED:', error);
@@ -1230,7 +1248,7 @@ const PrimeDataTable = ({
     };
 
     loadPivotConfig();
-  }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded]);
+  }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded, setIsPivotEnabled]);
 
   // Save pivot configuration to CMS when it changes
   useEffect(() => {
@@ -1265,7 +1283,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      // console.log('Using pivot UI config:', config);
+      console.log('🔄 Using pivot UI config:', config);
       return config;
     }
     
@@ -1304,7 +1322,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      // console.log('Using individual props config:', config);
+      console.log('🔄 Using individual props config:', config);
       return config;
     }
     
@@ -1313,22 +1331,31 @@ const PrimeDataTable = ({
       ...pivotConfig,
       enabled: enablePivotTable && pivotConfig.enabled
     };
-    // console.log('Using pivotConfig object:', config);
+    console.log('🔄 Using pivotConfig object:', config);
     return config;
   }, [
     enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
     pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
     pivotNumberFormat, pivotCurrency, pivotPrecision, pivotFieldSeparator,
     pivotSortRows, pivotSortColumns, pivotSortDirection, pivotAggregationFunctions,
-    pivotConfig, enablePivotUI, localPivotConfig
+    pivotConfig, enablePivotUI, localPivotConfig, pivotConfigLoaded
   ]);
 
   const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
 
-  // Update isPivotEnabled when props change
+  // Update isPivotEnabled when props change (but not when config is still loading)
   useEffect(() => {
-    setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
-  }, [enablePivotTable, mergedPivotConfig.enabled]);
+    if (pivotConfigLoaded) {
+      const shouldEnable = enablePivotTable && mergedPivotConfig.enabled;
+      console.log('🔄 Updating isPivotEnabled based on props:', {
+        enablePivotTable,
+        mergedPivotConfigEnabled: mergedPivotConfig.enabled,
+        shouldEnable,
+        pivotConfigLoaded
+      });
+      setIsPivotEnabled(shouldEnable);
+    }
+  }, [enablePivotTable, mergedPivotConfig.enabled, pivotConfigLoaded]);
 
   // Compute effective total display settings based on totalDisplayMode
   const effectiveTotalSettings = useMemo(() => {
@@ -1404,12 +1431,14 @@ const PrimeDataTable = ({
     };
 
     if (!mergedPivotConfig) {
+      console.log('⚠️ No mergedPivotConfig - using default config');
       return defaultConfig;
     }
 
+    let finalConfig;
     if (!effectiveTotalSettings.showPivotTotals) {
       // If pivot totals are disabled, turn off all pivot totals but preserve formatting
-      return {
+      finalConfig = {
         ...defaultConfig,
         ...mergedPivotConfig,
         showGrandTotals: false,
@@ -1417,13 +1446,16 @@ const PrimeDataTable = ({
         showColumnTotals: false,
         showSubTotals: false
       };
+    } else {
+      // Merge with defaults to ensure all formatting properties exist
+      finalConfig = {
+        ...defaultConfig,
+        ...mergedPivotConfig
+      };
     }
 
-    // Merge with defaults to ensure all formatting properties exist
-    return {
-      ...defaultConfig,
-      ...mergedPivotConfig
-    };
+    console.log('🔄 Adjusted pivot config created:', finalConfig);
+    return finalConfig;
   }, [mergedPivotConfig, effectiveTotalSettings.showPivotTotals]);
 
   // Process data - handle merging if needed
@@ -1537,14 +1569,17 @@ const PrimeDataTable = ({
 
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
-    // console.log('Pivot Transformation Check:', {
-    //   isPivotEnabled,
-    //   mergedPivotConfigEnabled: mergedPivotConfig.enabled,
-    //   mergedPivotConfig: mergedPivotConfig
-    // });
+    console.log('🔄 Pivot Transformation Check:', {
+      isPivotEnabled,
+      mergedPivotConfigEnabled: mergedPivotConfig?.enabled,
+      adjustedPivotConfigEnabled: adjustedPivotConfig?.enabled,
+      pivotConfigLoaded,
+      mergedPivotConfig: mergedPivotConfig,
+      adjustedPivotConfig: adjustedPivotConfig
+    });
 
     if (!isPivotEnabled || !adjustedPivotConfig.enabled) {
-      // console.log('Pivot disabled - returning original data');
+      console.log('🚫 Pivot disabled - returning original data');
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -1554,16 +1589,16 @@ const PrimeDataTable = ({
     }
 
     try {
-      // console.log('Transforming data to pivot...');
+      console.log('⚙️ Transforming data to pivot with config:', adjustedPivotConfig);
       const result = transformToPivotData(tableData, adjustedPivotConfig);
-      // console.log('Pivot transformation result:', result);
+      console.log('✅ Pivot transformation result:', result);
       
       return {
         ...result,
         isPivot: true
       };
     } catch (error) {
-      console.error('Error transforming data to pivot:', error);
+      console.error('❌ Error transforming data to pivot:', error);
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -1571,7 +1606,7 @@ const PrimeDataTable = ({
         isPivot: false 
       };
     }
-  }, [tableData, isPivotEnabled, adjustedPivotConfig]);
+  }, [tableData, isPivotEnabled, adjustedPivotConfig, pivotConfigLoaded, mergedPivotConfig]);
 
   // Final data source - either original data or pivot data
   const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
