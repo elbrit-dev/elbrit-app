@@ -764,6 +764,7 @@ const PrimeDataTable = ({
   
   // Footer totals props
   enableFooterTotals = false,
+  enableFixedFooterTotals = false, // NEW: Always show footer totals at bottom, even with pivot
   footerTotalsConfig = {
     showTotals: true,
     showAverages: false,
@@ -1219,6 +1220,14 @@ const PrimeDataTable = ({
   const effectiveTotalSettings = useMemo(() => {
     const isPivotActive = isPivotEnabled && mergedPivotConfig?.enabled;
     
+    // NEW: If fixed footer totals is enabled, always show footer totals regardless of pivot
+    if (enableFixedFooterTotals) {
+      return {
+        showPivotTotals: isPivotActive,
+        showFooterTotals: true // Always show footer totals when fixed footer is enabled
+      };
+    }
+    
     switch (totalDisplayMode) {
       case "pivot":
         return {
@@ -1255,7 +1264,7 @@ const PrimeDataTable = ({
           };
         }
     }
-  }, [totalDisplayMode, isPivotEnabled, mergedPivotConfig?.enabled, enableFooterTotals]);
+  }, [totalDisplayMode, isPivotEnabled, mergedPivotConfig?.enabled, enableFooterTotals, enableFixedFooterTotals]);
 
   // Apply effective total settings to pivot config
   const adjustedPivotConfig = useMemo(() => {

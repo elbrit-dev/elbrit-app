@@ -938,6 +938,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable footer totals for numeric columns",
       defaultValue: false
     },
+    enableFixedFooterTotals: {
+      type: "boolean",
+      description: "Always show footer totals at bottom of table, even when pivot is used",
+      defaultValue: false
+    },
     footerTotalsConfig: {
       type: "object",
       description: "Configuration for footer totals (showTotals, showAverages, showCounts, numberFormat, currency, precision)",
