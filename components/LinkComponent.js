@@ -24,9 +24,6 @@ const LinkComponent = ({
     return null;
   }
 
-  // Debug log to verify component is being used
-  console.log('LinkComponent rendered with href:', href);
-
   return (
     <Link 
       href={href}
@@ -42,6 +39,4 @@ const LinkComponent = ({
   );
 };
 
-// Named export for Plasmic
-export { LinkComponent };
 export default LinkComponent; 
