@@ -85,7 +85,8 @@ PLASMIC.registerComponent(LinkComponent, {
     href: {
       type: "string",
       description: "The URL to navigate to",
-      required: true
+      required: true,
+      defaultValue: "/"
     },
     children: {
       type: "slot",

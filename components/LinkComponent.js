@@ -24,22 +24,24 @@ const LinkComponent = ({
     return null;
   }
 
+  // Debug log to verify component is being used
+  console.log('LinkComponent rendered with href:', href);
+
   return (
-    <div className={`link-component ${className}`} style={style}>
-      <Link 
-        href={href}
-        target={target}
-        rel={rel}
-        onClick={onClick}
-        {...props}
-      >
-        {/* Slot for children content */}
-        <div className="link-slot">
-          {children}
-        </div>
-      </Link>
-    </div>
+    <Link 
+      href={href}
+      target={target}
+      rel={rel}
+      onClick={onClick}
+      className={className}
+      style={style}
+      {...props}
+    >
+      {children}
+    </Link>
   );
 };
 
+// Named export for Plasmic
+export { LinkComponent };
 export default LinkComponent; 
