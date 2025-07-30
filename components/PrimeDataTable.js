@@ -773,6 +773,46 @@ const PrimeDataTable = ({
     precision: 2
   },
   
+  // NEW: ROI Calculation Props
+  enableROICalculation = false, // Enable ROI calculation feature
+  roiConfig = {
+    // ROI calculation fields
+    revenueField: 'revenue', // Field name for revenue data
+    costField: 'cost', // Field name for cost data
+    investmentField: 'investment', // Field name for investment data
+    profitField: 'profit', // Field name for profit data (optional, will be calculated if not provided)
+    
+    // ROI calculation formula: ROI = ((Revenue - Cost) / Investment) * 100
+    // Alternative: ROI = (Profit / Investment) * 100
+    calculationMethod: 'standard', // 'standard' (revenue-cost/investment) or 'profit' (profit/investment)
+    
+    // Display options
+    showROIColumn: true, // Show ROI as a separate column
+    showROIAsPercentage: true, // Display ROI as percentage
+    roiColumnTitle: 'ROI (%)', // Title for ROI column
+    roiColumnKey: 'roi', // Key for ROI column in data
+    
+    // Formatting options
+    roiNumberFormat: 'en-US',
+    roiPrecision: 2, // Decimal places for ROI
+    roiCurrency: 'USD',
+    
+    // Color coding for ROI values
+    enableROIColorCoding: true,
+    roiColorThresholds: {
+      positive: '#22c55e', // Green for positive ROI
+      neutral: '#6b7280', // Gray for neutral ROI
+      negative: '#ef4444' // Red for negative ROI
+    },
+    
+    // Thresholds for color coding
+    positiveROIThreshold: 0, // Values >= this are positive
+    negativeROIThreshold: 0, // Values < this are negative
+    
+    // Custom ROI calculation function (optional)
+    customROICalculation: null, // Custom function for ROI calculation
+  },
+  
   // NEW: Total display preference - controls which type of totals to show
   totalDisplayMode = "auto", // "auto" (smart), "pivot" (only pivot), "footer" (only footer), "both" (show both), "none" (no totals)
   
@@ -929,6 +969,78 @@ const PrimeDataTable = ({
     plasmicTableConfigsId || process.env.PLASMIC_TABLE_CONFIGS_ID || 'o4o5VRFTDgHHmQ31fCfkuz',
     plasmicApiToken || process.env.PLASMIC_API_TOKEN
   );
+
+  // NEW: ROI Calculation Functions
+  const calculateROI = useCallback((rowData) => {
+    if (!enableROICalculation || !roiConfig) return null;
+
+    const { 
+      revenueField, 
+      costField, 
+      investmentField, 
+      profitField, 
+      calculationMethod,
+      customROICalculation 
+    } = roiConfig;
+
+    // Use custom calculation if provided
+    if (customROICalculation && typeof customROICalculation === 'function') {
+      return customROICalculation(rowData);
+    }
+
+    // Get values from row data
+    const revenue = parseFloat(rowData[revenueField]) || 0;
+    const cost = parseFloat(rowData[costField]) || 0;
+    const investment = parseFloat(rowData[investmentField]) || 0;
+    const profit = parseFloat(rowData[profitField]) || 0;
+
+    // Prevent division by zero
+    if (investment === 0) return 0;
+
+    let roiValue = 0;
+
+    if (calculationMethod === 'profit') {
+      // ROI = (Profit / Investment) * 100
+      roiValue = (profit / investment) * 100;
+    } else {
+      // Standard: ROI = ((Revenue - Cost) / Investment) * 100
+      roiValue = ((revenue - cost) / investment) * 100;
+    }
+
+    return roiValue;
+  }, [enableROICalculation, roiConfig]);
+
+  const getROIColor = useCallback((roiValue) => {
+    if (!roiConfig?.enableROIColorCoding) return null;
+
+    const { roiColorThresholds, positiveROIThreshold, negativeROIThreshold } = roiConfig;
+
+    if (roiValue >= positiveROIThreshold) {
+      return roiColorThresholds.positive;
+    } else if (roiValue < negativeROIThreshold) {
+      return roiColorThresholds.negative;
+    } else {
+      return roiColorThresholds.neutral;
+    }
+  }, [roiConfig]);
+
+  const formatROIValue = useCallback((roiValue) => {
+    if (roiValue === null || roiValue === undefined) return 'N/A';
+
+    const { roiNumberFormat, roiPrecision, showROIAsPercentage } = roiConfig;
+
+    if (showROIAsPercentage) {
+      return new Intl.NumberFormat(roiNumberFormat, {
+        minimumFractionDigits: roiPrecision,
+        maximumFractionDigits: roiPrecision
+      }).format(roiValue) + '%';
+    } else {
+      return new Intl.NumberFormat(roiNumberFormat, {
+        minimumFractionDigits: roiPrecision,
+        maximumFractionDigits: roiPrecision
+      }).format(roiValue);
+    }
+  }, [roiConfig]);
 
   // Built-in default save function for local storage fallback
   const defaultSaveToCMS = useCallback(async (configKey, config) => {
@@ -1276,8 +1388,24 @@ const PrimeDataTable = ({
       }
     }
     
-    return rawData;
-  }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig]);
+    // NEW: Add ROI calculation to processed data
+    let finalData = rawData;
+    
+    if (enableROICalculation && Array.isArray(rawData)) {
+      finalData = rawData.map(row => {
+        if (row && typeof row === 'object') {
+          const roiValue = calculateROI(row);
+          return {
+            ...row,
+            [roiConfig.roiColumnKey]: roiValue
+          };
+        }
+        return row;
+      });
+    }
+    
+    return finalData;
+  }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig, enableROICalculation, calculateROI, roiConfig]);
 
   // Use processed data
   const tableData = processedData;
@@ -1621,8 +1749,23 @@ const PrimeDataTable = ({
       cols = cols.filter(col => fields.includes(col.key));
     }
 
+    // NEW: Add ROI column if ROI calculation is enabled
+    if (enableROICalculation && roiConfig?.showROIColumn) {
+      const roiColumn = {
+        key: roiConfig.roiColumnKey,
+        title: roiConfig.roiColumnTitle,
+        sortable: true,
+        filterable: true,
+        type: 'roi',
+        isROIColumn: true
+      };
+      
+      // Add ROI column to the end of the columns
+      cols.push(roiColumn);
+    }
+
     return cols;
-  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns]);
+  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, enableROICalculation, roiConfig]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -2231,6 +2374,27 @@ const PrimeDataTable = ({
         'text-green-500 pi-check-circle': value, 
         'text-red-500 pi-times-circle': !value 
       })}></i>
+    );
+  };
+
+  // NEW: ROI Body Template
+  const roiBodyTemplate = (rowData, column) => {
+    const roiValue = rowData[column.key];
+    
+    if (roiValue === null || roiValue === undefined) {
+      return <span>N/A</span>;
+    }
+
+    const formattedValue = formatROIValue(roiValue);
+    const color = getROIColor(roiValue);
+
+    return (
+      <span style={{ 
+        color: color || 'inherit',
+        fontWeight: 'bold'
+      }}>
+        {formattedValue}
+      </span>
     );
   };
 
@@ -3144,6 +3308,7 @@ const PrimeDataTable = ({
                   columnType === 'date' || columnType === 'datetime' ? (rowData) => dateBodyTemplate(rowData, column) :
                   columnType === 'number' ? (rowData) => numberBodyTemplate(rowData, column) :
                   columnType === 'boolean' ? (rowData) => booleanBodyTemplate(rowData, column) :
+                  columnType === 'roi' || column.isROIColumn ? (rowData) => roiBodyTemplate(rowData, column) :
                   parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
                   customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
                   column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined

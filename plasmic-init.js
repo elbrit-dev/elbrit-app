@@ -956,6 +956,40 @@ PLASMIC.registerComponent(PrimeDataTable, {
       defaultValue: []
     },
 
+    // ROI Calculation Props
+    enableROICalculation: {
+      type: "boolean",
+      description: "Enable ROI calculation feature",
+      defaultValue: false
+    },
+    roiConfig: {
+      type: "object",
+      description: "Configuration for ROI calculation including field names, calculation method, display options, and color coding",
+      defaultValue: {
+        revenueField: 'revenue',
+        costField: 'cost',
+        investmentField: 'investment',
+        profitField: 'profit',
+        calculationMethod: 'standard',
+        showROIColumn: true,
+        showROIAsPercentage: true,
+        roiColumnTitle: 'ROI (%)',
+        roiColumnKey: 'roi',
+        roiNumberFormat: 'en-US',
+        roiPrecision: 2,
+        roiCurrency: 'USD',
+        enableROIColorCoding: true,
+        roiColorThresholds: {
+          positive: '#22c55e',
+          neutral: '#6b7280',
+          negative: '#ef4444'
+        },
+        positiveROIThreshold: 0,
+        negativeROIThreshold: 0,
+        customROICalculation: null
+      }
+    },
+
     // Column grouping props
     enableColumnGrouping: {
       type: "boolean",
