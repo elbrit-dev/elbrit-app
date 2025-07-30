@@ -1204,40 +1204,22 @@ const PrimeDataTable = ({
       
       setIsLoadingPivotConfig(true);
       try {
-        console.log('📥 LOADING PIVOT CONFIG FROM CMS - Config Key:', pivotConfigKey);
+        // console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
         
         const savedConfig = await finalLoadFromCMS(pivotConfigKey);
         if (savedConfig && typeof savedConfig === 'object') {
-          console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
-          
-          // Validate the loaded configuration has essential properties
-          const isValidConfig = savedConfig.hasOwnProperty('enabled') && 
-            (savedConfig.rows || savedConfig.columns || savedConfig.values);
-            
-          if (!isValidConfig) {
-            console.warn('⚠️ Loaded config appears invalid:', savedConfig);
-          }
-          
-          // Update local pivot config with loaded configuration
-          setLocalPivotConfig(prev => {
-            const newConfig = {
-              ...prev,
-              ...savedConfig
-            };
-            console.log('📝 Updated localPivotConfig:', newConfig);
-            return newConfig;
-          });
+          // console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
+          setLocalPivotConfig(prev => ({
+            ...prev,
+            ...savedConfig
+          }));
           
           // If config was enabled, set pivot enabled state
           if (savedConfig.enabled) {
-            console.log('🔄 Enabling pivot table from loaded config');
             setIsPivotEnabled(true);
-          } else {
-            console.log('🔄 Disabling pivot table from loaded config');
-            setIsPivotEnabled(false);
           }
         } else {
-          console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
+          // console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
         }
       } catch (error) {
         console.error('❌ CMS LOAD FAILED:', error);
@@ -1248,7 +1230,7 @@ const PrimeDataTable = ({
     };
 
     loadPivotConfig();
-  }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded, setIsPivotEnabled]);
+  }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded]);
 
   // Save pivot configuration to CMS when it changes
   useEffect(() => {
@@ -1283,7 +1265,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      console.log('🔄 Using pivot UI config:', config);
+      // console.log('Using pivot UI config:', config);
       return config;
     }
     
@@ -1322,7 +1304,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      console.log('🔄 Using individual props config:', config);
+      // console.log('Using individual props config:', config);
       return config;
     }
     
@@ -1331,31 +1313,22 @@ const PrimeDataTable = ({
       ...pivotConfig,
       enabled: enablePivotTable && pivotConfig.enabled
     };
-    console.log('🔄 Using pivotConfig object:', config);
+    // console.log('Using pivotConfig object:', config);
     return config;
   }, [
     enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
     pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
     pivotNumberFormat, pivotCurrency, pivotPrecision, pivotFieldSeparator,
     pivotSortRows, pivotSortColumns, pivotSortDirection, pivotAggregationFunctions,
-    pivotConfig, enablePivotUI, localPivotConfig, pivotConfigLoaded
+    pivotConfig, enablePivotUI, localPivotConfig
   ]);
 
   const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
 
-  // Update isPivotEnabled when props change (but not when config is still loading)
+  // Update isPivotEnabled when props change
   useEffect(() => {
-    if (pivotConfigLoaded) {
-      const shouldEnable = enablePivotTable && mergedPivotConfig.enabled;
-      console.log('🔄 Updating isPivotEnabled based on props:', {
-        enablePivotTable,
-        mergedPivotConfigEnabled: mergedPivotConfig.enabled,
-        shouldEnable,
-        pivotConfigLoaded
-      });
-      setIsPivotEnabled(shouldEnable);
-    }
-  }, [enablePivotTable, mergedPivotConfig.enabled, pivotConfigLoaded]);
+    setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
+  }, [enablePivotTable, mergedPivotConfig.enabled]);
 
   // Compute effective total display settings based on totalDisplayMode
   const effectiveTotalSettings = useMemo(() => {
@@ -1431,14 +1404,12 @@ const PrimeDataTable = ({
     };
 
     if (!mergedPivotConfig) {
-      console.log('⚠️ No mergedPivotConfig - using default config');
       return defaultConfig;
     }
 
-    let finalConfig;
     if (!effectiveTotalSettings.showPivotTotals) {
       // If pivot totals are disabled, turn off all pivot totals but preserve formatting
-      finalConfig = {
+      return {
         ...defaultConfig,
         ...mergedPivotConfig,
         showGrandTotals: false,
@@ -1446,16 +1417,13 @@ const PrimeDataTable = ({
         showColumnTotals: false,
         showSubTotals: false
       };
-    } else {
-      // Merge with defaults to ensure all formatting properties exist
-      finalConfig = {
-        ...defaultConfig,
-        ...mergedPivotConfig
-      };
     }
 
-    console.log('🔄 Adjusted pivot config created:', finalConfig);
-    return finalConfig;
+    // Merge with defaults to ensure all formatting properties exist
+    return {
+      ...defaultConfig,
+      ...mergedPivotConfig
+    };
   }, [mergedPivotConfig, effectiveTotalSettings.showPivotTotals]);
 
   // Process data - handle merging if needed
@@ -1569,17 +1537,14 @@ const PrimeDataTable = ({
 
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
-    console.log('🔄 Pivot Transformation Check:', {
-      isPivotEnabled,
-      mergedPivotConfigEnabled: mergedPivotConfig?.enabled,
-      adjustedPivotConfigEnabled: adjustedPivotConfig?.enabled,
-      pivotConfigLoaded,
-      mergedPivotConfig: mergedPivotConfig,
-      adjustedPivotConfig: adjustedPivotConfig
-    });
+    // console.log('Pivot Transformation Check:', {
+    //   isPivotEnabled,
+    //   mergedPivotConfigEnabled: mergedPivotConfig.enabled,
+    //   mergedPivotConfig: mergedPivotConfig
+    // });
 
     if (!isPivotEnabled || !adjustedPivotConfig.enabled) {
-      console.log('🚫 Pivot disabled - returning original data');
+      // console.log('Pivot disabled - returning original data');
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -1589,16 +1554,16 @@ const PrimeDataTable = ({
     }
 
     try {
-      console.log('⚙️ Transforming data to pivot with config:', adjustedPivotConfig);
+      // console.log('Transforming data to pivot...');
       const result = transformToPivotData(tableData, adjustedPivotConfig);
-      console.log('✅ Pivot transformation result:', result);
+      // console.log('Pivot transformation result:', result);
       
       return {
         ...result,
         isPivot: true
       };
     } catch (error) {
-      console.error('❌ Error transforming data to pivot:', error);
+      console.error('Error transforming data to pivot:', error);
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -1606,17 +1571,10 @@ const PrimeDataTable = ({
         isPivot: false 
       };
     }
-  }, [tableData, isPivotEnabled, adjustedPivotConfig, pivotConfigLoaded, mergedPivotConfig]);
+  }, [tableData, isPivotEnabled, adjustedPivotConfig]);
 
   // Final data source - either original data or pivot data
   const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
-  console.log('📊 Final table data computed:', {
-    isPivot: pivotTransformation.isPivot,
-    dataLength: finalTableData?.length || 0,
-    pivotConfigLoaded,
-    isPivotEnabled
-  });
-  
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
   // NEW: Helper functions for pivot configuration UI
@@ -1884,8 +1842,8 @@ const PrimeDataTable = ({
         : normalizedColumns;
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
-    } else if (tableData.length > 0) {
-      const sampleRow = tableData[0];
+    } else if (finalTableData.length > 0) {
+      const sampleRow = finalTableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
         let type = 'text';
@@ -1930,7 +1888,7 @@ const PrimeDataTable = ({
     }
 
     return cols;
-  }, [columns, tableData, hiddenColumns, columnOrder, fields, pivotTransformation, enableROICalculation, roiConfig]);
+  }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, enableROICalculation, roiConfig]);
 
   // Auto-detect column grouping patterns
   const autoDetectedColumnGroups = useMemo(() => {
@@ -2377,7 +2335,7 @@ const PrimeDataTable = ({
             // Excel export using jspdf-autotable
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...finalTableData.map(row => 
+              ...tableData.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2396,7 +2354,7 @@ const PrimeDataTable = ({
             // PDF export using jspdf-autotable
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...finalTableData.map(row => 
+              ...tableData.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2414,7 +2372,7 @@ const PrimeDataTable = ({
           // Default CSV export
           const csvContent = [
             defaultColumns.map(col => col.title).join(','),
-            ...finalTableData.map(row => 
+            ...tableData.map(row => 
               defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
             )
           ].join('\n');
@@ -2704,16 +2662,6 @@ const PrimeDataTable = ({
     tableData.filter(row => row && typeof row === 'object')
   );
 
-  // Update filtered data for totals when pivot transformation changes
-  useEffect(() => {
-    if (enableFooterTotals) {
-      const dataSource = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
-      const validData = dataSource.filter(row => row && typeof row === 'object');
-      setFilteredDataForTotals(validData);
-      console.log('📊 Updated filteredDataForTotals after data change:', validData.length, 'rows');
-    }
-  }, [pivotTransformation, tableData, enableFooterTotals]);
-
   // Helper function to match filter values
   const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
     // Handle null/undefined values
@@ -2917,12 +2865,9 @@ const PrimeDataTable = ({
     // If column has predefined options, use them
     if (column.filterOptions) return column.filterOptions;
     
-    // Get the appropriate data source for filter generation
-    const dataForFilters = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
-    
     // Check if column is explicitly configured as dropdown
     if (dropdownFilterColumns.includes(columnKey)) {
-      const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
       return uniqueValues.map(value => ({
         label: String(value),
         value: value
@@ -2931,7 +2876,7 @@ const PrimeDataTable = ({
     
     // For categorical columns, generate options from unique values
     if (column.isCategorical || column.type === 'select' || column.type === 'dropdown' || column.type === 'categorical') {
-      const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
       return uniqueValues.map(value => ({
         label: String(value),
         value: value
@@ -2939,7 +2884,7 @@ const PrimeDataTable = ({
     }
     
     // Auto-detect categorical columns based on data analysis
-    const uniqueValues = [...new Set(dataForFilters.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
+    const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
     
     // If column has limited unique values (categorical data)
     if (uniqueValues.length > 0 && uniqueValues.length <= 30) {
@@ -2961,7 +2906,7 @@ const PrimeDataTable = ({
     }
     
     return undefined;
-  }, [pivotTransformation, tableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
+  }, [tableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
 
   // Footer template for column totals
   const footerTemplate = (column) => {
@@ -3340,8 +3285,7 @@ const PrimeDataTable = ({
     commonFilterField, 
     commonFilterValue, 
     filters, 
-    pivotTransformation, 
-    tableData,
+    finalTableData, 
     enableFooterTotals, 
     onFilterChange, 
     getColumnType, 
@@ -3716,8 +3660,7 @@ const PrimeDataTable = ({
             const columnType = getColumnType(column);
             
             // Enhanced categorical detection including explicit configuration
-            const dataForUniqueValues = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
-            const uniqueValues = getUniqueValues(dataForUniqueValues, columnKey);
+            const uniqueValues = getUniqueValues(finalTableData, columnKey);
             const isCategorical = (
               dropdownFilterColumns.includes(columnKey) ||
               (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
