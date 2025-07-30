@@ -1884,8 +1884,8 @@ const PrimeDataTable = ({
         : normalizedColumns;
 
       cols = orderedColumns.filter(col => !hiddenColumns.includes(col.key));
-    } else if (finalTableData.length > 0) {
-      const sampleRow = finalTableData[0];
+    } else if (tableData.length > 0) {
+      const sampleRow = tableData[0];
       const autoColumns = Object.keys(sampleRow).map(key => {
         const value = sampleRow[key];
         let type = 'text';
@@ -3340,7 +3340,8 @@ const PrimeDataTable = ({
     commonFilterField, 
     commonFilterValue, 
     filters, 
-    finalTableData, 
+    pivotTransformation, 
+    tableData,
     enableFooterTotals, 
     onFilterChange, 
     getColumnType, 
@@ -3715,7 +3716,8 @@ const PrimeDataTable = ({
             const columnType = getColumnType(column);
             
             // Enhanced categorical detection including explicit configuration
-            const uniqueValues = getUniqueValues(finalTableData, columnKey);
+            const dataForUniqueValues = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+            const uniqueValues = getUniqueValues(dataForUniqueValues, columnKey);
             const isCategorical = (
               dropdownFilterColumns.includes(columnKey) ||
               (uniqueValues.length > 0 && uniqueValues.length <= 30) ||
