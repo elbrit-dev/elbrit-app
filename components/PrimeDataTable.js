@@ -2710,8 +2710,11 @@ const PrimeDataTable = ({
   const handleExport = useCallback(() => {
     if (!enableExport) return;
     
+    // Use finalTableData which contains pivot-transformed data when pivot is enabled
+    const dataToExport = finalTableData;
+    
     if (onExport) {
-      onExport(tableData);
+      onExport(dataToExport);
     } else {
       // Enhanced export with multiple formats
       switch (exportFileType) {
@@ -2720,7 +2723,7 @@ const PrimeDataTable = ({
             // Excel export using jspdf-autotable
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...tableData.map(row => 
+              ...dataToExport.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2739,7 +2742,7 @@ const PrimeDataTable = ({
             // PDF export using jspdf-autotable
             const csvContent = [
               defaultColumns.map(col => col.title).join(','),
-              ...tableData.map(row => 
+              ...dataToExport.map(row => 
                 defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
               )
             ].join('\n');
@@ -2757,7 +2760,7 @@ const PrimeDataTable = ({
           // Default CSV export
           const csvContent = [
             defaultColumns.map(col => col.title).join(','),
-            ...tableData.map(row => 
+            ...dataToExport.map(row => 
               defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
             )
           ].join('\n');
@@ -2772,7 +2775,7 @@ const PrimeDataTable = ({
           break;
       }
     }
-  }, [enableExport, tableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns]);
+  }, [enableExport, finalTableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns]);
 
   const handleRefresh = useCallback(async () => {
     if (!enableRefresh) return;
