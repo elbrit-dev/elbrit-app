@@ -7,10 +7,6 @@ import { useRouter } from 'next/router';
  * 
  * This component provides instant navigation without page refreshes,
  * just like in normal React SPAs. It wraps Next.js Link for optimal performance.
- * 
- * NEW: Added forceRemount prop to handle hibernation issues with complex components
- * like PrimeDataTable. When forceRemount is true, it adds a timestamp to force
- * component re-mounting without full page refresh.
  */
 const LinkComponent = ({ 
   href, 
@@ -24,7 +20,6 @@ const LinkComponent = ({
   scroll = true,   // Enable smooth scrolling to top
   shallow = false, // Enable shallow routing for dynamic routes
   prefetch = true, // Prefetch pages for faster navigation
-  forceRemount = false, // NEW: Force component re-mounting to prevent hibernation issues
   ...props 
 }) => {
   const router = useRouter();
@@ -44,7 +39,7 @@ const LinkComponent = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('LinkComponent clicked!', { href, target: e.target, forceRemount });
+    console.log('LinkComponent clicked!', { href, target: e.target });
     
     // If there's a custom onClick, call it
     if (onClick) {
@@ -54,22 +49,6 @@ const LinkComponent = ({
     // For internal navigation, use Next.js router for instant navigation
     if (!isExternal) {
       console.log('Navigating to:', href);
-      
-      // NEW: Handle forceRemount for complex components like PrimeDataTable
-      if (forceRemount) {
-        console.log('Force remounting to:', href);
-        // Add timestamp to force component re-mounting without full page refresh
-        const separator = href.includes('?') ? '&' : '?';
-        const remountHref = `${href}${separator}_t=${Date.now()}`;
-        
-        if (replace) {
-          router.replace(remountHref);
-        } else {
-          router.push(remountHref);
-        }
-        return;
-      }
-      
       if (replace) {
         router.replace(href);
       } else {

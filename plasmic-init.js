@@ -80,7 +80,7 @@ PLASMIC.registerComponent(EnvironmentCheck, {
 PLASMIC.registerComponent(LinkComponent, {
   name: "LinkComponent",
   displayName: "Link Component",
-  description: "A wrapper component for Next.js Link with instant navigation - no page refresh. Use forceRemount=true to prevent hibernation issues with complex components like PrimeDataTable.",
+  description: "A wrapper component for Next.js Link with instant navigation - no page refresh",
   props: {
     href: {
       type: "string",
@@ -130,11 +130,6 @@ PLASMIC.registerComponent(LinkComponent, {
     prefetch: {
       type: "boolean",
       description: "Prefetch pages for faster navigation",
-      defaultValue: true
-    },
-    forceRemount: {
-      type: "boolean",
-      description: "Force component re-mounting to prevent hibernation issues with complex components like PrimeDataTable",
       defaultValue: true
     }
   },
