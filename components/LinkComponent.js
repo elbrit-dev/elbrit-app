@@ -20,6 +20,7 @@ const LinkComponent = ({
   scroll = true,   // Enable smooth scrolling to top
   shallow = false, // Enable shallow routing for dynamic routes
   prefetch = true, // Prefetch pages for faster navigation
+  forceRefresh, // Plasmic-specific prop - filter out
   ...props 
 }) => {
   const router = useRouter();
@@ -64,6 +65,16 @@ const LinkComponent = ({
     }
   };
 
+  // Filter out non-DOM props before spreading
+  const { 
+    replace: _replace, 
+    scroll: _scroll, 
+    shallow: _shallow, 
+    prefetch: _prefetch,
+    forceRefresh: _forceRefresh,
+    ...domProps 
+  } = props;
+
   // For internal links, we'll handle click manually to prevent button/form issues
   if (!isExternal) {
     return (
@@ -83,7 +94,7 @@ const LinkComponent = ({
             handleClick(e);
           }
         }}
-        {...props}
+        {...domProps}
       >
         {children}
       </div>
@@ -99,7 +110,7 @@ const LinkComponent = ({
       onClick={handleClick}
       className={className}
       style={style}
-      {...props}
+      {...domProps}
     >
       {children}
     </a>

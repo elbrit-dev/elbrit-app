@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@plasmicapp/auth-api": "^0.0.17",
-    "@plasmicapp/loader-nextjs": "^1.0.432",
+    "@plasmicapp/loader-nextjs": "^1.0.450",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "firebase": "^10.0.0",
