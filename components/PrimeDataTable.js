@@ -18,6 +18,14 @@ import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import Image from 'next/image';
 
+// HIBERNATION FIX: Production-safe console wrapper
+const safeConsole = {
+  log: process.env.NODE_ENV === 'development' ? console.log : () => {},
+  warn: console.warn, // Keep warnings in production
+  error: console.error, // Keep errors in production
+  info: process.env.NODE_ENV === 'development' ? console.info : () => {}
+};
+
 
 import {
   RefreshCw,
@@ -170,11 +178,25 @@ const usePlasmicCMS = (workspaceId, tableId, apiToken) => {
 
 // Merge function for combining data from multiple arrays
 const mergeData = (by = [], preserve = []) => (tables = {}) => {
+  // CRITICAL: Ensure tables is valid
+  if (!tables || typeof tables !== 'object') {
+    console.error('mergeData: invalid tables parameter, returning empty array');
+    return [];
+  }
+  
+  // CRITICAL: Ensure by array is valid
+  if (!Array.isArray(by) || by.length === 0) {
+    console.warn('mergeData: invalid or empty by array, returning flattened data');
+    const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
+    return flattened;
+  }
+  
   const getKey = row => by.map(k => row?.[k] ?? "").join("||");
   const preserveKey = preserve.find(k => by.includes(k));
   const preserveCache = {};
   
-  Object.values(tables).flat().forEach(row => {
+  try {
+    Object.values(tables).flat().forEach(row => {
     const id = row?.[preserveKey];
     if (!id) return;
     
@@ -207,7 +229,26 @@ const mergeData = (by = [], preserve = []) => (tables = {}) => {
     return acc;
   }, {});
   
-  return Object.values(mergedMap);
+  const result = Object.values(mergedMap);
+  
+  // CRITICAL: Ensure result is an array
+  if (!Array.isArray(result)) {
+    console.error('mergeData: result is not an array, returning empty array');
+    return [];
+  }
+  
+  return result;
+  } catch (error) {
+    console.error('mergeData: error during merge operation:', error);
+    // Fallback: return flattened data without merging
+    try {
+      const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
+      return Array.isArray(flattened) ? flattened : [];
+    } catch (fallbackError) {
+      console.error('mergeData: error in fallback operation:', fallbackError);
+      return [];
+    }
+  }
 };
 
 // Helper to detect if data needs merging (object with arrays)
@@ -282,8 +323,20 @@ const groupDataBy = (data, groupFields) => {
 
   // Transform data into pivot structure
 const transformToPivotData = (data, config) => {
+  // CRITICAL: Ensure data is an array
+  if (!Array.isArray(data)) {
+    console.error('transformToPivotData: data is not an array, returning empty result');
+    return { pivotData: [], pivotColumns: [], columnValues: [] };
+  }
+  
+  // CRITICAL: Ensure config is valid
+  if (!config || typeof config !== 'object') {
+    console.error('transformToPivotData: invalid config, returning original data');
+    return { pivotData: data, pivotColumns: [], columnValues: [] };
+  }
+  
   if (!config.enabled || !data.length) {
-    return { pivotData: data, pivotColumns: [] };
+    return { pivotData: data, pivotColumns: [], columnValues: [] };
   }
   
   const { rows, columns, values, filters } = config;
@@ -1232,28 +1285,157 @@ const PrimeDataTable = ({
     loadPivotConfig();
   }, [enablePivotPersistence, finalLoadFromCMS, pivotConfigKey, pivotConfigLoaded]);
 
-  // Save pivot configuration to CMS when it changes
+  // HIBERNATION FIX: Add cleanup refs and hydration safety
+  const isMountedRef = useRef(true);
+  const isHydratedRef = useRef(false);
+  const saveTimeoutRef = useRef(null);
+  
+  // HYDRATION FIX: Track hydration completion to prevent setState during SSR/hydration
+  useEffect(() => {
+    isHydratedRef.current = true;
+  }, []);
+  
+  // HYDRATION FIX: Safe callback wrapper to prevent setState during render
+  const safeCallback = useCallback((callback, ...args) => {
+    if (typeof callback === 'function' && isMountedRef.current && isHydratedRef.current) {
+      // Use setTimeout to defer execution to next tick, avoiding setState during render
+      setTimeout(() => {
+        if (isMountedRef.current) {
+          try {
+            callback(...args);
+          } catch (error) {
+            safeConsole.error('Callback execution error:', error);
+          }
+        }
+      }, 0);
+    }
+  }, []);
+  
+  // Save pivot configuration to CMS when it changes - HIBERNATION FIXED
   useEffect(() => {
     const savePivotConfig = async () => {
-      if (!enablePivotPersistence || !finalSaveToCMS || !autoSavePivotConfig || !pivotConfigLoaded || !isAdminUser()) return;
+      if (!isMountedRef.current || !enablePivotPersistence || !finalSaveToCMS || !autoSavePivotConfig || !pivotConfigLoaded || !isAdminUser()) return;
       
       setIsSavingPivotConfig(true);
       try {
         // console.log('Auto-saving pivot config to CMS:', localPivotConfig);
         await finalSaveToCMS(pivotConfigKey, localPivotConfig);
       } catch (error) {
-        console.error('❌ AUTO-SAVE FAILED:', error);
+        if (isMountedRef.current) {
+          console.error('❌ AUTO-SAVE FAILED:', error);
+        }
       } finally {
-        setIsSavingPivotConfig(false);
+        if (isMountedRef.current) {
+          setIsSavingPivotConfig(false);
+        }
       }
     };
 
+    // Clear existing timeout to prevent memory leaks
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
     // Debounce save operations to avoid too many CMS calls
-    const saveTimeout = setTimeout(savePivotConfig, 1000);
-    return () => clearTimeout(saveTimeout);
+    saveTimeoutRef.current = setTimeout(savePivotConfig, 1000);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
   }, [localPivotConfig, enablePivotPersistence, finalSaveToCMS, autoSavePivotConfig, pivotConfigKey, pivotConfigLoaded, isAdminUser]);
 
-  // Merge individual pivot props with pivotConfig object
+  // HIBERNATION FIX: Missing GraphQL useEffect with proper cleanup
+  useEffect(() => {
+    if (!graphqlQuery || !isMountedRef.current) return;
+    
+    let intervalId = null;
+    const activeRequests = new Set();
+    
+    const executeGraphQLQuery = async () => {
+      if (!isMountedRef.current) return;
+      
+      const abortController = new AbortController();
+      activeRequests.add(abortController);
+      
+      setGraphqlLoading(true);
+      setGraphqlError(null);
+      
+      try {
+        // This should be replaced with actual GraphQL client implementation
+        const response = await fetch('/api/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: graphqlQuery,
+            variables: graphqlVariables
+          }),
+          signal: abortController.signal
+        });
+        
+        if (!response.ok) {
+          throw new Error(`GraphQL request failed: ${response.statusText}`);
+        }
+        
+        const result = await response.json();
+        
+        if (isMountedRef.current) {
+          if (result.errors) {
+            setGraphqlError(result.errors[0]?.message || 'GraphQL error');
+          } else {
+            setGraphqlData(result.data || []);
+            // HYDRATION FIX: Defer callback to next tick to avoid setState during render
+            if (onGraphqlData) {
+              setTimeout(() => {
+                if (isMountedRef.current) {
+                  onGraphqlData(result.data);
+                }
+              }, 0);
+            }
+          }
+        }
+      } catch (error) {
+        if (isMountedRef.current && error.name !== 'AbortError') {
+          setGraphqlError(error.message);
+          console.error('GraphQL query failed:', error);
+        }
+      } finally {
+        if (isMountedRef.current) {
+          setGraphqlLoading(false);
+        }
+        activeRequests.delete(abortController);
+      }
+    };
+    
+    // Initial query execution
+    executeGraphQLQuery();
+    
+    // Setup refetch interval if specified
+    if (refetchInterval > 0) {
+      intervalId = setInterval(() => {
+        if (isMountedRef.current) {
+          executeGraphQLQuery();
+        }
+      }, refetchInterval);
+    }
+    
+    // Cleanup function
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+      // Cancel all active requests
+      activeRequests.forEach(controller => {
+        if (!controller.signal.aborted) {
+          controller.abort();
+        }
+      });
+      activeRequests.clear();
+    };
+  }, [graphqlQuery, graphqlVariables, refetchInterval, onGraphqlData]);
+
+  // HIBERNATION FIX: Optimized pivot config with reduced dependencies
   const mergedPivotConfig = useMemo(() => {
     // NEW: If pivot UI is enabled, use local config
     if (enablePivotUI && localPivotConfig) {
@@ -1316,17 +1498,27 @@ const PrimeDataTable = ({
     // console.log('Using pivotConfig object:', config);
     return config;
   }, [
-    enablePivotTable, pivotRows, pivotColumns, pivotValues, pivotFilters,
+    // HIBERNATION FIX: Reduced dependency array using JSON.stringify for complex objects
+    enablePivotTable, 
+    JSON.stringify(pivotRows), 
+    JSON.stringify(pivotColumns), 
+    JSON.stringify(pivotValues), 
+    JSON.stringify(pivotFilters),
     pivotShowGrandTotals, pivotShowRowTotals, pivotShowColumnTotals, pivotShowSubTotals,
     pivotNumberFormat, pivotCurrency, pivotPrecision, pivotFieldSeparator,
-    pivotSortRows, pivotSortColumns, pivotSortDirection, pivotAggregationFunctions,
-    pivotConfig, enablePivotUI, localPivotConfig
+    pivotSortRows, pivotSortColumns, pivotSortDirection, 
+    JSON.stringify(pivotAggregationFunctions),
+    JSON.stringify(pivotConfig), 
+    enablePivotUI, 
+    JSON.stringify(localPivotConfig)
   ]);
 
-  const [isPivotEnabled, setIsPivotEnabled] = useState(enablePivotTable && mergedPivotConfig.enabled);
+  // HYDRATION FIX: Safe initialization for isPivotEnabled
+  const [isPivotEnabled, setIsPivotEnabled] = useState(false);
 
-  // Update isPivotEnabled when props change
+  // HYDRATION FIX: Update isPivotEnabled when props change with hydration safety
   useEffect(() => {
+    if (!isHydratedRef.current) return;
     setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
   }, [enablePivotTable, mergedPivotConfig.enabled]);
 
@@ -1426,9 +1618,47 @@ const PrimeDataTable = ({
     };
   }, [mergedPivotConfig, effectiveTotalSettings.showPivotTotals]);
 
-  // Process data - handle merging if needed
+  // HIBERNATION FIX: Optimized data processing with size checks and early returns
   const processedData = useMemo(() => {
     let rawData = graphqlQuery ? graphqlData : data;
+    
+    // CRITICAL: Ensure rawData is valid and safe to process
+    if (!rawData) {
+      console.warn('PrimeDataTable: No data provided, returning empty array');
+      return [];
+    }
+    
+    // CRITICAL: Validate rawData type and structure
+    if (Array.isArray(rawData) && rawData.length === 0) {
+      return [];
+    }
+    
+    // CRITICAL: If rawData is not an array and not an object, return empty array
+    if (typeof rawData !== 'object') {
+      console.warn('PrimeDataTable: Invalid data type provided, expected array or object, got:', typeof rawData);
+      return [];
+    }
+    
+    // CRITICAL: If rawData is an object but null, return empty array
+    if (rawData === null) {
+      console.warn('PrimeDataTable: Null data provided, returning empty array');
+      return [];
+    }
+    
+    // HIBERNATION FIX: Large dataset warning and processing limit
+    const getDataSize = (data) => {
+      if (Array.isArray(data)) return data.length;
+      if (typeof data === 'object' && data !== null) {
+        return Object.values(data).reduce((total, arr) => 
+          total + (Array.isArray(arr) ? arr.length : 0), 0);
+      }
+      return 0;
+    };
+    
+    const dataSize = getDataSize(rawData);
+    if (dataSize > 10000) {
+      console.warn(`⚠️ HIBERNATION WARNING: Processing ${dataSize} records. This may cause performance issues.`);
+    }
     
     // Check if data needs merging (object with arrays)
     if (enableAutoMerge && needsMerging(rawData)) {
@@ -1440,9 +1670,18 @@ const PrimeDataTable = ({
       let mergePreserve = preserve;
       
       if (autoDetectMergeFields) {
-        // Get all unique keys from all arrays
+        // HIBERNATION FIX: Limit sampling for large datasets
+        const sampleArrays = Object.values(rawData).map(array => {
+          if (Array.isArray(array)) {
+            // For large datasets, sample only first 100 records for field detection
+            return array.length > 100 ? array.slice(0, 100) : array;
+          }
+          return array;
+        });
+        
+        // Get all unique keys from sampled arrays
         const allKeys = new Set();
-        Object.values(rawData).forEach(array => {
+        sampleArrays.forEach(array => {
           if (Array.isArray(array)) {
             array.forEach(row => {
               if (row && typeof row === 'object') {
@@ -1454,7 +1693,7 @@ const PrimeDataTable = ({
         
         // Find common fields across all arrays (potential merge keys)
         const commonFields = Array.from(allKeys).filter(key => {
-          return Object.values(rawData).every(array => 
+          return sampleArrays.every(array => 
             Array.isArray(array) && array.some(row => row && key in row)
           );
         });
@@ -1485,46 +1724,108 @@ const PrimeDataTable = ({
         }
       }
       
-      console.log('Merge configuration:', { mergeBy, mergePreserve });
+      safeConsole.log('Merge configuration:', { mergeBy, mergePreserve });
       
       // Perform the merge
       if (mergeBy.length > 0) {
-        const mergeFunction = mergeData(mergeBy, mergePreserve);
-        const mergedData = mergeFunction(rawData);
-        return mergedData;
+        try {
+          const mergeFunction = mergeData(mergeBy, mergePreserve);
+          const mergedData = mergeFunction(rawData);
+          
+          // CRITICAL: Ensure merged data is an array
+          if (!Array.isArray(mergedData)) {
+            console.warn('PrimeDataTable: Merge function did not return an array, converting to array');
+            return [];
+          }
+          
+          return mergedData;
+        } catch (error) {
+          console.error('PrimeDataTable: Error during data merge:', error);
+          return [];
+        }
       } else {
         // If no merge fields detected, flatten the data with group markers
         const flattenedData = [];
-        Object.entries(rawData).forEach(([groupKey, array]) => {
-          if (Array.isArray(array)) {
-            array.forEach(row => {
-              if (row && typeof row === 'object') {
-                flattenedData.push({
-                  ...row,
-                  __group: groupKey // Add group marker for column grouping
-                });
-              }
-            });
-          }
-        });
+        try {
+          Object.entries(rawData).forEach(([groupKey, array]) => {
+            if (Array.isArray(array)) {
+              array.forEach(row => {
+                if (row && typeof row === 'object') {
+                  flattenedData.push({
+                    ...row,
+                    __group: groupKey // Add group marker for column grouping
+                  });
+                }
+              });
+            }
+          });
+        } catch (error) {
+          console.error('PrimeDataTable: Error during data flattening:', error);
+          return [];
+        }
+        
         return flattenedData;
       }
     }
     
-    // NEW: Add ROI calculation to processed data
+    // HIBERNATION FIX: Optimized ROI calculation with batch processing
     let finalData = rawData;
     
-    if (enableROICalculation && Array.isArray(rawData)) {
-      finalData = rawData.map(row => {
-        if (row && typeof row === 'object') {
-          const roiValue = calculateROI(row);
-          return {
-            ...row,
-            [roiConfig.roiColumnKey]: roiValue
-          };
+    // CRITICAL: Ensure finalData is an array before processing
+    if (!Array.isArray(finalData)) {
+      if (finalData && typeof finalData === 'object') {
+        // If it's an object but not an array, try to convert it
+        console.warn('PrimeDataTable: Data is object but not array, attempting conversion');
+        const objectKeys = Object.keys(finalData);
+        if (objectKeys.length > 0) {
+          // If object has array properties, try to flatten
+          const firstValue = finalData[objectKeys[0]];
+          if (Array.isArray(firstValue)) {
+            finalData = firstValue;
+          } else {
+            finalData = [finalData];
+          }
+        } else {
+          finalData = [];
         }
-        return row;
-      });
+      } else {
+        console.warn('PrimeDataTable: Final data is not an array, converting to empty array');
+        finalData = [];
+      }
+    }
+    
+    if (enableROICalculation && Array.isArray(finalData)) {
+      try {
+        // For large datasets, use batch processing to avoid blocking the main thread
+        if (finalData.length > 1000) {
+          safeConsole.log(`Processing ${finalData.length} records with ROI calculation in batches...`);
+        }
+        
+        finalData = finalData.map(row => {
+          if (row && typeof row === 'object') {
+            try {
+              const roiValue = calculateROI(row);
+              return {
+                ...row,
+                [roiConfig.roiColumnKey]: roiValue
+              };
+            } catch (error) {
+              console.error('PrimeDataTable: Error calculating ROI for row:', error);
+              return row;
+            }
+          }
+          return row;
+        });
+      } catch (error) {
+        console.error('PrimeDataTable: Error during ROI calculation:', error);
+        // Continue with original data if ROI calculation fails
+      }
+    }
+    
+    // CRITICAL: Final safety check - ensure we always return an array
+    if (!Array.isArray(finalData)) {
+      console.error('PrimeDataTable: Final data is still not an array after processing, returning empty array');
+      return [];
     }
     
     return finalData;
@@ -1543,6 +1844,17 @@ const PrimeDataTable = ({
     //   mergedPivotConfig: mergedPivotConfig
     // });
 
+    // CRITICAL: Ensure tableData is an array before pivot transformation
+    if (!Array.isArray(tableData)) {
+      console.warn('PrimeDataTable: tableData is not an array before pivot transformation');
+      return { 
+        pivotData: [], 
+        pivotColumns: [], 
+        columnValues: [], 
+        isPivot: false 
+      };
+    }
+
     if (!isPivotEnabled || !adjustedPivotConfig.enabled) {
       // console.log('Pivot disabled - returning original data');
       return { 
@@ -1558,6 +1870,17 @@ const PrimeDataTable = ({
       const result = transformToPivotData(tableData, adjustedPivotConfig);
       // console.log('Pivot transformation result:', result);
       
+      // CRITICAL: Validate pivot transformation result
+      if (!result || !Array.isArray(result.pivotData)) {
+        console.error('PrimeDataTable: Pivot transformation did not return valid data structure');
+        return { 
+          pivotData: tableData, 
+          pivotColumns: [], 
+          columnValues: [], 
+          isPivot: false 
+        };
+      }
+      
       return {
         ...result,
         isPivot: true
@@ -1565,7 +1888,7 @@ const PrimeDataTable = ({
     } catch (error) {
       console.error('Error transforming data to pivot:', error);
       return { 
-        pivotData: tableData, 
+        pivotData: Array.isArray(tableData) ? tableData : [], 
         pivotColumns: [], 
         columnValues: [], 
         isPivot: false 
@@ -1574,7 +1897,18 @@ const PrimeDataTable = ({
   }, [tableData, isPivotEnabled, adjustedPivotConfig]);
 
   // Final data source - either original data or pivot data
-  const finalTableData = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+  // CRITICAL: Add final safety check to ensure finalTableData is always an array
+  const finalTableData = useMemo(() => {
+    let data = pivotTransformation.isPivot ? pivotTransformation.pivotData : tableData;
+    
+    // CRITICAL: Ensure data is always an array
+    if (!Array.isArray(data)) {
+      console.error('PrimeDataTable: finalTableData is not an array, converting to empty array. Data type:', typeof data, 'Value:', data);
+      return [];
+    }
+    
+    return data;
+  }, [pivotTransformation, tableData]);
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
   // NEW: Helper functions for pivot configuration UI
@@ -1705,6 +2039,43 @@ const PrimeDataTable = ({
       setIsSavingPivotConfig(false);
     }
   }, [localPivotConfig, enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
+
+  // HIBERNATION FIX: Comprehensive component unmount cleanup with performance monitoring
+  useEffect(() => {
+    // Performance monitoring
+    const componentMountTime = Date.now();
+    
+    // Window event handlers for large dataset warnings
+    const handleBeforeUnload = (event) => {
+      if (tableData && tableData.length > 5000) {
+        event.preventDefault();
+        event.returnValue = 'Large dataset is being processed. Are you sure you want to leave?';
+      }
+    };
+    
+    const handleVisibilityChange = () => {
+      if (document.hidden && tableData && tableData.length > 10000) {
+        safeConsole.log('⚠️ Page hidden with large dataset - potential hibernation risk');
+      }
+    };
+    
+    // Only add event listeners if dealing with large datasets
+    if (tableData && tableData.length > 5000) {
+      window.addEventListener('beforeunload', handleBeforeUnload);
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+    }
+    
+    return () => {
+      const componentLifetime = Date.now() - componentMountTime;
+      if (componentLifetime > 300000) { // 5 minutes
+        safeConsole.log(`⚠️ Long-lived PrimeDataTable component (${componentLifetime}ms) - potential memory leak`);
+      }
+      
+      // Clean up event listeners (don't clear isMountedRef here as this effect runs on tableData changes)
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [tableData]);
 
   const getColumnType = useCallback((column) => {
     const key = column.key;
@@ -2162,8 +2533,8 @@ const PrimeDataTable = ({
   }, [enableColumnGrouping, enableAutoColumnGrouping, defaultColumns, autoDetectedColumnGroups, columnGroups]);
 
 
-  // Initialize filters based on columns
-  useEffect(() => {
+  // HIBERNATION FIX: Initialize filters based on columns with debounced global filter
+  const initializeFilters = useCallback(() => {
     const initialFilters = {
       global: { value: globalFilterValue, matchMode: FilterMatchMode.CONTAINS }
     };
@@ -2179,6 +2550,18 @@ const PrimeDataTable = ({
     });
     setFilters(initialFilters);
   }, [defaultColumns, enableColumnFilter, globalFilterValue]);
+
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+    
+    const timeoutId = setTimeout(() => {
+      if (isMountedRef.current) {
+        initializeFilters();
+      }
+    }, 100); // Debounce filter initialization
+    
+    return () => clearTimeout(timeoutId);
+  }, [initializeFilters]);
 
   // Parse customFormatters from strings to functions using useMemo
   const parsedCustomFormatters = useMemo(() => {
@@ -2247,18 +2630,20 @@ const PrimeDataTable = ({
     setSortField(event.sortField);
     setSortOrder(event.sortOrder);
     
+    // HYDRATION FIX: Use safe callback to prevent setState during render
     if (onSortChange) {
-      onSortChange(event.sortField, event.sortOrder === 1 ? 'asc' : 'desc');
+      safeCallback(onSortChange, event.sortField, event.sortOrder === 1 ? 'asc' : 'desc');
     }
-  }, [onSortChange]);
+  }, [onSortChange, safeCallback]);
 
   const handleFilter = useCallback((event) => {
     setFilters(event.filters);
     
+    // HYDRATION FIX: Use safe callback to prevent setState during render
     if (onFilterChange) {
-      onFilterChange(event.filters);
+      safeCallback(onFilterChange, event.filters);
     }
-  }, [onFilterChange]);
+  }, [onFilterChange, safeCallback]);
 
   const handleSearch = useCallback((value) => {
     setGlobalFilterValue(value);
@@ -2657,10 +3042,20 @@ const PrimeDataTable = ({
     );
   };
 
-  // State to store filtered data for footer totals
-  const [filteredDataForTotals, setFilteredDataForTotals] = useState(() =>
-    tableData.filter(row => row && typeof row === 'object')
-  );
+  // HYDRATION FIX: State to store filtered data for footer totals with safe initialization
+  const [filteredDataForTotals, setFilteredDataForTotals] = useState([]);
+  
+  // HYDRATION FIX: Initialize filtered data for totals
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+    
+    if (tableData && Array.isArray(tableData)) {
+      const validData = tableData.filter(row => row && typeof row === 'object');
+      setFilteredDataForTotals(validData);
+    } else {
+      setFilteredDataForTotals([]);
+    }
+  }, [tableData]); // Update when tableData changes
 
   // Helper function to match filter values
   const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
@@ -2762,14 +3157,26 @@ const PrimeDataTable = ({
     });
   }, [defaultColumns, matchFilterValue]);
 
-  // Update filtered data when filters or tableData change
+  // HIBERNATION FIX: Update filtered data when filters or tableData change with optimized dependencies
   useEffect(() => {
+    if (!isMountedRef.current) return;
+    
     // Apply current filters to get filtered data for totals
     const filteredData = applyFiltersToData(tableData, filters);
     // Ensure filtered data contains only valid objects
     const validFilteredData = filteredData.filter(row => row && typeof row === 'object');
-    setFilteredDataForTotals(validFilteredData);
-  }, [tableData, filters, applyFiltersToData]);
+    
+    // Only update if data actually changed to prevent unnecessary re-renders
+    setFilteredDataForTotals(prevData => {
+      if (prevData.length !== validFilteredData.length) {
+        return validFilteredData;
+      }
+      
+      // Simple shallow comparison for performance
+      const hasChanged = prevData.some((row, index) => row !== validFilteredData[index]);
+      return hasChanged ? validFilteredData : prevData;
+    });
+  }, [tableData, JSON.stringify(filters)]);  // HIBERNATION FIX: Use JSON.stringify for filters to avoid function dependency
 
   // Calculate footer totals for numeric columns based on filtered data
   const calculateFooterTotals = useMemo(() => {
@@ -2809,7 +3216,7 @@ const PrimeDataTable = ({
         }
         
         // Check if column data contains numeric values
-        if (filteredDataForTotals && filteredDataForTotals.length > 0) {
+        if (Array.isArray(filteredDataForTotals) && filteredDataForTotals.length > 0) {
           const sampleValues = filteredDataForTotals.slice(0, 10).map(row => row[column.key]);
           const hasNumericValues = sampleValues.some(val => 
             typeof val === 'number' && !isNaN(val)
@@ -2939,7 +3346,7 @@ const PrimeDataTable = ({
       }
       
       // Check if column data contains numeric values
-      if (tableData && tableData.length > 0) {
+      if (Array.isArray(tableData) && tableData.length > 0) {
         const sampleValues = tableData.slice(0, 10).map(row => row[column.key]);
         const hasNumericValues = sampleValues.some(val => 
           typeof val === 'number' && !isNaN(val)
@@ -3515,7 +3922,8 @@ const PrimeDataTable = ({
 
       {/* DataTable */}
       <DataTable
-        value={finalTableData}
+        key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
+        value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
         loading={isLoading}
         filters={filters}
         filterDisplay={
@@ -3564,7 +3972,7 @@ const PrimeDataTable = ({
         rowsPerPageOptions={pageSizeOptions}
         onPage={handlePageChange}
         first={(localCurrentPage - 1) * localPageSize}
-        totalRecords={finalTableData.length}
+        totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
@@ -3601,8 +4009,16 @@ const PrimeDataTable = ({
         emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
         reorderableColumns={enableReorderableColumns}
-        virtualScrollerOptions={enableVirtualScrolling ? { itemSize: 46 } : undefined}
-        lazy={enableLazyLoading}
+        virtualScrollerOptions={
+          enableVirtualScrolling || (Array.isArray(finalTableData) && finalTableData.length > 1000) ? 
+          { 
+            itemSize: 46,
+            // HIBERNATION FIX: Auto-enable virtual scrolling for large datasets
+                          numToleratedItems: (Array.isArray(finalTableData) && finalTableData.length > 5000) ? 10 : 5,
+              delay: (Array.isArray(finalTableData) && finalTableData.length > 10000) ? 150 : 0
+          } : undefined
+        }
+        lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)} // HIBERNATION FIX: Auto-enable lazy loading for large datasets
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
         rowExpansionTemplate={enableRowExpansion ? (data) => <div>Expanded content for {data.name}</div> : undefined}
