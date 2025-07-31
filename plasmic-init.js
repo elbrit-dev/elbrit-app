@@ -8,7 +8,6 @@ import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
-import HydrationSafeWrapper from "./components/HydrationSafeWrapper";
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
@@ -81,7 +80,7 @@ PLASMIC.registerComponent(EnvironmentCheck, {
 PLASMIC.registerComponent(LinkComponent, {
   name: "LinkComponent",
   displayName: "Link Component",
-  description: "A hydration-safe wrapper component for Next.js Link with instant navigation - includes safeguards against PrimeReact table conflicts",
+  description: "A wrapper component for Next.js Link with instant navigation - no page refresh",
   props: {
     href: {
       type: "string",
@@ -132,43 +131,10 @@ PLASMIC.registerComponent(LinkComponent, {
       type: "boolean",
       description: "Prefetch pages for faster navigation",
       defaultValue: true
-    },
-    forceRefresh: {
-      type: "boolean",
-      description: "Force page refresh instead of client-side navigation (use for pages with heavy components like DataTables)",
-      defaultValue: false
     }
   },
   importPath: "./components/LinkComponent"
-});
-
-// Register the Hydration Safe Wrapper component
-PLASMIC.registerComponent(HydrationSafeWrapper, {
-  name: "HydrationSafeWrapper",
-  displayName: "Hydration Safe Wrapper",
-  description: "A wrapper that prevents hydration mismatches for heavy components like PrimeDataTable",
-  props: {
-    children: {
-      type: "slot",
-      description: "Content to wrap (typically PrimeDataTable or other heavy components)"
-    },
-    fallback: {
-      type: "slot",
-      description: "Loading content to show during SSR and initial hydration",
-      defaultValue: "Loading..."
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes",
-      defaultValue: ""
-    },
-    style: {
-      type: "object",
-      description: "Inline styles for the wrapper"
-    }
-  },
-  importPath: "./components/HydrationSafeWrapper"
-});
+})
 
 // Register the Advanced Table component
 PLASMIC.registerComponent(AdvancedTable, {
