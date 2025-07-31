@@ -26,12 +26,26 @@ const LinkComponent = ({
 }) => {
   const router = useRouter();
   const [isHydrated, setIsHydrated] = useState(false);
-  const [navigationAttempts, setNavigationAttempts] = useState(0);
+  const [navigationFailures, setNavigationFailures] = useState(0);
   
   // Track hydration state to prevent hydration mismatches
   useEffect(() => {
     setIsHydrated(true);
+    // Reset navigation failures when component mounts/remounts
+    setNavigationFailures(0);
   }, []);
+  
+  // Reset navigation failures when route changes successfully
+  useEffect(() => {
+    const handleRouteChange = () => {
+      setNavigationFailures(0);
+    };
+    
+    router.events.on('routeChangeComplete', handleRouteChange);
+    return () => {
+      router.events.off('routeChangeComplete', handleRouteChange);
+    };
+  }, [router.events]);
   
   // Ensure href is always provided
   if (!href) {
@@ -42,13 +56,18 @@ const LinkComponent = ({
   // Handle external links (they will refresh, but internal links won't)
   const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:');
   
-  // Enhanced click handler with hydration safety and fallback mechanisms
+  // Enhanced click handler with better hydration safety
   const handleClick = async (e) => {
     // Always prevent default behavior to stop form submissions or button actions
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('LinkComponent clicked!', { href, target: e.target, isHydrated, navigationAttempts });
+    console.log('LinkComponent clicked!', { 
+      href, 
+      isHydrated, 
+      navigationFailures,
+      routerReady: router.isReady 
+    });
     
     // If there's a custom onClick, call it first
     if (onClick) {
@@ -71,56 +90,71 @@ const LinkComponent = ({
     
     // Force refresh if explicitly requested
     if (forceRefresh) {
+      console.log('Force refresh requested for:', href);
       window.location.href = href;
       return;
     }
     
-    // Check if we're not hydrated yet or have navigation issues
-    if (!isHydrated || navigationAttempts >= 2) {
-      console.warn('LinkComponent: Hydration issues detected or multiple navigation failures, falling back to hard navigation');
+    // Only fall back to hard navigation if we've had multiple consecutive failures
+    // AND we're having hydration issues
+    if (navigationFailures >= 3 && !isHydrated) {
+      console.warn('LinkComponent: Multiple navigation failures with hydration issues, falling back to hard navigation');
       window.location.href = href;
       return;
     }
     
-    // Try Next.js router navigation with error handling
+    // Try Next.js router navigation with improved error handling
     try {
       const currentPath = router.asPath;
-      console.log('Attempting navigation from', currentPath, 'to', href);
+      console.log('Attempting client-side navigation from', currentPath, 'to', href);
       
-      // Increment navigation attempts
-      setNavigationAttempts(prev => prev + 1);
+      // Don't increment failures here - only on actual failure
       
-      // Add a small delay to ensure any ongoing renders complete
-      await new Promise(resolve => setTimeout(resolve, 50));
-      
-      // Check if router is ready
+      // Check if router is ready (but don't fail if it's not - just wait a bit)
       if (!router.isReady) {
-        console.warn('Router not ready, falling back to hard navigation');
-        window.location.href = href;
-        return;
+        console.log('Router not ready, waiting...');
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // If still not ready after wait, try anyway
+        if (!router.isReady) {
+          console.log('Router still not ready, attempting navigation anyway...');
+        }
       }
       
-      // Perform navigation
+      // Perform navigation with shorter timeout for better UX
       const navigationPromise = replace ? router.replace(href) : router.push(href);
       
-      // Set a timeout for navigation
+      // Set a reasonable timeout for navigation (reduced from 3000ms to 1500ms)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Navigation timeout')), 3000)
+        setTimeout(() => reject(new Error('Navigation timeout')), 1500)
       );
       
       await Promise.race([navigationPromise, timeoutPromise]);
       
-      // Reset attempts on successful navigation
-      setTimeout(() => setNavigationAttempts(0), 1000);
-      
-      console.log('Navigation successful to:', href);
+      // Reset failures on successful navigation
+      setNavigationFailures(0);
+      console.log('Client-side navigation successful to:', href);
       
     } catch (error) {
-      console.error('Next.js router navigation failed:', error);
-      console.log('Falling back to hard navigation');
+      console.warn('Client-side navigation failed:', error.message);
       
-      // Fallback to hard navigation
-      window.location.href = href;
+      // Increment failure count
+      const newFailureCount = navigationFailures + 1;
+      setNavigationFailures(newFailureCount);
+      
+      // Only fall back to hard navigation if we've had many failures
+      // OR if this is a critical navigation error
+      const isCriticalError = error.message.includes('timeout') || 
+                             error.message.includes('aborted') ||
+                             !isHydrated;
+      
+      if (newFailureCount >= 5 || (newFailureCount >= 2 && isCriticalError)) {
+        console.log('Falling back to hard navigation after', newFailureCount, 'failures');
+        window.location.href = href;
+      } else {
+        console.log('Navigation failed, but will retry on next attempt. Failures:', newFailureCount);
+        // For non-critical failures, we don't fallback - let user try again
+      }
     }
   };
 
@@ -149,7 +183,7 @@ const LinkComponent = ({
         // Add data attributes for debugging
         data-href={href}
         data-hydrated={isHydrated}
-        data-navigation-attempts={navigationAttempts}
+        data-navigation-failures={navigationFailures}
         {...props}
       >
         {children}
