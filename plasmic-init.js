@@ -80,7 +80,7 @@ PLASMIC.registerComponent(EnvironmentCheck, {
 PLASMIC.registerComponent(LinkComponent, {
   name: "LinkComponent",
   displayName: "Link Component",
-  description: "A wrapper component for Next.js Link with slot for children content",
+  description: "A wrapper component for Next.js Link with instant navigation - no page refresh",
   props: {
     href: {
       type: "string",
@@ -111,10 +111,30 @@ PLASMIC.registerComponent(LinkComponent, {
     style: {
       type: "object",
       description: "Inline styles for the component"
+    },
+    replace: {
+      type: "boolean",
+      description: "Use replace instead of push for navigation",
+      defaultValue: false
+    },
+    scroll: {
+      type: "boolean",
+      description: "Enable smooth scrolling to top",
+      defaultValue: true
+    },
+    shallow: {
+      type: "boolean",
+      description: "Enable shallow routing for dynamic routes",
+      defaultValue: false
+    },
+    prefetch: {
+      type: "boolean",
+      description: "Prefetch pages for faster navigation",
+      defaultValue: true
     }
   },
   importPath: "./components/LinkComponent"
-});
+})
 
 // Register the Advanced Table component
 PLASMIC.registerComponent(AdvancedTable, {
