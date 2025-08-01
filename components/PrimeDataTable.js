@@ -18,6 +18,38 @@ import { Calendar } from 'primereact/calendar';
 import { InputNumber } from 'primereact/inputnumber';
 import Image from 'next/image';
 
+// Import utility functions
+import { usePlasmicCMS, defaultSaveToCMS, defaultLoadFromCMS } from './utils/cmsUtils';
+import { mergeData, needsMerging, processData, getUniqueValues, getDataSize } from './utils/dataUtils';
+import { transformToPivotData, generatePivotColumns, groupDataBy, parsePivotFieldName } from './utils/pivotUtils';
+import { useROICalculation, calculateFooterTotals, formatFooterNumber, isNumericColumn } from './utils/calculationUtils';
+import { formatCalculatedValue } from './utils/calculatedFieldsUtils';
+import { getColumnType, applyFiltersToData, createClearAllFilters, safeFilterCallback, matchFilterValue, getFilterOptions, getColumnFilterElement } from './utils/filterUtils';
+import { detectGroupKeywords, processFinalColumnStructure, generateDefaultColumns, createColumnGroups } from './utils/columnUtils';
+import { 
+  createImageBodyTemplate, 
+  dateBodyTemplate, 
+  numberBodyTemplate, 
+  booleanBodyTemplate,
+  createROIBodyTemplate,
+  createPivotValueBodyTemplate,
+  pivotRowBodyTemplate,
+  createActionsBodyTemplate,
+  createFilterClearTemplate,
+  createFilterApplyTemplate,
+  createFilterFooterTemplate,
+  createFooterTemplate,
+  createLeftToolbarTemplate,
+  createRightToolbarTemplate,
+  createFilterElement
+} from './utils/templateUtils';
+
+// Import additional extracted functions
+import { createEventHandlers } from './utils/eventHandlers';
+import { createPivotConfigHandlers } from './utils/pivotConfigUtils';
+import { createColumnGroupingHandlers } from './utils/columnGroupingUtils';
+import CalculatedFieldsManager from './CalculatedFieldsManager';
+
 // HIBERNATION FIX: Production-safe console wrapper
 const safeConsole = {
   log: process.env.NODE_ENV === 'development' ? console.log : () => {},
@@ -36,631 +68,21 @@ import {
 import { useAuth } from './AuthContext';
 
 // NEW: Direct Plasmic CMS integration functions
-const usePlasmicCMS = (workspaceId, tableId, apiToken) => {
-  const { user } = useAuth();
-  
-  // Helper function to check if user has admin permissions
-  const isAdminUser = useCallback(() => {
-    const ADMIN_ROLE_ID = '6c2a85c7-116e-43b3-a4ff-db11b7858487';
-    const userRole = user?.role || user?.roleId;
-    return userRole === ADMIN_ROLE_ID;
-  }, [user]);
-  
-  // Helper function to parse page and table names from configKey
-  const parseConfigKey = useCallback((configKey) => {
-    const parts = configKey.split('_');
-    return {
-      pageName: parts[0] || 'defaultPage',
-      tableName: parts[1] || 'defaultTable'
-    };
-  }, []);
-  
-  const saveToCMS = useCallback(async (configKey, pivotConfig) => {
-    if (!workspaceId) {
-      console.warn('Plasmic workspace ID not provided for CMS integration');
-      return null;
-    }
+// CMS integration moved to utils/cmsUtils.js
 
-    // Check if user has admin permissions
-    if (!isAdminUser()) {
-      console.warn('🚫 User does not have admin permissions to save configurations');
-      throw new Error('Access denied: Only admin users can save pivot configurations');
-    }
+// Data processing functions moved to utils/dataUtils.js
 
-    // Parse page and table names from configKey
-    const { pageName, tableName } = parseConfigKey(configKey);
+// Helper functions moved to utils/dataUtils.js
 
-    // Always use secure API route to avoid CORS issues and improve security
-    try {
-      const response = await fetch('/api/plasmic-cms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'save',
-          configKey,
-          pivotConfig,
-          pageName,
-          tableName,
-          userId: user?.email || null,
-          userRole: user?.role || user?.roleId || null
-        })
-      });
+// Column helper functions moved to utils/dataUtils.js
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        if (response.status === 403) {
-          throw new Error(errorData.message || 'Access denied: Only admin users can save pivot configurations');
-        }
-        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
-      }
+// Pivot table functions moved to utils/pivotUtils.js
 
-      const result = await response.json();
-      return result.data;
-    } catch (error) {
-      console.error('❌ CMS SAVE FAILED (API route):', error);
-      throw error;
-    }
-  }, [workspaceId, user, isAdminUser, parseConfigKey]);
-  
-  const loadFromCMS = useCallback(async (configKey, filterByPage = null, filterByTable = null) => {
-    if (!workspaceId) {
-      console.warn('Plasmic workspace ID not provided for CMS integration');
-      return null;
-    }
+// Group data functions moved to utils/pivotUtils.js
 
-    // Always use secure API route to avoid CORS issues and improve security
-    try {
-      const response = await fetch('/api/plasmic-cms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'load',
-          configKey,
-          filterByPage,
-          filterByTable
-        })
-      });
+// Large pivot transformation functions moved to utils/pivotUtils.js
 
-      if (!response.ok) {
-        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      if (result.data) {
-        return result.data;
-      } else {
-        return null;
-      }
-    } catch (error) {
-      console.error('❌ CMS LOAD FAILED (API route):', error);
-      return null;
-    }
-  }, [workspaceId]);
-  
-  const listConfigurationsFromCMS = useCallback(async (filterByPage = null, filterByTable = null) => {
-    if (!workspaceId) {
-      console.warn('Plasmic workspace ID not provided for CMS integration');
-      return [];
-    }
-
-    // Always use secure API route to avoid CORS issues and improve security
-    try {
-      const response = await fetch('/api/plasmic-cms', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'list',
-          filterByPage,
-          filterByTable
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`API route failed: ${response.status} ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      return result.data || [];
-    } catch (error) {
-      console.error('❌ CMS LIST FAILED (API route):', error);
-      throw error;
-    }
-  }, [workspaceId]);
-
-  return { saveToCMS, loadFromCMS, listConfigurationsFromCMS, isAdminUser };
-};
-
-// Merge function for combining data from multiple arrays
-const mergeData = (by = [], preserve = []) => (tables = {}) => {
-  // CRITICAL: Ensure tables is valid
-  if (!tables || typeof tables !== 'object') {
-    console.error('mergeData: invalid tables parameter, returning empty array');
-    return [];
-  }
-  
-  // CRITICAL: Ensure by array is valid
-  if (!Array.isArray(by) || by.length === 0) {
-    console.warn('mergeData: invalid or empty by array, returning flattened data');
-    const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
-    return flattened;
-  }
-  
-  const getKey = row => by.map(k => row?.[k] ?? "").join("||");
-  const preserveKey = preserve.find(k => by.includes(k));
-  const preserveCache = {};
-  
-  try {
-    Object.values(tables).flat().forEach(row => {
-    const id = row?.[preserveKey];
-    if (!id) return;
-    
-    preserveCache[id] ??= {};
-    preserve.forEach(field => {
-      const value = row?.[field];
-      if (value !== undefined && value !== null && value !== "" && value !== 0 && !preserveCache[id][field]) {
-        preserveCache[id][field] = value;
-      }
-    });
-  });
-  
-  const mergedMap = Object.values(tables).flat().reduce((acc, row) => {
-    const key = getKey(row);
-    const existing = acc[key] || {};
-    const id = row?.[preserveKey];
-    
-    acc[key] = {
-      ...existing,
-      ...row
-    };
-    
-    preserve.forEach(field => {
-      const current = acc[key][field];
-      if ((current === undefined || current === null || current === "" || current === 0) && id && preserveCache[id]?.[field]) {
-        acc[key][field] = preserveCache[id][field];
-      }
-    });
-    
-    return acc;
-  }, {});
-  
-  const result = Object.values(mergedMap);
-  
-  // CRITICAL: Ensure result is an array
-  if (!Array.isArray(result)) {
-    console.error('mergeData: result is not an array, returning empty array');
-    return [];
-  }
-  
-  return result;
-  } catch (error) {
-    console.error('mergeData: error during merge operation:', error);
-    // Fallback: return flattened data without merging
-    try {
-      const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
-      return Array.isArray(flattened) ? flattened : [];
-    } catch (fallbackError) {
-      console.error('mergeData: error in fallback operation:', fallbackError);
-      return [];
-    }
-  }
-};
-
-// Helper to detect if data needs merging (object with arrays)
-const needsMerging = (data) => {
-  return data && 
-         typeof data === 'object' && 
-         !Array.isArray(data) && 
-         Object.values(data).some(val => Array.isArray(val));
-};
-
-// Helper to get unique values for a column
-const getUniqueValues = (data, key) => {
-  return [...new Set(data
-    .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
-    .map(row => row[key])
-    .filter(val => val !== null && val !== undefined))];
-};
-
-// Pivot Table Helper Functions
-const parsePivotFieldName = (fieldName, config) => {
-  if (config.parseFieldName && typeof config.parseFieldName === 'function') {
-    return config.parseFieldName(fieldName);
-  }
-  
-  // Default parsing logic for fields like "2025-04-01__serviceAmount"
-  if (fieldName.includes(config.fieldSeparator)) {
-    const parts = fieldName.split(config.fieldSeparator);
-    return {
-      prefix: parts[0], // e.g., "2025-04-01"
-      suffix: parts.slice(1).join(config.fieldSeparator), // e.g., "serviceAmount"
-      isDateField: config.dateFieldPattern.test(parts[0]),
-      originalField: fieldName
-    };
-  }
-  
-  return {
-    prefix: null,
-    suffix: fieldName,
-    isDateField: false,
-    originalField: fieldName
-  };
-};
-
-// Group data by specified fields
-const groupDataBy = (data, groupFields) => {
-  const groups = {};
-  
-  data.forEach(row => {
-    if (!row || typeof row !== 'object') return;
-    
-    // Create a key based on the grouping fields
-    const key = groupFields.map(field => row[field] || '').join('|');
-    
-    if (!groups[key]) {
-      groups[key] = {
-        key,
-        groupValues: {},
-        rows: []
-      };
-      
-      // Store the group values for easy access
-      groupFields.forEach(field => {
-        groups[key].groupValues[field] = row[field];
-      });
-    }
-    
-    groups[key].rows.push(row);
-  });
-  
-  return Object.values(groups);
-};
-
-  // Transform data into pivot structure
-const transformToPivotData = (data, config) => {
-  // CRITICAL: Ensure data is an array
-  if (!Array.isArray(data)) {
-    console.error('transformToPivotData: data is not an array, returning empty result');
-    return { pivotData: [], pivotColumns: [], columnValues: [] };
-  }
-  
-  // CRITICAL: Ensure config is valid
-  if (!config || typeof config !== 'object') {
-    console.error('transformToPivotData: invalid config, returning original data');
-    return { pivotData: data, pivotColumns: [], columnValues: [] };
-  }
-  
-  if (!config.enabled || !data.length) {
-    return { pivotData: data, pivotColumns: [], columnValues: [] };
-  }
-  
-  const { rows, columns, values, filters } = config;
-  
-  // Step 1: Apply pivot filters if any
-  let filteredData = data;
-  if (filters && filters.length > 0) {
-    // For now, we'll handle filters through the existing filter system
-    // Could be enhanced to have specific pivot filter logic
-  }
-  
-  // Step 2: If no pivot configuration, return original data
-  if (rows.length === 0 && columns.length === 0 && values.length === 0) {
-    return { pivotData: filteredData, pivotColumns: [] };
-  }
-  
-  // Step 3: Group data by row fields
-  const rowGroups = rows.length > 0 ? groupDataBy(filteredData, rows) : [{ key: 'all', groupValues: {}, rows: filteredData }];
-  
-  // Step 4: Get unique column values
-  let columnValues = [];
-  if (columns.length > 0) {
-    columns.forEach(colField => {
-      const uniqueVals = getUniqueValues(filteredData, colField);
-      columnValues = [...columnValues, ...uniqueVals];
-    });
-    columnValues = [...new Set(columnValues)];
-    
-    if (config.sortColumns) {
-      columnValues.sort((a, b) => {
-        if (config.sortDirection === 'desc') {
-          return String(b).localeCompare(String(a));
-        }
-        return String(a).localeCompare(String(b));
-      });
-    }
-  }
-  
-  // Step 5: Create pivot structure
-  const pivotData = [];
-  
-  rowGroups.forEach(rowGroup => {
-    const pivotRow = { ...rowGroup.groupValues };
-    
-    // Store row-specific aggregated column values for meta-aggregation
-    const rowMetaAggregationValues = {};
-    
-    // Add row totals
-    if (config.showRowTotals && values.length > 0) {
-      values.forEach(valueConfig => {
-        const fieldName = valueConfig.field;
-        const aggregation = valueConfig.aggregation || 'sum';
-        const aggregateFunc = config.aggregationFunctions[aggregation];
-        
-        if (aggregateFunc) {
-          const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-          // Include aggregation type in key to support multiple aggregations for same field
-          const totalKey = values.filter(v => v.field === fieldName).length > 1 
-            ? `${fieldName}_${aggregation}_total` 
-            : `${fieldName}_total`;
-          const aggregatedValue = aggregateFunc(allValues);
-          pivotRow[totalKey] = aggregatedValue;
-        }
-      });
-    }
-    
-    // Add column-specific values
-    if (columns.length > 0 && columnValues.length > 0) {
-      columnValues.forEach(colValue => {
-        // Filter rows for this specific column value
-        const colRows = rowGroup.rows.filter(row => {
-          return columns.some(colField => row[colField] === colValue);
-        });
-        
-        // Calculate aggregated values for each value field
-        values.forEach(valueConfig => {
-          const fieldName = valueConfig.field;
-          const aggregation = valueConfig.aggregation || 'sum';
-          const aggregateFunc = config.aggregationFunctions[aggregation];
-          
-          if (aggregateFunc) {
-            const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-            // Include aggregation type in key to support multiple aggregations for same field
-            const columnKey = `${colValue}_${fieldName}_${aggregation}`;
-            const aggregatedValue = colValues.length > 0 ? aggregateFunc(colValues) : 0;
-            pivotRow[columnKey] = aggregatedValue;
-            
-            // Collect column values for row-specific meta-aggregation
-            const metaAggregations = config.metaAggregations || [];
-            metaAggregations.forEach(metaAgg => {
-              if (metaAgg.field === fieldName && metaAgg.sourceAggregation === aggregation) {
-                const metaKey = `${fieldName}_${aggregation}_${metaAgg.metaAggregation}`;
-                if (!rowMetaAggregationValues[metaKey]) {
-                  rowMetaAggregationValues[metaKey] = [];
-                }
-                console.log(`🔍 Collecting column value for meta-aggregation ${metaKey}:`, {
-                  rowName: rowGroup.groupValues,
-                  column: colValue,
-                  columnValue: aggregatedValue,
-                  currentCollectedValues: rowMetaAggregationValues[metaKey]
-                });
-                rowMetaAggregationValues[metaKey].push(aggregatedValue);
-              }
-            });
-          }
-        });
-      });
-    } else {
-      // No column grouping, just calculate values
-      values.forEach(valueConfig => {
-        const fieldName = valueConfig.field;
-        const aggregation = valueConfig.aggregation || 'sum';
-        const aggregateFunc = config.aggregationFunctions[aggregation];
-        
-        if (aggregateFunc) {
-          const allValues = rowGroup.rows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-          // Include aggregation type in key to support multiple aggregations for same field
-          const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
-            ? `${fieldName}_${aggregation}` 
-            : fieldName;
-          const aggregatedValue = aggregateFunc(allValues);
-          pivotRow[valueKey] = aggregatedValue;
-          
-          // For non-column grouping, meta-aggregation doesn't make sense since there's only one value per row
-          // Meta-aggregation is meant to aggregate across columns within a row
-        }
-      });
-    }
-    
-    // Step 5.5: Calculate row-specific meta-aggregation results
-    Object.keys(rowMetaAggregationValues).forEach(metaKey => {
-      const [fieldName, primaryAggregation, metaAggregation] = metaKey.split('_');
-      const metaAggregateFunc = config.aggregationFunctions[metaAggregation];
-      
-      if (metaAggregateFunc && rowMetaAggregationValues[metaKey].length > 0) {
-        const inputValues = rowMetaAggregationValues[metaKey];
-        
-        console.log(`🔍 Calculating ${metaAggregation} for row:`, {
-          rowInfo: rowGroup.groupValues,
-          metaKey: metaKey,
-          inputValues: inputValues,
-          operation: metaAggregation
-        });
-        
-        const metaResult = metaAggregateFunc(inputValues);
-        pivotRow[metaKey] = metaResult;
-        
-        // Manual verification for MAX
-        if (metaAggregation === 'max') {
-          const manualMax = Math.max(...inputValues.filter(v => typeof v === 'number' && !isNaN(v)));
-          console.log(`✅ MAX calculation verification:`, {
-            rowInfo: rowGroup.groupValues,
-            inputValues: inputValues,
-            functionResult: metaResult,
-            manualMaxResult: manualMax,
-            matches: metaResult === manualMax
-          });
-        }
-        
-        console.log(`✅ Final meta-aggregation result for ${metaKey}:`, metaResult);
-      }
-    });
-    
-    pivotData.push(pivotRow);
-  });
-  
-  // Step 6: Add grand totals row if needed
-  if (config.showGrandTotals && pivotData.length > 0) {
-    const grandTotalRow = { isGrandTotal: true };
-    
-    // Set row field values to "Grand Total"
-    rows.forEach(rowField => {
-      grandTotalRow[rowField] = 'Grand Total';
-    });
-    
-    // Calculate grand totals for each value
-    values.forEach(valueConfig => {
-      const fieldName = valueConfig.field;
-      const aggregation = valueConfig.aggregation || 'sum';
-      const aggregateFunc = config.aggregationFunctions[aggregation];
-      
-      if (aggregateFunc) {
-        const allValues = filteredData.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-        
-        if (config.showRowTotals) {
-          // Include aggregation type in key to support multiple aggregations for same field
-          const totalKey = values.filter(v => v.field === fieldName).length > 1 
-            ? `${fieldName}_${aggregation}_total` 
-            : `${fieldName}_total`;
-          grandTotalRow[totalKey] = aggregateFunc(allValues);
-        }
-        
-        if (columns.length > 0) {
-          columnValues.forEach(colValue => {
-            const colRows = filteredData.filter(row => {
-              return columns.some(colField => row[colField] === colValue);
-            });
-            const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined);
-            // Include aggregation type in key to support multiple aggregations for same field
-            const columnKey = `${colValue}_${fieldName}_${aggregation}`;
-            grandTotalRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
-        });
-      } else {
-          // Include aggregation type in key to support multiple aggregations for same field
-          const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
-            ? `${fieldName}_${aggregation}` 
-            : fieldName;
-          grandTotalRow[valueKey] = aggregateFunc(allValues);
-        }
-      }
-    });
-    
-    pivotData.push(grandTotalRow);
-  }
-  
-  // Step 7: Generate pivot columns
-  const pivotColumns = generatePivotColumns(config, columnValues);
-  
-  return { pivotData, pivotColumns, columnValues };
-};
-
-// Generate columns for pivot table
-const generatePivotColumns = (config, columnValues) => {
-  const { rows, columns, values } = config;
-  const pivotColumns = [];
-  
-  // Add row grouping columns
-  rows.forEach(rowField => {
-    pivotColumns.push({
-      key: rowField,
-      title: rowField.charAt(0).toUpperCase() + rowField.slice(1).replace(/([A-Z])/g, ' $1'),
-      sortable: true,
-      filterable: true,
-      type: 'text',
-      isPivotRow: true
-          });
-        });
-  
-  // Add value columns (when no column grouping)
-  if (columns.length === 0) {
-    values.forEach(valueConfig => {
-      const fieldName = valueConfig.field;
-      const aggregation = valueConfig.aggregation || 'sum';
-      
-      // Include aggregation type in key to support multiple aggregations for same field
-      const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
-        ? `${fieldName}_${aggregation}` 
-        : fieldName;
-      
-      pivotColumns.push({
-        key: valueKey,
-        title: `${fieldName} (${aggregation})`,
-        sortable: true,
-        filterable: true,
-        type: 'number',
-        isPivotValue: true
-      });
-    });
-  } else {
-    // Add column-grouped value columns
-    columnValues.forEach(colValue => {
-      values.forEach(valueConfig => {
-        const fieldName = valueConfig.field;
-        const aggregation = valueConfig.aggregation || 'sum';
-        // Include aggregation type in key to support multiple aggregations for same field
-        const columnKey = `${colValue}_${fieldName}_${aggregation}`;
-        
-        pivotColumns.push({
-          key: columnKey,
-          title: `${colValue} - ${fieldName} (${aggregation})`,
-          sortable: true,
-          filterable: true,
-          type: 'number',
-          isPivotValue: true,
-          pivotColumn: colValue,
-          pivotField: fieldName,
-          pivotAggregation: aggregation
-        });
-      });
-    });
-  }
-  
-  // Add row total columns
-  if (config.showRowTotals && values.length > 0) {
-    values.forEach(valueConfig => {
-      const fieldName = valueConfig.field;
-      const aggregation = valueConfig.aggregation || 'sum';
-      
-      // Include aggregation type in key to support multiple aggregations for same field
-      const totalKey = values.filter(v => v.field === fieldName).length > 1 
-        ? `${fieldName}_${aggregation}_total` 
-        : `${fieldName}_total`;
-      
-      pivotColumns.push({
-        key: totalKey,
-        title: `${fieldName} Total (${aggregation})`,
-        sortable: true,
-        filterable: true,
-        type: 'number',
-        isPivotTotal: true
-      });
-    });
-  }
-  
-  // Add meta-aggregation columns
-  const metaAggregations = config.metaAggregations || [];
-  metaAggregations.forEach(metaAgg => {
-    const metaKey = `${metaAgg.field}_${metaAgg.sourceAggregation}_${metaAgg.metaAggregation}`;
-    
-    pivotColumns.push({
-      key: metaKey,
-      title: `${metaAgg.metaAggregation.toUpperCase()} of ${metaAgg.field} (${metaAgg.sourceAggregation})`,
-      sortable: true,
-      filterable: true,
-      type: 'number',
-      isPivotMetaAggregation: true,
-      metaAggregation: metaAgg.metaAggregation,
-      primaryField: metaAgg.field,
-      primaryAggregation: metaAgg.sourceAggregation
-    });
-  });
-  
-  return pivotColumns;
-};
+// Generate pivot columns function moved to utils/pivotUtils.js
 
 /**
  * PrimeDataTable Component with Configurable Column Filters, Pivot Table Support, and Auto-Merge
@@ -1024,6 +446,7 @@ const PrimeDataTable = ({
     columns: [], // Array of field names to use as column headers (like Excel's "Columns" area)  
     values: [], // Array of objects with field name and aggregation function (like Excel's "Values" area)
     filters: [], // Array of field names to use as pivot filters (like Excel's "Filters" area)
+    calculatedFields: [], // Array of calculated field objects
     
     // Aggregation functions
     aggregationFunctions: {
@@ -1120,6 +543,7 @@ const PrimeDataTable = ({
     values: [],
     filters: [],
     metaAggregations: [],
+    calculatedFields: [],
     showGrandTotals: true,
     showRowTotals: true,
     showColumnTotals: true,
@@ -1131,6 +555,12 @@ const PrimeDataTable = ({
   const [isSavingPivotConfig, setIsSavingPivotConfig] = useState(false);
   const [pivotConfigLoaded, setPivotConfigLoaded] = useState(false);
 
+  // HYDRATION FIX: State to store filtered data for footer totals with safe initialization
+  const [filteredDataForTotals, setFilteredDataForTotals] = useState([]);
+  
+  // NEW: State to store filtered data for grand total calculations
+  const [filteredDataForGrandTotal, setFilteredDataForGrandTotal] = useState([]);
+
   // NEW: Direct Plasmic CMS Integration
   const { saveToCMS: directSaveToCMS, loadFromCMS: directLoadFromCMS, listConfigurationsFromCMS, isAdminUser } = usePlasmicCMS(
     plasmicWorkspaceId || process.env.PLASMIC_WORKSPACE_ID || 'uP7RbyUnivSX75FTKL9RLp',
@@ -1138,108 +568,12 @@ const PrimeDataTable = ({
     plasmicApiToken || process.env.PLASMIC_API_TOKEN
   );
 
-  // NEW: ROI Calculation Functions
-  const calculateROI = useCallback((rowData) => {
-    if (!enableROICalculation || !roiConfig) return null;
 
-    const { 
-      revenueField, 
-      costField, 
-      investmentField, 
-      profitField, 
-      calculationMethod,
-      customROICalculation 
-    } = roiConfig;
 
-    // Use custom calculation if provided
-    if (customROICalculation && typeof customROICalculation === 'function') {
-      return customROICalculation(rowData);
-    }
+  // ROI calculation functions moved to utils/calculationUtils.js
+  const { calculateROI, getROIColor, formatROIValue } = useROICalculation(enableROICalculation, roiConfig);
 
-    // Get values from row data
-    const revenue = parseFloat(rowData[revenueField]) || 0;
-    const cost = parseFloat(rowData[costField]) || 0;
-    const investment = parseFloat(rowData[investmentField]) || 0;
-    const profit = parseFloat(rowData[profitField]) || 0;
-
-    // Prevent division by zero
-    if (investment === 0) return 0;
-
-    let roiValue = 0;
-
-    if (calculationMethod === 'profit') {
-      // ROI = (Profit / Investment) * 100
-      roiValue = (profit / investment) * 100;
-    } else {
-      // Standard: ROI = ((Revenue - Cost) / Investment) * 100
-      roiValue = ((revenue - cost) / investment) * 100;
-    }
-
-    return roiValue;
-  }, [enableROICalculation, roiConfig]);
-
-  const getROIColor = useCallback((roiValue) => {
-    if (!roiConfig?.enableROIColorCoding) return null;
-
-    const { roiColorThresholds, positiveROIThreshold, negativeROIThreshold } = roiConfig;
-
-    if (roiValue >= positiveROIThreshold) {
-      return roiColorThresholds.positive;
-    } else if (roiValue < negativeROIThreshold) {
-      return roiColorThresholds.negative;
-    } else {
-      return roiColorThresholds.neutral;
-    }
-  }, [roiConfig]);
-
-  const formatROIValue = useCallback((roiValue) => {
-    if (roiValue === null || roiValue === undefined) return 'N/A';
-
-    const { roiNumberFormat, roiPrecision, showROIAsPercentage } = roiConfig;
-
-    if (showROIAsPercentage) {
-      return new Intl.NumberFormat(roiNumberFormat, {
-        minimumFractionDigits: roiPrecision,
-        maximumFractionDigits: roiPrecision
-      }).format(roiValue) + '%';
-    } else {
-      return new Intl.NumberFormat(roiNumberFormat, {
-        minimumFractionDigits: roiPrecision,
-        maximumFractionDigits: roiPrecision
-      }).format(roiValue);
-    }
-  }, [roiConfig]);
-
-  // Built-in default save function for local storage fallback
-  const defaultSaveToCMS = useCallback(async (configKey, config) => {
-    try {
-      // Save to localStorage as fallback
-      const storageKey = `pivotConfig_${configKey}`;
-      localStorage.setItem(storageKey, JSON.stringify(config));
-      console.log('✅ Pivot config saved to localStorage:', storageKey, config);
-      return true;
-    } catch (error) {
-      console.error('❌ Failed to save pivot config:', error);
-      return false;
-    }
-  }, []);
-
-  const defaultLoadFromCMS = useCallback(async (configKey) => {
-    try {
-      // Load from localStorage as fallback
-      const storageKey = `pivotConfig_${configKey}`;
-      const stored = localStorage.getItem(storageKey);
-      if (stored) {
-        const config = JSON.parse(stored);
-        console.log('✅ Pivot config loaded from localStorage:', storageKey, config);
-        return config;
-      }
-      return null;
-    } catch (error) {
-      console.error('❌ Failed to load pivot config:', error);
-      return null;
-    }
-  }, []);
+  // Default CMS functions moved to utils/cmsUtils.js - using imported functions
 
   // Choose between direct CMS integration, callback props, or built-in defaults
   const finalSaveToCMS = useDirectCMSIntegration && directSaveToCMS 
@@ -1261,15 +595,22 @@ const PrimeDataTable = ({
         
         const savedConfig = await finalLoadFromCMS(pivotConfigKey);
         if (savedConfig && typeof savedConfig === 'object') {
-          // console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
+          console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
+          
+          // Update local pivot config first
           setLocalPivotConfig(prev => ({
             ...prev,
             ...savedConfig
           }));
           
-          // If config was enabled, set pivot enabled state
+          // If config was enabled, ensure pivot is enabled and force refresh
           if (savedConfig.enabled) {
-            setIsPivotEnabled(true);
+            console.log('📊 APPLYING SAVED PIVOT CONFIG - Enabling pivot...');
+            // Use setTimeout to ensure state updates are processed
+            setTimeout(() => {
+              setIsPivotEnabled(true);
+              console.log('📊 PIVOT ENABLED FROM SAVED CONFIG');
+            }, 100);
           }
         } else {
           // console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
@@ -1447,7 +788,7 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      // console.log('Using pivot UI config:', config);
+
       return config;
     }
     
@@ -1470,6 +811,7 @@ const PrimeDataTable = ({
         columns: pivotColumns,
         values: pivotValues,
         filters: pivotFilters,
+        calculatedFields: [], // Add calculated fields support
         showGrandTotals: pivotShowGrandTotals,
         showRowTotals: pivotShowRowTotals,
         showColumnTotals: pivotShowColumnTotals,
@@ -1519,8 +861,19 @@ const PrimeDataTable = ({
   // HYDRATION FIX: Update isPivotEnabled when props change with hydration safety
   useEffect(() => {
     if (!isHydratedRef.current) return;
-    setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
-  }, [enablePivotTable, mergedPivotConfig.enabled]);
+    
+    // Don't override if config was loaded from CMS and is enabled
+    // Only set based on props if no saved config is loaded or config is explicitly disabled
+    if (pivotConfigLoaded && localPivotConfig.enabled) {
+      // Config was loaded from CMS and is enabled, keep it enabled
+      console.log('🔄 PIVOT STATE SYNC: Keeping CMS config enabled');
+      setIsPivotEnabled(true);
+    } else {
+      // Use prop-based logic for initial state or when config is disabled
+      console.log('🔄 PIVOT STATE SYNC: Using prop-based logic', { enablePivotTable, mergedConfigEnabled: mergedPivotConfig.enabled });
+      setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
+    }
+  }, [enablePivotTable, mergedPivotConfig.enabled, pivotConfigLoaded, localPivotConfig.enabled]);
 
   // Compute effective total display settings based on totalDisplayMode
   const effectiveTotalSettings = useMemo(() => {
@@ -1581,6 +934,7 @@ const PrimeDataTable = ({
       columns: [],
       values: [],
       filters: [],
+      calculatedFields: [],
       showGrandTotals: false,
       showRowTotals: false,
       showColumnTotals: false,
@@ -1618,217 +972,19 @@ const PrimeDataTable = ({
     };
   }, [mergedPivotConfig, effectiveTotalSettings.showPivotTotals]);
 
-  // HIBERNATION FIX: Optimized data processing with size checks and early returns
+  // Data processing moved to utils/dataUtils.js
   const processedData = useMemo(() => {
-    let rawData = graphqlQuery ? graphqlData : data;
-    
-    // CRITICAL: Ensure rawData is valid and safe to process
-    if (!rawData) {
-      console.warn('PrimeDataTable: No data provided, returning empty array');
-      return [];
-    }
-    
-    // CRITICAL: Validate rawData type and structure
-    if (Array.isArray(rawData) && rawData.length === 0) {
-      return [];
-    }
-    
-    // CRITICAL: If rawData is not an array and not an object, return empty array
-    if (typeof rawData !== 'object') {
-      console.warn('PrimeDataTable: Invalid data type provided, expected array or object, got:', typeof rawData);
-      return [];
-    }
-    
-    // CRITICAL: If rawData is an object but null, return empty array
-    if (rawData === null) {
-      console.warn('PrimeDataTable: Null data provided, returning empty array');
-      return [];
-    }
-    
-    // HIBERNATION FIX: Large dataset warning and processing limit
-    const getDataSize = (data) => {
-      if (Array.isArray(data)) return data.length;
-      if (typeof data === 'object' && data !== null) {
-        return Object.values(data).reduce((total, arr) => 
-          total + (Array.isArray(arr) ? arr.length : 0), 0);
-      }
-      return 0;
-    };
-    
-    const dataSize = getDataSize(rawData);
-    if (dataSize > 10000) {
-      console.warn(`⚠️ HIBERNATION WARNING: Processing ${dataSize} records. This may cause performance issues.`);
-    }
-    
-    // Check if data needs merging (object with arrays)
-    if (enableAutoMerge && needsMerging(rawData)) {
-      
-      const { by, preserve, autoDetectMergeFields, mergeStrategy } = mergeConfig;
-      
-      // Auto-detect merge fields if enabled
-      let mergeBy = by;
-      let mergePreserve = preserve;
-      
-      if (autoDetectMergeFields) {
-        // HIBERNATION FIX: Limit sampling for large datasets
-        const sampleArrays = Object.values(rawData).map(array => {
-          if (Array.isArray(array)) {
-            // For large datasets, sample only first 100 records for field detection
-            return array.length > 100 ? array.slice(0, 100) : array;
-          }
-          return array;
-        });
-        
-        // Get all unique keys from sampled arrays
-        const allKeys = new Set();
-        sampleArrays.forEach(array => {
-          if (Array.isArray(array)) {
-            array.forEach(row => {
-              if (row && typeof row === 'object') {
-                Object.keys(row).forEach(key => allKeys.add(key));
-              }
-            });
-          }
-        });
-        
-        // Find common fields across all arrays (potential merge keys)
-        const commonFields = Array.from(allKeys).filter(key => {
-          return sampleArrays.every(array => 
-            Array.isArray(array) && array.some(row => row && key in row)
-          );
-        });
-        
-        // Auto-detect merge fields (common fields that look like IDs or dates)
-        if (mergeBy.length === 0) {
-          mergeBy = commonFields.filter(field => 
-            field.toLowerCase().includes('id') || 
-            field.toLowerCase().includes('code') || 
-            field.toLowerCase().includes('date') ||
-            field.toLowerCase().includes('key')
-          );
-          
-          // If no obvious merge fields, use first common field
-          if (mergeBy.length === 0 && commonFields.length > 0) {
-            mergeBy = [commonFields[0]];
-          }
-        }
-        
-        // Auto-detect preserve fields (common fields that should be preserved)
-        if (mergePreserve.length === 0) {
-          mergePreserve = commonFields.filter(field => 
-            field.toLowerCase().includes('name') || 
-            field.toLowerCase().includes('team') || 
-            field.toLowerCase().includes('hq') ||
-            field.toLowerCase().includes('location')
-          );
-        }
-      }
-      
-      safeConsole.log('Merge configuration:', { mergeBy, mergePreserve });
-      
-      // Perform the merge
-      if (mergeBy.length > 0) {
-        try {
-          const mergeFunction = mergeData(mergeBy, mergePreserve);
-          const mergedData = mergeFunction(rawData);
-          
-          // CRITICAL: Ensure merged data is an array
-          if (!Array.isArray(mergedData)) {
-            console.warn('PrimeDataTable: Merge function did not return an array, converting to array');
-            return [];
-          }
-          
-          return mergedData;
-        } catch (error) {
-          console.error('PrimeDataTable: Error during data merge:', error);
-          return [];
-        }
-      } else {
-        // If no merge fields detected, flatten the data with group markers
-        const flattenedData = [];
-        try {
-          Object.entries(rawData).forEach(([groupKey, array]) => {
-            if (Array.isArray(array)) {
-              array.forEach(row => {
-                if (row && typeof row === 'object') {
-                  flattenedData.push({
-                    ...row,
-                    __group: groupKey // Add group marker for column grouping
-                  });
-                }
-              });
-            }
-          });
-        } catch (error) {
-          console.error('PrimeDataTable: Error during data flattening:', error);
-          return [];
-        }
-        
-        return flattenedData;
-      }
-    }
-    
-    // HIBERNATION FIX: Optimized ROI calculation with batch processing
-    let finalData = rawData;
-    
-    // CRITICAL: Ensure finalData is an array before processing
-    if (!Array.isArray(finalData)) {
-      if (finalData && typeof finalData === 'object') {
-        // If it's an object but not an array, try to convert it
-        console.warn('PrimeDataTable: Data is object but not array, attempting conversion');
-        const objectKeys = Object.keys(finalData);
-        if (objectKeys.length > 0) {
-          // If object has array properties, try to flatten
-          const firstValue = finalData[objectKeys[0]];
-          if (Array.isArray(firstValue)) {
-            finalData = firstValue;
-          } else {
-            finalData = [finalData];
-          }
-        } else {
-          finalData = [];
-        }
-      } else {
-        console.warn('PrimeDataTable: Final data is not an array, converting to empty array');
-        finalData = [];
-      }
-    }
-    
-    if (enableROICalculation && Array.isArray(finalData)) {
-      try {
-        // For large datasets, use batch processing to avoid blocking the main thread
-        if (finalData.length > 1000) {
-          safeConsole.log(`Processing ${finalData.length} records with ROI calculation in batches...`);
-        }
-        
-        finalData = finalData.map(row => {
-          if (row && typeof row === 'object') {
-            try {
-              const roiValue = calculateROI(row);
-              return {
-                ...row,
-                [roiConfig.roiColumnKey]: roiValue
-              };
-            } catch (error) {
-              console.error('PrimeDataTable: Error calculating ROI for row:', error);
-              return row;
-            }
-          }
-          return row;
-        });
-      } catch (error) {
-        console.error('PrimeDataTable: Error during ROI calculation:', error);
-        // Continue with original data if ROI calculation fails
-      }
-    }
-    
-    // CRITICAL: Final safety check - ensure we always return an array
-    if (!Array.isArray(finalData)) {
-      console.error('PrimeDataTable: Final data is still not an array after processing, returning empty array');
-      return [];
-    }
-    
-    return finalData;
+    const rawData = graphqlQuery ? graphqlData : data;
+    return processData(
+      rawData, 
+      graphqlQuery, 
+      graphqlData, 
+      enableAutoMerge, 
+      mergeConfig, 
+      enableROICalculation, 
+      calculateROI, 
+      roiConfig
+    );
   }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig, enableROICalculation, calculateROI, roiConfig]);
 
   // Use processed data
@@ -1836,14 +992,20 @@ const PrimeDataTable = ({
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
+  // HYDRATION FIX: Initialize filtered data for totals
+  useEffect(() => {
+    if (!isMountedRef.current) return;
+    
+    if (tableData && Array.isArray(tableData)) {
+      const validData = tableData.filter(row => row && typeof row === 'object');
+      setFilteredDataForTotals(validData);
+    } else {
+      setFilteredDataForTotals([]);
+    }
+  }, [tableData]); // Update when tableData changes
+
   // Pivot data transformation
   const pivotTransformation = useMemo(() => {
-    // console.log('Pivot Transformation Check:', {
-    //   isPivotEnabled,
-    //   mergedPivotConfigEnabled: mergedPivotConfig.enabled,
-    //   mergedPivotConfig: mergedPivotConfig
-    // });
-
     // CRITICAL: Ensure tableData is an array before pivot transformation
     if (!Array.isArray(tableData)) {
       console.warn('PrimeDataTable: tableData is not an array before pivot transformation');
@@ -1851,6 +1013,7 @@ const PrimeDataTable = ({
         pivotData: [], 
         pivotColumns: [], 
         columnValues: [], 
+        grandTotalData: null,
         isPivot: false 
       };
     }
@@ -1861,6 +1024,7 @@ const PrimeDataTable = ({
         pivotData: tableData, 
         pivotColumns: [], 
         columnValues: [], 
+        grandTotalData: null,
         isPivot: false 
       };
     }
@@ -1877,6 +1041,7 @@ const PrimeDataTable = ({
           pivotData: tableData, 
           pivotColumns: [], 
           columnValues: [], 
+          grandTotalData: null,
           isPivot: false 
         };
       }
@@ -1891,10 +1056,13 @@ const PrimeDataTable = ({
         pivotData: Array.isArray(tableData) ? tableData : [], 
         pivotColumns: [], 
         columnValues: [], 
+        grandTotalData: null,
         isPivot: false 
       };
     }
   }, [tableData, isPivotEnabled, adjustedPivotConfig]);
+
+
 
   // Final data source - either original data or pivot data
   // CRITICAL: Add final safety check to ensure finalTableData is always an array
@@ -1906,9 +1074,157 @@ const PrimeDataTable = ({
       console.error('PrimeDataTable: finalTableData is not an array, converting to empty array. Data type:', typeof data, 'Value:', data);
       return [];
     }
-    
+
+    // Don't modify data - we'll use PrimeReact's footer functionality instead
+
+
+
     return data;
   }, [pivotTransformation, tableData]);
+  
+  // Initialize filtered data for grand total calculations when finalTableData changes
+  useEffect(() => {
+    if (finalTableData && finalTableData.length > 0) {
+      setFilteredDataForGrandTotal(finalTableData);
+    }
+  }, [finalTableData]);
+  
+  // NEW: Handle global filter changes for grand total calculation
+  useEffect(() => {
+    if (!globalFilterValue || globalFilterValue.trim() === '') {
+      // No global filter, use all data
+      setFilteredDataForGrandTotal(finalTableData);
+
+    } else {
+      // Apply global filter manually for grand total calculation - SIMPLE DIRECT APPROACH
+      // Based on your data: {brand: 'PREGABRIT', quantity_total: 65244, quantity: 65244}
+      // Search in the main visible fields
+      const filteredData = finalTableData.filter(row => {
+        const searchValue = globalFilterValue.toLowerCase();
+        
+        // Search in brand field (main field to search)
+        const brandValue = row.brand || row.Brand || '';
+        if (String(brandValue).toLowerCase().includes(searchValue)) {
+          return true;
+        }
+        
+        // Also search in quantity fields if they contain the search term
+        const quantityValue = row.quantity || '';
+        if (String(quantityValue).toLowerCase().includes(searchValue)) {
+          return true;
+        }
+        
+        const quantityTotalValue = row.quantity_total || '';
+        if (String(quantityTotalValue).toLowerCase().includes(searchValue)) {
+          return true;
+        }
+        
+        return false;
+      });
+      
+
+      
+      setFilteredDataForGrandTotal(filteredData);
+
+    }
+  }, [globalFilterValue, finalTableData]);
+  
+  // NEW: Dynamic grand total calculation based on filtered data
+  const dynamicGrandTotal = useMemo(() => {
+    if (!pivotTransformation.isPivot || !effectiveTotalSettings.showPivotTotals) {
+      return null;
+    }
+    
+    // CRITICAL: Use filtered data if available, otherwise use all data
+    const dataToCalculate = filteredDataForGrandTotal.length > 0 ? filteredDataForGrandTotal : finalTableData;
+    
+    // Don't calculate if no data
+    if (!dataToCalculate || dataToCalculate.length === 0) {
+      return null;
+    }
+    
+
+    
+    // Get pivot configuration
+    const config = adjustedPivotConfig;
+    const { values } = config;
+    
+    if (!values || values.length === 0) {
+      return null;
+    }
+    
+    // Calculate grand totals for each value field
+    const grandTotalRow = { isGrandTotal: true };
+    
+    // Set row field values to "Grand Total"
+    if (config.rows) {
+      config.rows.forEach(rowField => {
+        grandTotalRow[rowField] = 'Grand Total';
+      });
+    }
+    
+    // Calculate totals for each value configuration
+    values.forEach(valueConfig => {
+      const fieldName = valueConfig.field;
+      const aggregation = valueConfig.aggregation || 'sum';
+      const aggregateFunc = config.aggregationFunctions[aggregation];
+      
+      if (aggregateFunc) {
+        // Extract values from the filtered data ONLY
+        const allValues = dataToCalculate
+          .map(row => row[fieldName])
+          .filter(v => v !== null && v !== undefined && typeof v === 'number');
+        
+        // Calculate the total from ONLY the visible/filtered rows
+        const calculatedTotal = allValues.length > 0 ? aggregateFunc(allValues) : 0;
+        
+        // Store with the same key structure as pivot data
+        if (config.showRowTotals) {
+          const totalKey = values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}_total` 
+            : `${fieldName}_total`;
+          grandTotalRow[totalKey] = calculatedTotal;
+        }
+        
+        // For column grouping, calculate totals for each column
+        if (config.columns && config.columns.length > 0) {
+          // Get unique column values from filtered data
+          const columnValues = [];
+          config.columns.forEach(colField => {
+            const uniqueVals = [...new Set(dataToCalculate.map(row => row[colField]).filter(v => v !== null && v !== undefined))];
+            columnValues.push(...uniqueVals);
+          });
+          const uniqueColumnValues = [...new Set(columnValues)];
+          
+          uniqueColumnValues.forEach(colValue => {
+            const colRows = dataToCalculate.filter(row => {
+              return config.columns.some(colField => row[colField] === colValue);
+            });
+            const colValues = colRows.map(row => row[fieldName]).filter(v => v !== null && v !== undefined && typeof v === 'number');
+            const columnKey = `${colValue}_${fieldName}_${aggregation}`;
+            grandTotalRow[columnKey] = colValues.length > 0 ? aggregateFunc(colValues) : 0;
+          });
+        } else {
+          // No column grouping, use simple field name
+          const valueKey = values.length > 1 && values.filter(v => v.field === fieldName).length > 1 
+            ? `${fieldName}_${aggregation}` 
+            : fieldName;
+          grandTotalRow[valueKey] = calculatedTotal;
+        }
+        
+
+      }
+    });
+    
+    return grandTotalRow;
+  }, [
+    pivotTransformation.isPivot, 
+    effectiveTotalSettings.showPivotTotals, 
+    filteredDataForGrandTotal, 
+    finalTableData, 
+    adjustedPivotConfig
+  ]);
+  
   const hasPivotData = pivotTransformation.isPivot && pivotTransformation.pivotData.length > 0;
 
   // NEW: Helper functions for pivot configuration UI
@@ -1945,100 +1261,25 @@ const PrimeDataTable = ({
     { label: 'Last', value: 'last' }
   ];
 
-  // Apply pivot configuration (UI only - temporary)
-  const applyPivotConfig = useCallback(() => {
-    if (enablePivotUI) {
-      // Update the merged pivot config with local config
-      const newConfig = { ...mergedPivotConfig, ...localPivotConfig };
-      // console.log('Applying pivot config (UI only):', newConfig);
-      setIsPivotEnabled(newConfig.enabled && newConfig.rows.length > 0);
-    }
-    setShowPivotConfig(false);
-  }, [localPivotConfig, mergedPivotConfig, enablePivotUI]);
-
-  // Apply AND Save pivot configuration to CMS
-  const applyAndSavePivotConfig = useCallback(async () => {
-    if (enablePivotUI) {
-      // First apply to UI
-      const newConfig = { ...mergedPivotConfig, ...localPivotConfig };
-      // console.log('Applying and saving pivot config:', newConfig);
-      setIsPivotEnabled(newConfig.enabled && newConfig.rows.length > 0);
-      
-      // Then save to CMS (only if user is admin)
-      if (enablePivotPersistence && finalSaveToCMS && isAdminUser()) {
-        try {
-          setIsSavingPivotConfig(true);
-          await finalSaveToCMS(pivotConfigKey, localPivotConfig);
-        } catch (error) {
-          console.error('❌ CMS SAVE FAILED:', error);
-          // Optionally show error notification to user
-        } finally {
-          setIsSavingPivotConfig(false);
-        }
-      } else if (enablePivotPersistence && !isAdminUser()) {
-        // Pivot config applied locally but not saved to CMS (requires admin permissions)
-      }
-    }
-    setShowPivotConfig(false);
-  }, [localPivotConfig, mergedPivotConfig, enablePivotUI, enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
-
-  // Reset pivot configuration
-  const resetPivotConfig = useCallback(async () => {
-    const defaultConfig = {
-      enabled: false,
-      rows: [],
-      columns: [],
-      values: [],
-      filters: [],
-      showGrandTotals: true,
-      showRowTotals: true,
-      showColumnTotals: true,
-      showSubTotals: true
-    };
-    
-    setLocalPivotConfig(defaultConfig);
-    setIsPivotEnabled(false);
-    
-    // Save reset config to CMS (only if user is admin)
-    if (enablePivotPersistence && finalSaveToCMS && isAdminUser()) {
-      try {
-        setIsSavingPivotConfig(true);
-        await finalSaveToCMS(pivotConfigKey, defaultConfig);
-        // console.log('🔄 RESET CONFIG SAVED TO CMS');
-      } catch (error) {
-        console.error('❌ FAILED TO SAVE RESET CONFIG:', error);
-      } finally {
-        setIsSavingPivotConfig(false);
-      }
-    } else if (enablePivotPersistence && !isAdminUser()) {
-      // Pivot config reset locally but not saved to CMS (requires admin permissions)
-    }
-  }, [enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
-
-  // Manual save function for CMS persistence (admin only)
-  const savePivotConfigManually = useCallback(async () => {
-    if (!enablePivotPersistence || !finalSaveToCMS) return;
-    
-    if (!isAdminUser()) {
-      console.warn('🚫 Manual save denied: Only admin users can save pivot configurations');
-      throw new Error('Access denied: Only admin users can save pivot configurations');
-    }
-    
-    setIsSavingPivotConfig(true);
-    try {
-      // console.log('💾 MANUAL SAVE TO CMS - Config Key:', pivotConfigKey);
-      // console.log('📊 MANUAL SAVE TO CMS - Pivot Config:', localPivotConfig);
-      
-      await finalSaveToCMS(pivotConfigKey, localPivotConfig);
-      
-      // console.log('✅ MANUAL CMS SAVE SUCCESSFUL!');
-    } catch (error) {
-      console.error('❌ MANUAL CMS SAVE FAILED:', error);
-      throw error;
-    } finally {
-      setIsSavingPivotConfig(false);
-    }
-  }, [localPivotConfig, enablePivotPersistence, finalSaveToCMS, pivotConfigKey, isAdminUser]);
+  // Pivot configuration handlers - extracted to utils/pivotConfigUtils.js
+  const {
+    applyPivotConfig,
+    applyAndSavePivotConfig,
+    resetPivotConfig,
+    savePivotConfigManually
+  } = createPivotConfigHandlers({
+    enablePivotUI,
+    localPivotConfig,
+    mergedPivotConfig,
+    setIsPivotEnabled,
+    setShowPivotConfig,
+    enablePivotPersistence,
+    finalSaveToCMS,
+    isAdminUser,
+    setIsSavingPivotConfig,
+    pivotConfigKey,
+    setLocalPivotConfig
+  });
 
   // HIBERNATION FIX: Comprehensive component unmount cleanup with performance monitoring
   useEffect(() => {
@@ -2054,13 +1295,17 @@ const PrimeDataTable = ({
     };
     
     const handleVisibilityChange = () => {
-      if (document.hidden && tableData && tableData.length > 10000) {
+      if (typeof document !== 'undefined' && document.hidden && tableData && tableData.length > 10000) {
         safeConsole.log('⚠️ Page hidden with large dataset - potential hibernation risk');
       }
     };
     
-    // Only add event listeners if dealing with large datasets
-    if (tableData && tableData.length > 5000) {
+    // Only add event listeners if dealing with large datasets and we're in a proper browser environment
+    // Skip in Plasmic Studio to avoid iframe communication issues
+    const isValidBrowserEnvironment = typeof window !== 'undefined' && typeof document !== 'undefined' && !window.parent;
+    const isPlasmicStudio = typeof window !== 'undefined' && window.location?.hostname?.includes('plasmic');
+    
+    if (isValidBrowserEnvironment && !isPlasmicStudio && tableData && tableData.length > 5000) {
       window.addEventListener('beforeunload', handleBeforeUnload);
       document.addEventListener('visibilitychange', handleVisibilityChange);
     }
@@ -2071,102 +1316,17 @@ const PrimeDataTable = ({
         safeConsole.log(`⚠️ Long-lived PrimeDataTable component (${componentLifetime}ms) - potential memory leak`);
       }
       
-      // Clean up event listeners (don't clear isMountedRef here as this effect runs on tableData changes)
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // Clean up event listeners with proper checks (don't clear isMountedRef here as this effect runs on tableData changes)
+      if (typeof window !== 'undefined' && !isPlasmicStudio) {
+        window.removeEventListener('beforeunload', handleBeforeUnload);
+      }
+      if (typeof document !== 'undefined' && !isPlasmicStudio) {
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+      }
     };
   }, [tableData]);
 
-  const getColumnType = useCallback((column) => {
-    const key = column.key;
-
-    if (dropdownFilterColumns?.includes(key)) return 'dropdown';
-    if (numberFilterColumns?.includes(key)) return 'number';
-    if (datePickerFilterColumns?.includes(key)) return 'date';
-    if (booleanFilterColumns?.includes(key)) return 'boolean';
-    if (textFilterColumns?.includes(key)) return 'text';
-
-    return column.type || 'text'; // fallback
-  }, [dropdownFilterColumns, numberFilterColumns, datePickerFilterColumns, booleanFilterColumns, textFilterColumns]);
-
-  // Function to generate the correct filter UI for a column based on its type and data
-  const getColumnFilterElement = useCallback((column, filterValue, filterCallback) => {
-    const columnType = getColumnType(column);
-    const columnKey = column.key;
-
-    switch (columnType) {
-      case 'dropdown':
-      case 'select':
-      case 'categorical': {
-        const uniqueValues = getUniqueValues(tableData, columnKey);
-        const options = [
-          { label: 'All', value: null },
-          ...uniqueValues.map(val => ({ label: String(val), value: val }))
-        ];
-        return (
-          <Dropdown
-            value={filterValue}
-            options={options}
-            onChange={(e) => filterCallback(e.value)}
-            placeholder="Select..."
-            className="p-column-filter"
-            showClear
-          />
-        );
-      }
-
-      case 'date':
-      case 'datetime':
-        return (
-          <Calendar
-            value={filterValue || null}
-            onChange={(e) => filterCallback(e.value)}
-            placeholder="Select date range"
-            className="p-column-filter"
-            dateFormat="yy-mm-dd"
-            selectionMode="range"
-            showIcon
-          />
-        );
-
-      case 'number':
-        return (
-          <InputNumber
-            value={filterValue || null}
-            onValueChange={(e) => filterCallback(e.value)}
-            placeholder={`Enter ${column.title}`}
-            className="p-column-filter"
-            inputStyle={{ width: '100%' }}
-          />
-        );
-
-      case 'boolean':
-        return (
-          <Dropdown
-            value={filterValue}
-            options={[
-              { label: 'All', value: null },
-              { label: 'True', value: true },
-              { label: 'False', value: false }
-            ]}
-            onChange={(e) => filterCallback(e.value)}
-            placeholder="Select..."
-            className="p-column-filter"
-            showClear
-          />
-        );
-
-      default:
-        return (
-          <InputText
-            value={filterValue || ''}
-            onChange={(e) => filterCallback(e.target.value || null)}
-            placeholder={`Filter ${column.title}...`}
-            className="p-column-filter"
-          />
-        );
-    }
-  }, [tableData, getColumnType]);
+  // Column type detection and filter element functions moved to utils/filterUtils.js and utils/templateUtils.js
 
 
 
@@ -2186,13 +1346,87 @@ const PrimeDataTable = ({
 
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
-      // console.log('Using pivot columns:', pivotTransformation.pivotColumns);
       cols = pivotTransformation.pivotColumns.map(col => ({
         ...col,
         sortable: col.sortable !== false,
         filterable: col.filterable !== false,
         type: col.type || 'text'
       }));
+      
+      // Add calculated field columns to pivot columns
+      if (pivotTransformation.pivotData?.length > 0) {
+        const sampleRow = pivotTransformation.pivotData[0];
+        const processedCalculatedFields = new Set(); // Track processed field names to prevent duplicates
+        
+        Object.keys(sampleRow).forEach(key => {
+          if (key.startsWith('calc_') && !key.endsWith('_meta')) {
+            const meta = sampleRow[`${key}_meta`];
+            if (meta) {
+              // ✅ Step 1: Prevent duplicate columns with same name
+              if (processedCalculatedFields.has(meta.name)) {
+                console.warn(`⚠️ Skipping duplicate calculated field: ${meta.name} (key: ${key})`);
+                return; // Skip this duplicate
+              }
+              
+              // ✅ Step 2: Create unique key for JSX rendering
+              const uniqueKey = `${key}_${meta.name}`;
+              processedCalculatedFields.add(meta.name);
+              
+              // ✅ Step 3: Create descriptive title for duplicate fields
+              const existingFieldsWithSameName = cols.filter(col => col.title === meta.name);
+              const title = existingFieldsWithSameName.length > 0 
+                ? `${meta.name} (${existingFieldsWithSameName.length + 1})` 
+                : meta.name;
+              
+              const calculatedFieldColumn = {
+                key: key, // Keep original key for internal use
+                uniqueKey: uniqueKey, // ✅ Unique key for JSX rendering
+                title: title,
+                sortable: true,
+                filterable: true,
+                type: 'number',
+                isPivotCalculatedField: true,
+                calculatedField: meta,
+                // Custom body template for calculated fields
+                body: (rowData) => {
+                  const value = rowData[key];
+                  if (value === 'Error') {
+                    return <span style={{ color: 'red' }}>Error</span>;
+                  }
+                  return formatCalculatedValue(value, meta.format || 'number', {
+                    currency: adjustedPivotConfig.currency,
+                    locale: adjustedPivotConfig.numberFormat,
+                    precision: adjustedPivotConfig.precision
+                  });
+                }
+              };
+              
+              // ✅ Deduplication guard - prevent duplicate calculated field columns
+              const alreadyExists = cols.some(col => col.key === key);
+              const duplicateTitle = cols.some(col => col.title === title && col.key !== key);
+              
+              if (!alreadyExists) {
+                // Add calculated field column to the pivot columns
+                cols.push(calculatedFieldColumn);
+                
+                console.log('✅ ADDED CALCULATED FIELD COLUMN:', {
+                  key: key,
+                  uniqueKey: uniqueKey,
+                  title: title,
+                  formula: meta.formula,
+                  hasDuplicateTitle: duplicateTitle
+                });
+              } else {
+                console.warn('⚠️ SKIPPING DUPLICATE CALCULATED FIELD:', {
+                  key: key,
+                  title: title,
+                  existingColumns: cols.filter(col => col.key === key).map(col => ({ key: col.key, title: col.title }))
+                });
+              }
+            }
+          }
+        });
+      }
     } else if (columns.length > 0) {
       // ✅ Normalize keys from field/header if missing
       const normalizedColumns = columns.map(col => {
@@ -2201,7 +1435,7 @@ const PrimeDataTable = ({
           key,
           title: col.title || col.header || key,
           sortable: col.sortable !== false,
-          filterable: col.filterable !== false,
+          filterable: col.filterable !== false, // FIXED: Ensure filterable is explicitly set
           type: col.type || 'text',
           ...col,
           key // override or re-add key to make sure it's set
@@ -2227,7 +1461,7 @@ const PrimeDataTable = ({
           key,
           title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
           sortable: true,
-          filterable: true,
+          filterable: true, // FIXED: Ensure auto-generated columns are filterable
           type
         };
       });
@@ -2240,7 +1474,42 @@ const PrimeDataTable = ({
     }
 
     if (fields && Array.isArray(fields) && fields.length > 0) {
-      cols = cols.filter(col => fields.includes(col.key));
+      cols = cols.filter(col => {
+        // Always include calculated field columns (they start with 'calc_')
+        if (col.key && col.key.startsWith('calc_')) {
+          return true;
+        }
+        // For other columns, check if they're in the fields array
+        return fields.includes(col.key);
+      });
+    }
+
+    // Debug log to confirm calculated fields are included
+    console.log("🧠 Final column keys:", cols.map(col => col.key));
+    
+    // NEW: Debug log to check for duplicate keys in final columns
+    const finalColumnKeys = cols.map(col => col.key);
+    const duplicateKeys = finalColumnKeys.filter((key, index) => finalColumnKeys.indexOf(key) !== index);
+    
+    if (duplicateKeys.length > 0) {
+      console.error('❌ DUPLICATE COLUMN KEYS DETECTED:', {
+        duplicateKeys: duplicateKeys,
+        allKeys: finalColumnKeys,
+        columns: cols.map(col => ({ key: col.key, title: col.title, uniqueKey: col.uniqueKey }))
+      });
+    } else {
+      console.log('✅ NO DUPLICATE COLUMN KEYS FOUND');
+    }
+    
+    // NEW: Summary of calculated field columns
+    const calculatedFieldColumns = cols.filter(col => col.isPivotCalculatedField);
+    if (calculatedFieldColumns.length > 0) {
+      console.log('📊 FINAL CALCULATED FIELD COLUMNS:', calculatedFieldColumns.map(col => ({
+        key: col.key,
+        uniqueKey: col.uniqueKey,
+        title: col.title,
+        formula: col.calculatedField?.formula
+      })));
     }
 
     // NEW: Add ROI column if ROI calculation is enabled
@@ -2258,6 +1527,11 @@ const PrimeDataTable = ({
       cols.push(roiColumn);
     }
 
+
+
+    // Debug log to confirm calculated fields are in final columns
+    console.log("🧠 Final Columns:", cols.map(col => col.key));
+    
     return cols;
   }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, enableROICalculation, roiConfig]);
 
@@ -2539,17 +1813,52 @@ const PrimeDataTable = ({
       global: { value: globalFilterValue, matchMode: FilterMatchMode.CONTAINS }
     };
     
+    // Initialize filters for all columns that should be filterable
     defaultColumns.forEach(col => {
-      if (col.filterable && enableColumnFilter) {
+      // FIXED: Check filterable property properly - if not explicitly false and enableColumnFilter is true
+      const isFilterable = (col.filterable !== false) && enableColumnFilter;
+      
+      if (isFilterable) {
+        // FIXED: Determine appropriate match mode based on column type
+        const columnType = getColumnType(col);
+        let matchMode = FilterMatchMode.CONTAINS;
+        
+        switch (columnType) {
+          case 'dropdown':
+          case 'select':
+          case 'categorical':
+          case 'boolean':
+            matchMode = FilterMatchMode.EQUALS;
+            break;
+          case 'number':
+            matchMode = FilterMatchMode.EQUALS;
+            break;
+          case 'date':
+          case 'datetime':
+            matchMode = FilterMatchMode.DATE_IS;
+            break;
+          default:
+            matchMode = FilterMatchMode.CONTAINS;
+        }
+        
         // Use advanced filter structure for all columns to match official PrimeReact design
         initialFilters[col.key] = { 
           operator: FilterOperator.AND, 
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
+          constraints: [{ value: null, matchMode }] 
         };
       }
     });
+    
+    // FIXED: Debug logging to help identify filter initialization issues
+    console.log('🔍 FILTER INITIALIZATION:', {
+      totalColumns: defaultColumns.length,
+      filterableColumns: defaultColumns.filter(col => (col.filterable !== false) && enableColumnFilter).length,
+      initialFilters: Object.keys(initialFilters),
+      enableColumnFilter
+    });
+    
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue, getColumnType]);
 
   useEffect(() => {
     if (!isMountedRef.current) return;
@@ -2625,540 +1934,86 @@ const PrimeDataTable = ({
 
 
 
-  // Enhanced event handlers
-  const handleSort = useCallback((event) => {
-    setSortField(event.sortField);
-    setSortOrder(event.sortOrder);
-    
-    // HYDRATION FIX: Use safe callback to prevent setState during render
-    if (onSortChange) {
-      safeCallback(onSortChange, event.sortField, event.sortOrder === 1 ? 'asc' : 'desc');
-    }
-  }, [onSortChange, safeCallback]);
+  // Event handlers - extracted to utils/eventHandlers.js
+  const {
+    handleSort,
+    handleFilter,
+    handleSearch,
+    handleBulkAction,
+    clearAllFilters,
+    handleRowSelect,
+    handleExport,
+    handleRefresh,
+    handleRowEditSave,
+    handleRowEditCancel,
+    handleRowEditInit,
+    handleEditingRowsChange,
+    handleContextMenuSelectionChange,
+    handleContextMenu,
+    handlePageChange
+  } = createEventHandlers({
+    setSortField,
+    setSortOrder,
+    onSortChange,
+    safeCallback,
+    setFilters,
+    onFilterChange,
+    finalTableData,
+    setGlobalFilterValue,
+    onSearch,
+    onBulkAction,
+    selectedRows,
+    setCommonFilterField,
+    setCommonFilterValue,
+    defaultColumns,
+    enableColumnFilter,
+    enableFooterTotals,
+    tableData,
+    getColumnType,
+    setFilteredDataForTotals,
+    setSelectedRows,
+    onRowSelect,
+    enableExport,
+    onExport,
+    exportFileType,
+    enableExcelExport,
+    enablePdfExport,
+    exportFilename,
+    enableRefresh,
+    onRefresh,
+    setIsRefreshing,
+    setLocalEditingRows,
+    onEditingRowsChange,
+    setLocalContextMenuSelection,
+    onContextMenuSelectionChange,
+    onContextMenu,
+    setLocalCurrentPage,
+    setLocalPageSize,
+    onPageChange,
+    onRowEditSave,
+    onRowEditCancel,
+    onRowEditInit
+  });
 
-  const handleFilter = useCallback((event) => {
-    setFilters(event.filters);
-    
-    // HYDRATION FIX: Use safe callback to prevent setState during render
-    if (onFilterChange) {
-      safeCallback(onFilterChange, event.filters);
-    }
-  }, [onFilterChange, safeCallback]);
+  // Custom cell renderers moved to utils/templateUtils.js
+  const imageBodyTemplate = createImageBodyTemplate(popupImageFields, setImageModalSrc, setImageModalAlt, setShowImageModal);
+  const roiBodyTemplate = createROIBodyTemplate(formatROIValue, getROIColor);
 
-  const handleSearch = useCallback((value) => {
-    setGlobalFilterValue(value);
-    
-    // Update filters with the new global filter value
-    let _filters = { ...filters };
-    if (!_filters['global']) {
-      _filters['global'] = { value: null, matchMode: FilterMatchMode.CONTAINS };
-    }
-    _filters['global'].value = value;
-    setFilters(_filters);
-    
-    if (onSearch) {
-      onSearch(value);
-    }
-  }, [onSearch, filters]);
-
-  const handleBulkAction = useCallback((action) => {
-    if (onBulkAction) {
-      onBulkAction(action, selectedRows);
-    }
-  }, [onBulkAction, selectedRows]);
-
-  const clearAllFilters = useCallback(() => {
-    setGlobalFilterValue("");
-    
-    // Clear common filter for column grouping
-    setCommonFilterField('');
-    setCommonFilterValue('');
-    
-    // Reset all filters to default state
-    const clearedFilters = {
-      global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-    };
-    
-    // Reset column filters to default state
-    defaultColumns.forEach(col => {
-      if (col.filterable && enableColumnFilter) {
-        clearedFilters[col.key] = { 
-          operator: FilterOperator.AND, 
-          constraints: [{ value: null, matchMode: FilterMatchMode.CONTAINS }] 
-        };
-      }
-    });
-    
-    setFilters(clearedFilters);
-    setSortField(null);
-    setSortOrder(1);
-    
-    // Clear filtered data for totals
-    if (enableFooterTotals) {
-      setFilteredDataForTotals(tableData.filter(row => row && typeof row === 'object'));
-    }
-  }, [defaultColumns, enableColumnFilter, enableFooterTotals, tableData]);
-
-  const handleRowSelect = useCallback((event) => {
-    setSelectedRows(event.value);
-    
-    if (onRowSelect) {
-      onRowSelect(event.value);
-    }
-  }, [onRowSelect]);
-
-  const handleExport = useCallback(() => {
-    if (!enableExport) return;
-    
-    // Use finalTableData which contains pivot-transformed data when pivot is enabled
-    const dataToExport = finalTableData;
-    
-    if (onExport) {
-      onExport(dataToExport);
-    } else {
-      // Enhanced export with multiple formats
-      switch (exportFileType) {
-        case 'excel':
-          if (enableExcelExport) {
-            // Excel export using jspdf-autotable
-            const csvContent = [
-              defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
-                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-              )
-            ].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${exportFilename}.xlsx`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-          break;
-        case 'pdf':
-          if (enablePdfExport) {
-            // PDF export using jspdf-autotable
-            const csvContent = [
-              defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
-                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-              )
-            ].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${exportFilename}.pdf`;
-            a.click();
-            URL.revokeObjectURL(url);
-          }
-          break;
-        default:
-          // Default CSV export
-          const csvContent = [
-            defaultColumns.map(col => col.title).join(','),
-            ...dataToExport.map(row => 
-              defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-            )
-          ].join('\n');
-          
-          const blob = new Blob([csvContent], { type: 'text/csv' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${exportFilename}.csv`;
-          a.click();
-          URL.revokeObjectURL(url);
-          break;
-      }
-    }
-  }, [enableExport, finalTableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns]);
-
-  const handleRefresh = useCallback(async () => {
-    if (!enableRefresh) return;
-    
-    setIsRefreshing(true);
-    try {
-      if (onRefresh) {
-        await onRefresh();
-      }
-    } finally {
-      setIsRefreshing(false);
-    }
-  }, [enableRefresh, onRefresh]);
-
-  // Inline editing handlers
-  const handleRowEditSave = useCallback((event) => {
-    if (onRowEditSave) {
-      onRowEditSave(event);
-    }
-  }, [onRowEditSave]);
-
-  const handleRowEditCancel = useCallback((event) => {
-    if (onRowEditCancel) {
-      onRowEditCancel(event);
-    }
-  }, [onRowEditCancel]);
-
-  const handleRowEditInit = useCallback((event) => {
-    if (onRowEditInit) {
-      onRowEditInit(event);
-    }
-  }, [onRowEditInit]);
-
-  const handleEditingRowsChange = useCallback((event) => {
-    setLocalEditingRows(event.value);
-    if (onEditingRowsChange) {
-      onEditingRowsChange(event);
-    }
-  }, [onEditingRowsChange]);
-
-  // Context menu handlers
-  const handleContextMenuSelectionChange = useCallback((event) => {
-    setLocalContextMenuSelection(event.value);
-    if (onContextMenuSelectionChange) {
-      onContextMenuSelectionChange(event);
-    }
-  }, [onContextMenuSelectionChange]);
-
-  const handleContextMenu = useCallback((event) => {
-    if (onContextMenu) {
-      onContextMenu(event);
-    }
-  }, [onContextMenu]);
-
-  const handlePageChange = useCallback((event) => {
-    setLocalCurrentPage(event.page + 1);
-    setLocalPageSize(event.rows);
-    
-    if (onPageChange) {
-      onPageChange(event.page + 1);
-    }
-  }, [onPageChange]);
-
-  // Custom cell renderers
-  const imageBodyTemplate = (rowData, column) => {
-    const value = rowData[column.key];
-    if (!value) return '-';
-    
-    const isPopup = popupImageFields && Array.isArray(popupImageFields) && popupImageFields.includes(column.key);
-    
-    return (
-      <Image
-        src={value}
-        alt={column.key}
-        width={50}
-        height={50}
-        style={{ objectFit: 'cover', cursor: isPopup ? 'pointer' : 'default' }}
-        onClick={isPopup ? () => { 
-          setImageModalSrc(value); 
-          setImageModalAlt(column.key); 
-          setShowImageModal(true); 
-        } : undefined}
-      />
-    );
-  };
-
-
-
-  const dateBodyTemplate = (rowData, column) => {
-    const value = rowData[column.key];
-    if (!value) return '-';
-    
-    if (column.type === 'date') {
-      return new Date(value).toLocaleDateString();
-    } else if (column.type === 'datetime') {
-      return new Date(value).toLocaleString();
-    }
-    return value;
-  };
-
-  const numberBodyTemplate = (rowData, column) => {
-    const value = rowData[column.key];
-    if (value === null || value === undefined) return '-';
-    return Number(value).toLocaleString();
-  };
-
-  const booleanBodyTemplate = (rowData, column) => {
-    const value = rowData[column.key];
-    return (
-      <i className={classNames('pi', { 
-        'text-green-500 pi-check-circle': value, 
-        'text-red-500 pi-times-circle': !value 
-      })}></i>
-    );
-  };
-
-  // NEW: ROI Body Template
-  const roiBodyTemplate = (rowData, column) => {
-    const roiValue = rowData[column.key];
-    
-    if (roiValue === null || roiValue === undefined) {
-      return <span>N/A</span>;
-    }
-
-    const formattedValue = formatROIValue(roiValue);
-    const color = getROIColor(roiValue);
-
-    return (
-      <span style={{ 
-        color: color || 'inherit',
-        fontWeight: 'bold'
-      }}>
-        {formattedValue}
-      </span>
-    );
-  };
-
-  // Pivot table specific formatters
-  const pivotValueBodyTemplate = useCallback((rowData, column) => {
-    const value = rowData[column.key];
-    if (value === null || value === undefined) return '-';
-    
-    // Check if this row is a grand total
-    const isGrandTotal = rowData.isGrandTotal;
-    
-    // Format number based on pivot config with safe fallbacks
-    let formattedValue;
-    
-    const isCurrencyColumn = currencyColumns.includes(column.key) || (column.pivotField && currencyColumns.includes(column.pivotField));
-    const currency = adjustedPivotConfig.currency || 'USD';
-    const numberFormat = adjustedPivotConfig.numberFormat || 'en-US';
-    const precision = adjustedPivotConfig.precision || 2;
-    
-    try {
-      if (isCurrencyColumn && currency) {
-        formattedValue = new Intl.NumberFormat(numberFormat, {
-          style: 'currency',
-          currency: currency,
-          minimumFractionDigits: precision,
-          maximumFractionDigits: precision
-        }).format(value);
-      } else {
-        formattedValue = new Intl.NumberFormat(numberFormat, {
-          minimumFractionDigits: precision,
-          maximumFractionDigits: precision
-        }).format(value);
-      }
-    } catch (error) {
-      console.warn('Pivot value formatting error:', error, { currency, numberFormat, precision });
-      // Fallback to simple number formatting
-      formattedValue = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(value);
-    }
-    
-    // Apply special styling for totals
-    const className = classNames({
-      'font-bold': isGrandTotal || column.isPivotTotal,
-      'text-blue-600': column.isPivotTotal && !isGrandTotal,
-      'text-green-600 font-semibold': isGrandTotal,
-      'bg-blue-50': column.isPivotTotal && !isGrandTotal,
-      'bg-green-50': isGrandTotal
-    });
-    
-    return (
-      <span className={className}>
-        {formattedValue}
-      </span>
-    );
-  }, [adjustedPivotConfig, currencyColumns]);
-
-  const pivotRowBodyTemplate = (rowData, column) => {
-    const value = rowData[column.key];
-    const isGrandTotal = rowData.isGrandTotal;
-    
-    const className = classNames({
-      'font-bold text-green-600': isGrandTotal,
-      'font-medium': !isGrandTotal
-    });
-    
-    return (
-      <span className={className}>
-        {value || '-'}
-      </span>
-    );
-  };
-
-  const actionsBodyTemplate = (rowData) => {
-    return (
-      <div>
-        {rowActions.map((action, actionIndex) => (
-          <Button
-            key={actionIndex}
-            icon={action.icon}
-            onClick={(e) => {
-              e.stopPropagation();
-              action.onClick(rowData);
-            }}
-            tooltip={action.title}
-            tooltipOptions={{ position: 'top' }}
-            className="p-button-text p-button-sm"
-          />
-        ))}
-      </div>
-    );
-  };
+  // Pivot table and action templates moved to utils/templateUtils.js
+  const pivotValueBodyTemplate = createPivotValueBodyTemplate(adjustedPivotConfig, currencyColumns);
+  const actionsBodyTemplate = createActionsBodyTemplate(rowActions);
 
   // Advanced filter components
 
 
-  // Filter templates - Using native PrimeReact design
-  const filterClearTemplate = (options) => {
-    if (!enableFilterClear) return null;
-    return (
-      <Button
-        type="button"
-        icon="pi pi-times"
-        onClick={options.filterClearCallback}
-        className="p-button-text p-button-sm"
-        tooltip="Clear filter"
-        tooltipOptions={{ position: 'top' }}
-      />
-    );
-  };
+  // Filter templates moved to utils/templateUtils.js
+  const filterClearTemplate = createFilterClearTemplate(enableFilterClear);
+  const filterApplyTemplate = createFilterApplyTemplate(enableFilterApply);
+  const filterFooterTemplate = createFilterFooterTemplate(enableFilterFooter);
 
-  const filterApplyTemplate = (options) => {
-    if (!enableFilterApply) return null;
-    return (
-      <Button
-        type="button"
-        icon="pi pi-check"
-        onClick={options.filterApplyCallback}
-        className="p-button-text p-button-sm"
-        tooltip="Apply filter"
-        tooltipOptions={{ position: 'top' }}
-      />
-    );
-  };
 
-  const filterFooterTemplate = (column) => {
-    if (!enableFilterFooter) return null;
-    return (
-      <div className="p-column-filter-footer">
-        Filter by {column.title}
-      </div>
-    );
-  };
 
-  // HYDRATION FIX: State to store filtered data for footer totals with safe initialization
-  const [filteredDataForTotals, setFilteredDataForTotals] = useState([]);
-  
-  // HYDRATION FIX: Initialize filtered data for totals
-  useEffect(() => {
-    if (!isMountedRef.current) return;
-    
-    if (tableData && Array.isArray(tableData)) {
-      const validData = tableData.filter(row => row && typeof row === 'object');
-      setFilteredDataForTotals(validData);
-    } else {
-      setFilteredDataForTotals([]);
-    }
-  }, [tableData]); // Update when tableData changes
-
-  // Helper function to match filter values
-  const matchFilterValue = useCallback((cellValue, filterValue, matchMode) => {
-    // Handle null/undefined values
-    if (cellValue === null || cellValue === undefined) {
-      return filterValue === null || filterValue === undefined || filterValue === '';
-    }
-    
-    // Handle exact matches for non-string types
-    if (typeof cellValue === 'number' || typeof cellValue === 'boolean') {
-      switch (matchMode) {
-        case FilterMatchMode.EQUALS:
-          return cellValue === filterValue;
-        case FilterMatchMode.NOT_EQUALS:
-          return cellValue !== filterValue;
-        case FilterMatchMode.LESS_THAN:
-          return cellValue < filterValue;
-        case FilterMatchMode.LESS_THAN_OR_EQUAL_TO:
-          return cellValue <= filterValue;
-        case FilterMatchMode.GREATER_THAN:
-          return cellValue > filterValue;
-        case FilterMatchMode.GREATER_THAN_OR_EQUAL_TO:
-          return cellValue >= filterValue;
-        default:
-          return cellValue === filterValue;
-      }
-    }
-    
-    // Handle string comparisons
-    const cellStr = String(cellValue).toLowerCase();
-    const filterStr = String(filterValue).toLowerCase();
-    
-    switch (matchMode) {
-      case FilterMatchMode.STARTS_WITH:
-        return cellStr.startsWith(filterStr);
-      case FilterMatchMode.ENDS_WITH:
-        return cellStr.endsWith(filterStr);
-      case FilterMatchMode.EQUALS:
-        return cellStr === filterStr;
-      case FilterMatchMode.NOT_EQUALS:
-        return cellStr !== filterStr;
-      case FilterMatchMode.CONTAINS:
-      default:
-        return cellStr.includes(filterStr);
-    }
-  }, []);
-
-  // Apply filters to data manually when PrimeReact doesn't provide filtered data
-  const applyFiltersToData = useCallback((data, filters) => {
-    if (!filters || Object.keys(filters).length === 0) return data;
-    
-    return data.filter(row => {
-      // Ensure row is not null or undefined
-      if (!row || typeof row !== 'object') return false;
-      // Check global filter
-      if (filters.global && filters.global.value) {
-        const globalValue = String(filters.global.value).toLowerCase();
-        const globalMatch = defaultColumns.some(col => {
-          const cellValue = String(row[col.key] || '').toLowerCase();
-          return cellValue.includes(globalValue);
-        });
-        if (!globalMatch) return false;
-      }
-      
-      // Check column filters
-      for (const [columnKey, filterConfig] of Object.entries(filters)) {
-        if (columnKey === 'global') continue;
-        
-        const cellValue = row[columnKey];
-        
-        // Handle advanced filter structure
-        if (filterConfig.operator && filterConfig.constraints) {
-          const constraintResults = filterConfig.constraints.map(constraint => {
-            if (!constraint.value && constraint.value !== 0 && constraint.value !== false) return true;
-            
-            const constraintValue = constraint.value;
-            const matchMode = constraint.matchMode || FilterMatchMode.CONTAINS;
-            
-            return matchFilterValue(cellValue, constraintValue, matchMode);
-          });
-          
-          const result = filterConfig.operator === FilterOperator.AND
-            ? constraintResults.every(Boolean)
-            : constraintResults.some(Boolean);
-            
-          if (!result) return false;
-        } else {
-          // Handle simple filter structure
-          if (filterConfig.value !== null && filterConfig.value !== undefined && filterConfig.value !== '') {
-            const matchMode = filterConfig.matchMode || FilterMatchMode.CONTAINS;
-            if (!matchFilterValue(cellValue, filterConfig.value, matchMode)) {
-              return false;
-            }
-          }
-        }
-      }
-      
-      return true;
-    });
-  }, [defaultColumns, matchFilterValue]);
+  // Filter functions moved to utils/filterUtils.js - using imported functions
 
   // HIBERNATION FIX: Update filtered data when filters or tableData change with optimized dependencies
   useEffect(() => {
@@ -3181,338 +2036,54 @@ const PrimeDataTable = ({
     });
   }, [tableData, JSON.stringify(filters)]);  // HIBERNATION FIX: Use JSON.stringify for filters to avoid function dependency
 
-  // Calculate footer totals for numeric columns based on filtered data
-  const calculateFooterTotals = useMemo(() => {
-    if (!enableFooterTotals || !filteredDataForTotals.length) {
-      return { totals: {}, averages: {}, counts: {} };
-    }
-
-    const totals = {};
-    const averages = {};
-    const counts = {};
-
-    defaultColumns.forEach(column => {
-      // Dynamic numeric column detection (same logic as footerTemplate)
-      const isNumericColumn = (() => {
-        // Check if column type is explicitly set to 'number'
-        if (column.type === 'number') return true;
-        
-        // Check if column key is in currencyColumns
-        if (currencyColumns.includes(column.key)) return true;
-        
-        // Check if column key contains numeric indicators
-        if (column.key && typeof column.key === 'string') {
-          const key = column.key.toLowerCase();
-          if (key.includes('amount') || 
-              key.includes('total') || 
-              key.includes('sum') ||
-              key.includes('revenue') ||
-              key.includes('cost') ||
-              key.includes('profit') ||
-              key.includes('price') ||
-              key.includes('value') ||
-              key.includes('service') ||
-              key.includes('emi') ||
-              key.includes('cheque')) {
-            return true;
-          }
-        }
-        
-        // Check if column data contains numeric values
-        if (Array.isArray(filteredDataForTotals) && filteredDataForTotals.length > 0) {
-          const sampleValues = filteredDataForTotals.slice(0, 10).map(row => row[column.key]);
-          const hasNumericValues = sampleValues.some(val => 
-            typeof val === 'number' && !isNaN(val)
-          );
-          if (hasNumericValues) return true;
-        }
-        
-        return false;
-      })();
-      
-      if (isNumericColumn) {
-        const values = filteredDataForTotals
-          .filter(row => row && typeof row === 'object' && column.key in row)
-          .map(row => {
-            const value = row?.[column.key];
-            return typeof value === 'number' && !isNaN(value) ? value : null;
-          })
-          .filter(val => val !== null);
-
-        if (values.length > 0) {
-          const total = values.reduce((sum, val) => sum + val, 0);
-          if (footerTotalsConfig.showTotals) {
-            totals[column.key] = total;
-          }
-
-          if (footerTotalsConfig.showAverages) {
-            averages[column.key] = total / values.length;
-          }
-
-          if (footerTotalsConfig.showCounts) {
-            counts[column.key] = values.length;
-          }
-        }
-      }
-    });
-
-    return { totals, averages, counts };
-  }, [filteredDataForTotals, defaultColumns, enableFooterTotals, footerTotalsConfig]);
+  // Footer totals calculation moved to utils/calculationUtils.js
+  const footerTotalsCalculation = useMemo(() => {
+    return calculateFooterTotals(filteredDataForTotals, footerTotalsConfig);
+  }, [filteredDataForTotals, footerTotalsConfig]);
 
 
 
-  // Generate filter options for categorical columns
-  const generateFilterOptions = useCallback((column) => {
-    if (!column.filterable || !enableColumnFilter) return undefined;
-    
-    const columnKey = column.key;
-    
-    // Check if custom filter options are provided for this column
-    if (customFilterOptions[columnKey]) {
-      return customFilterOptions[columnKey];
-    }
-    
-    // If column has predefined options, use them
-    if (column.filterOptions) return column.filterOptions;
-    
-    // Check if column is explicitly configured as dropdown
-    if (dropdownFilterColumns.includes(columnKey)) {
-      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
-      return uniqueValues.map(value => ({
-        label: String(value),
-        value: value
-      }));
-    }
-    
-    // For categorical columns, generate options from unique values
-    if (column.isCategorical || column.type === 'select' || column.type === 'dropdown' || column.type === 'categorical') {
-      const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
-      return uniqueValues.map(value => ({
-        label: String(value),
-        value: value
-      }));
-    }
-    
-    // Auto-detect categorical columns based on data analysis
-    const uniqueValues = [...new Set(tableData.map(row => row[columnKey]).filter(val => val !== null && val !== undefined))];
-    
-    // If column has limited unique values (categorical data)
-    if (uniqueValues.length > 0 && uniqueValues.length <= 30) {
-      return uniqueValues.map(value => ({
-        label: String(value),
-        value: value
-      }));
-    }
-    
-    // If column has many unique values but they're all strings (not numbers), it might still be categorical
-    if (uniqueValues.length > 30 && uniqueValues.length <= 50) {
-      const allStrings = uniqueValues.every(val => typeof val === 'string' && !isNaN(val) === false);
-      if (allStrings) {
-        return uniqueValues.map(value => ({
-          label: String(value),
-          value: value
-        }));
-      }
-    }
-    
-    return undefined;
-  }, [tableData, enableColumnFilter, customFilterOptions, dropdownFilterColumns]);
+  // Filter options generation moved to utils/filterUtils.js
 
-  // Footer template for column totals
-  const footerTemplate = (column) => {
-    if (!effectiveTotalSettings.showFooterTotals) return null;
-    
-    // Dynamic numeric column detection
-    const isNumericColumn = (() => {
-      // Check if column type is explicitly set to 'number'
-      if (column.type === 'number') return true;
-      
-      // Check if column key is in currencyColumns
-      if (currencyColumns.includes(column.key)) return true;
-      
-      // Check if column key contains numeric indicators
-      if (column.key && typeof column.key === 'string') {
-        const key = column.key.toLowerCase();
-        if (key.includes('amount') || 
-            key.includes('total') || 
-            key.includes('sum') ||
-            key.includes('revenue') ||
-            key.includes('cost') ||
-            key.includes('profit') ||
-            key.includes('price') ||
-            key.includes('value') ||
-            key.includes('service') ||
-            key.includes('emi') ||
-            key.includes('cheque')) {
-          return true;
-        }
-      }
-      
-      // Check if column data contains numeric values
-      if (Array.isArray(tableData) && tableData.length > 0) {
-        const sampleValues = tableData.slice(0, 10).map(row => row[column.key]);
-        const hasNumericValues = sampleValues.some(val => 
-          typeof val === 'number' && !isNaN(val)
-        );
-        if (hasNumericValues) return true;
-      }
-      
-      return false;
-    })();
-    
-    if (!isNumericColumn) return null;
-    
-    const { totals, averages, counts } = calculateFooterTotals;
-    const total = totals[column.key];
-    const average = averages[column.key];
-    const count = counts[column.key];
-    
-    if (total === undefined && average === undefined && count === undefined) return null;
-    
-    const formatNumber = (value, column) => {
-      if (typeof value !== 'number') return '';
-
-      const currency = footerTotalsConfig.currency || 'USD';
-      const numberFormat = footerTotalsConfig.numberFormat || 'en-US';
-      const precision = footerTotalsConfig.precision || 2;
-
-      try {
-        if (currencyColumns.includes(column.key) && currency) {
-          return new Intl.NumberFormat(numberFormat, {
-            style: 'currency',
-            currency: currency,
-            minimumFractionDigits: precision,
-            maximumFractionDigits: precision
-          }).format(value);
-        }
-
-        return new Intl.NumberFormat(numberFormat, {
-          minimumFractionDigits: precision,
-          maximumFractionDigits: precision
-        }).format(value);
-      } catch (error) {
-        console.warn('Footer formatting error:', error, { currency, numberFormat, precision });
-        // Fallback to simple formatting
-        return new Intl.NumberFormat('en-US', {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2
-        }).format(value);
-      }
-    };
-
-    
-    return (
-      <div>
-        {footerTotalsConfig.showTotals && total !== undefined && (
-          <div>Total: {formatNumber(total, column)}</div> // ✅ pass column
-        )}
-        {footerTotalsConfig.showAverages && average !== undefined && (
-          <div>Avg: {formatNumber(average, column)}</div> // ✅ pass column
-        )}
-        {footerTotalsConfig.showCounts && count !== undefined && (
-          <div>Count: {count}</div>
-        )}
-      </div>
-    );
-  };
-
-  // Toolbar components
-  const leftToolbarTemplate = () => (
-    <div>
-      {enableSearch && enableGlobalFilter && (
-        <IconField iconPosition="left">
-          <InputIcon className="pi pi-search" />
-          <InputText
-            placeholder={globalFilterPlaceholder}
-            value={globalFilterValue}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-        </IconField>
-      )}
-
-      {globalFilterValue && (
-        <Button
-          icon="pi pi-filter-slash"
-          label="Clear"
-          onClick={clearAllFilters}
-          className="p-button-outlined p-button-danger p-button-sm"
-        />
-      )}
-    </div>
+  // Footer template moved to utils/templateUtils.js
+  const footerTemplate = createFooterTemplate(
+    effectiveTotalSettings,
+    currencyColumns,
+    footerTotalsCalculation,
+    footerTotalsConfig,
+    tableData
   );
 
-  const rightToolbarTemplate = () => (
-    <div>
-      {selectedRows.length > 0 && enableBulkActions && bulkActions.length > 0 && (
-        <div>
-          <span>
-            {selectedRows.length} selected
-          </span>
-          {bulkActions.map((action, index) => (
-            <Button
-              key={index}
-              label={action.title}
-              onClick={() => handleBulkAction(action)}
-              className="p-button-sm"
-            />
-          ))}
-        </div>
-      )}
+  // Toolbar components moved to utils/templateUtils.js
+  const leftToolbarTemplate = createLeftToolbarTemplate(
+    enableSearch,
+    enableGlobalFilter,
+    globalFilterPlaceholder,
+    globalFilterValue,
+    handleSearch,
+    clearAllFilters
+  );
 
-      {/* NEW: Pivot Configuration Button */}
-      {enablePivotUI && (
-        <Button
-          icon={isLoadingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-chart-bar"}
-          label={isLoadingPivotConfig ? "Loading..." : "Pivot"}
-          onClick={() => setShowPivotConfig(!showPivotConfig)}
-          className={`p-button-outlined p-button-sm ${isPivotEnabled ? 'p-button-success' : ''}`}
-          tooltip={isLoadingPivotConfig ? "Loading pivot configuration..." : "Configure pivot table"}
-          tooltipOptions={{ position: 'top' }}
-          disabled={isLoadingPivotConfig}
-        />
-      )}
-
-      {enableColumnManagement && (
-        <Button
-          icon="pi pi-columns"
-          label="Columns"
-          onClick={() => setShowColumnManager(!showColumnManager)}
-          className="p-button-outlined p-button-sm"
-        />
-      )}
-
-      {/* Clear Filters Button - Always show when column filtering is enabled */}
-      {enableColumnFilter && (
-        <Button
-          icon="pi pi-filter-slash"
-          label="Clear Filters"
-          onClick={clearAllFilters}
-          className="p-button-outlined p-button-warning p-button-sm"
-          tooltip="Clear all column filters and search"
-          tooltipOptions={{ position: 'top' }}
-        />
-      )}
-
-      {enableExport && (
-        <Button
-          icon="pi pi-download"
-          label="Export"
-          onClick={handleExport}
-          className="p-button-outlined p-button-sm"
-        />
-      )}
-
-      {enableRefresh && (
-        <Button
-          icon="pi pi-refresh"
-          label="Refresh"
-          onClick={handleRefresh}
-          disabled={isRefreshing}
-          className="p-button-outlined p-button-sm"
-          loading={isRefreshing}
-        />
-      )}
-    </div>
+  const rightToolbarTemplate = createRightToolbarTemplate(
+    selectedRows,
+    enableBulkActions,
+    bulkActions,
+    handleBulkAction,
+    enablePivotUI,
+    isLoadingPivotConfig,
+    isPivotEnabled,
+    setShowPivotConfig,
+    showPivotConfig,
+    enableColumnManagement,
+    setShowColumnManager,
+    showColumnManager,
+    enableColumnFilter,
+    clearAllFilters,
+    enableExport,
+    handleExport,
+    enableRefresh,
+    handleRefresh,
+    isRefreshing
   );
 
   // Common filter toolbar for column grouping
@@ -3704,185 +2275,23 @@ const PrimeDataTable = ({
     setFilteredDataForTotals
   ]);
 
-  // Generate column groups from configuration
-  const generateColumnGroups = useCallback(() => {
-    if (!enableColumnGrouping || !finalColumnStructure.hasGroups) {
-      return null;
-    }
-
-    const { groups, ungroupedColumns } = finalColumnStructure;
-
-    // Create header rows for grouped columns
-    const headerRows = [];
-
-    // First row: Main group headers + ungrouped column headers
-    const firstRowColumns = [];
-    
-    // Add ungrouped columns to first row
-    ungroupedColumns.forEach(col => {
-      firstRowColumns.push(
-        <Column
-          key={`ungrouped-${col.key}`}
-          header={col.title}
-          field={col.key}
-          rowSpan={2} // Span both header rows since ungrouped
-          sortable={(col.sortable !== false) && enableSorting}
-          filter={(col.filterable !== false) && enableColumnFilter}
-          filterElement={(col.filterable !== false) && enableColumnFilter ? (options) => getColumnFilterElement(
-            col,
-            options.value,
-            options.filterCallback
-          ) : undefined}
-          filterPlaceholder={`Filter ${col.title}...`}
-        />
-      );
-    });
-
-    // Add group headers to first row
-    groups.forEach(group => {
-      firstRowColumns.push(
-        <Column
-          key={`group-${group.header}`}
-          header={group.header}
-          colSpan={group.columns.length}
-          style={{
-            textAlign: 'center',
-            fontWeight: 'bold',
-            backgroundColor: 'var(--primary-50)',
-            border: '1px solid var(--primary-200)',
-            ...groupConfig.headerGroupStyle
-          }}
-        />
-      );
-    });
-
-    headerRows.push(
-      <Row key="group-headers">
-        {firstRowColumns}
-      </Row>
-    );
-
-    // Second row: Sub-column headers for grouped columns
-    const secondRowColumns = [];
-    
-    groups.forEach(group => {
-      group.columns.forEach(col => {
-        // Find the original column definition to get sortable property
-        const originalColumn = defaultColumns.find(originalCol => 
-          originalCol.key === (col.originalKey || col.key)
-        );
-        
-        secondRowColumns.push(
-          <Column
-            key={`sub-${col.originalKey || col.key}`}
-            header={col.subHeader || col.title}
-            field={col.originalKey || col.key}
-            sortable={(originalColumn?.sortable !== false) && enableSorting}
-            filter={(originalColumn?.filterable !== false) && enableColumnFilter}
-            filterElement={(originalColumn?.filterable !== false) && enableColumnFilter ? (options) => getColumnFilterElement(
-              originalColumn,
-              options.value,
-              options.filterCallback
-            ) : undefined}
-            filterPlaceholder={`Filter ${col.subHeader || col.title}...`}
-            style={{
-              textAlign: 'center',
-              fontSize: '0.9em',
-              backgroundColor: 'var(--surface-50)',
-              ...groupConfig.groupStyle
-            }}
-          />
-        );
-      });
-    });
-
-    headerRows.push(
-      <Row key="sub-headers">
-        {secondRowColumns}
-      </Row>
-    );
-
-    return (
-      <ColumnGroup>
-        {headerRows}
-      </ColumnGroup>
-    );
-  }, [enableColumnGrouping, finalColumnStructure, groupConfig]);
-
-  // Generate footer groups from configuration
-  const generateFooterGroups = useCallback(() => {
-    if (!enableColumnGrouping || !groupConfig.enableFooterGroups || !finalColumnStructure.hasGroups) {
-      return null;
-    }
-
-    // If custom footer group is provided, use it
-    if (footerColumnGroup) {
-      return footerColumnGroup;
-    }
-
-    const { groups, ungroupedColumns } = finalColumnStructure;
-
-    // Create footer row
-    const footerColumns = [];
-    
-    // Add ungrouped columns to footer
-    ungroupedColumns.forEach(col => {
-      footerColumns.push(
-        <Column
-          key={`footer-ungrouped-${col.key}`}
-          footer={effectiveTotalSettings.showFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
-          field={col.key}
-        />
-      );
-    });
-
-    // Add grouped columns to footer
-    groups.forEach(group => {
-      group.columns.forEach(col => {
-        footerColumns.push(
-          <Column
-            key={`footer-grouped-${col.originalKey || col.key}`}
-            footer={effectiveTotalSettings.showFooterTotals && col.type === 'number' ? () => footerTemplate(col) : null}
-            field={col.originalKey || col.key}
-          />
-        );
-      });
-    });
-
-    return (
-      <ColumnGroup>
-        <Row>
-          {footerColumns}
-        </Row>
-      </ColumnGroup>
-    );
-  }, [enableColumnGrouping, footerColumnGroup, finalColumnStructure, groupConfig.enableFooterGroups, effectiveTotalSettings.showFooterTotals, footerTemplate]);
-
-  // Helper function to create column groups easily
-  const createColumnGroup = useCallback((groups) => {
-    return (
-      <ColumnGroup>
-        {groups.map((group, groupIndex) => (
-          <Row key={groupIndex}>
-            {group.columns.map((col, colIndex) => (
-              <Column
-                key={colIndex}
-                header={col.header}
-                field={col.field}
-                sortable={col.sortable}
-                colSpan={col.colSpan}
-                rowSpan={col.rowSpan}
-
-                footer={col.footer}
-                body={col.body}
-                bodyTemplate={col.bodyTemplate}
-              />
-            ))}
-          </Row>
-        ))}
-      </ColumnGroup>
-    );
-  }, []);
+  // Column grouping handlers - extracted to utils/columnGroupingUtils.js
+  const {
+    generateColumnGroups,
+    generateFooterGroups,
+    createColumnGroup
+  } = createColumnGroupingHandlers({
+    enableColumnGrouping,
+    finalColumnStructure,
+    enableSorting,
+    enableColumnFilter,
+    getColumnFilterElement,
+    defaultColumns,
+    groupConfig,
+    footerColumnGroup,
+    effectiveTotalSettings,
+    footerTemplate
+  });
   
   // Loading and error states
   if (isLoading) {
@@ -3923,6 +2332,8 @@ const PrimeDataTable = ({
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
 
+
+
       {/* DataTable */}
       <DataTable
         key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
@@ -3934,9 +2345,15 @@ const PrimeDataTable = ({
             ? (enableColumnGrouping && finalColumnStructure.hasGroups && !forceFilterDisplayWithGrouping 
                 ? "row" 
                 : filterDisplay)
-            : undefined
+            : "row"  // FIXED: Always enable filter display, DataTable will handle it based on column filter props
         }
-        globalFilterFields={globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key)}
+        globalFilterFields={(() => {
+          const fields = globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key);
+
+          return fields;
+        })()}
+        globalFilter={globalFilterValue}
+        emptyMessage="No data found matching the filter criteria"
         sortField={sortField}
         sortOrder={sortOrder}
         onSort={handleSort}
@@ -3944,8 +2361,10 @@ const PrimeDataTable = ({
           // Update filters first
           handleFilter(e);
           
+
+          
           // Update filtered data for totals calculation
-          if (enableFooterTotals) {
+          if (enableFooterTotals || (pivotTransformation.isPivot && effectiveTotalSettings.showPivotTotals)) {
             // Get the filtered data from PrimeReact event
             let filteredRows = finalTableData;
             
@@ -3964,6 +2383,15 @@ const PrimeDataTable = ({
             // Ensure filtered rows are valid objects
             const validFilteredRows = filteredRows.filter(row => row && typeof row === 'object');
             setFilteredDataForTotals(validFilteredRows);
+            
+            // CRITICAL FIX: Don't override global filter for grand total!
+            // Only update grand total if there's no global filter active
+            if (!globalFilterValue || globalFilterValue.trim() === '') {
+              setFilteredDataForGrandTotal(validFilteredRows);
+
+            } else {
+
+            }
           }
         }}
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
@@ -4008,8 +2436,6 @@ const PrimeDataTable = ({
         selectionMode={enableRowSelection ? selectionMode : undefined}
         metaKeySelection={enableRowSelection ? metaKeySelection : undefined}
         selectOnEdit={enableRowSelection ? selectOnEdit : undefined}
-
-        emptyMessage="No data found. Try adjusting your filters."
         resizableColumns={enableResizableColumns}
         reorderableColumns={enableReorderableColumns}
         virtualScrollerOptions={
@@ -4030,6 +2456,7 @@ const PrimeDataTable = ({
         showFilterMatchModes={showFilterMatchModes}
         headerColumnGroup={enableColumnGrouping ? (headerColumnGroup || generateColumnGroups()) : undefined}
         footerColumnGroup={enableColumnGrouping ? (footerColumnGroup || generateFooterGroups()) : undefined}
+
       >
         {enableRowSelection && (
           <Column
@@ -4073,7 +2500,22 @@ const PrimeDataTable = ({
             columnsToRender.push(...defaultColumns);
           }
 
-          return columnsToRender.map(column => {
+
+
+          // Ensure calculated field columns are not filtered out
+          const finalColumnsToRender = columnsToRender.filter(col => {
+            if (col.key && col.key.startsWith('calc_')) {
+              return true; // Always include calculated fields
+            }
+            return !hiddenColumns.includes(col.key);
+          });
+
+          // Helper function to generate filter options for columns
+          const generateFilterOptions = (column) => {
+            return getFilterOptions(finalTableData, column.key, customFilterOptions);
+          };
+
+          return finalColumnsToRender.map(column => {
             const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
             const columnKey = column.key;
             const columnType = getColumnType(column);
@@ -4090,21 +2532,35 @@ const PrimeDataTable = ({
 
             return (
               <Column
-                key={column.key}
+                key={column.uniqueKey || column.key}
                 field={column.key}
                 header={column.title} // Keep headers for filters even with grouping
                 sortable={column.sortable !== false && enableSorting}
                 filter={column.filterable !== false && enableColumnFilter}
-                filterElement={column.filterable !== false && enableColumnFilter ? (options) => getColumnFilterElement(
-                  column,
-                  options.value,
-                  options.filterCallback
-                ) : undefined}
+                filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
+                filterElement={
+                  // FIXED: Only use custom filter elements for specific column types, let PrimeReact handle standard text/number filtering
+                  (column.filterable !== false && enableColumnFilter && 
+                   ['dropdown', 'select', 'categorical', 'boolean'].includes(columnType)) ? 
+                  (options) => {
+                    const filterValue = options.value;
+                    const filterCallback = options.filterCallback;
+                    
+                    console.log('🔍 CUSTOM FILTER ELEMENT:', {
+                      columnKey: column.key,
+                      columnType,
+                      filterValue,
+                      hasCallback: !!filterCallback,
+                      options
+                    });
+                    
+                    return getColumnFilterElement(column, filterValue, filterCallback);
+                  } : undefined
+                }
                 filterPlaceholder={`Filter ${column.title}...`}
                 filterClear={enableFilterClear ? filterClearTemplate : undefined}
                 filterApply={enableFilterApply ? filterApplyTemplate : undefined}
                 filterFooter={enableFilterFooter ? () => filterFooterTemplate(column) : undefined}
-                footer={effectiveTotalSettings.showFooterTotals ? () => footerTemplate(column) : undefined}
 
                 showFilterMatchModes={
                   enableFilterMatchModes && 
@@ -4115,7 +2571,7 @@ const PrimeDataTable = ({
                     ['dropdown', 'select', 'categorical'].includes(columnType)
                       ? FilterMatchMode.EQUALS
                       : ['date', 'datetime'].includes(columnType)
-                      ? FilterMatchMode.BETWEEN
+                      ? FilterMatchMode.DATE_IS  // FIXED: Use DATE_IS instead of BETWEEN for compatibility
                       : columnType === 'number'
                       ? FilterMatchMode.EQUALS
                       : columnType === 'boolean'
@@ -4134,8 +2590,95 @@ const PrimeDataTable = ({
                 filterShowMenu={enableFilterMenu}
                 filterShowMatchModes={enableFilterMatchModes}
 
+                footer={(() => {
+                  // Priority 1: Show DYNAMIC grand total in footer for pivot tables
+                  if (pivotTransformation.isPivot && 
+                      dynamicGrandTotal && 
+                      effectiveTotalSettings.showPivotTotals) {
+                    
+                    const grandTotalValue = dynamicGrandTotal[column.key];
+                    
+                    // First column shows "Grand Total" label with row count
+                    if (defaultColumns.indexOf(column) === 0) {
+                      const dataCount = filteredDataForGrandTotal.length > 0 ? filteredDataForGrandTotal.length : finalTableData.length;
+                      return (
+                        <div style={{ 
+                          fontWeight: 'bold', 
+                          color: '#28a745',
+                          fontSize: '14px',
+                          padding: '8px 0'
+                        }}>
+                          📊 Grand Total ({dataCount} rows)
+                        </div>
+                      );
+                    }
+                    
+                    // Other columns show formatted values
+                    if (grandTotalValue !== null && grandTotalValue !== undefined && typeof grandTotalValue === 'number') {
+                      try {
+                        const formattedValue = new Intl.NumberFormat(
+                          adjustedPivotConfig.numberFormat || 'en-US',
+                          {
+                            minimumFractionDigits: adjustedPivotConfig.precision || 2,
+                            maximumFractionDigits: adjustedPivotConfig.precision || 2
+                          }
+                        ).format(grandTotalValue);
+                        
+                        return (
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            color: '#28a745',
+                            fontSize: '14px',
+                            textAlign: 'right',
+                            padding: '8px 0'
+                          }}>
+                            {formattedValue}
+                          </div>
+                        );
+                      } catch (error) {
+                        return (
+                          <div style={{ 
+                            fontWeight: 'bold', 
+                            color: '#28a745',
+                            fontSize: '14px',
+                            textAlign: 'right',
+                            padding: '8px 0'
+                          }}>
+                            {grandTotalValue.toLocaleString()}
+                          </div>
+                        );
+                      }
+                    }
+                    
+                    return null;
+                  }
+                  
+                  // Priority 2: Show regular footer totals when not in pivot mode
+                  if (effectiveTotalSettings.showFooterTotals) {
+                    return footerTemplate(column);
+                  }
+                  
+                  return null;
+                })()}
+
                 body={
                   // Pivot table specific templates
+                  pivotTransformation.isPivot && column.isPivotCalculatedField ? (rowData) => {
+                    const value = rowData[column.key];
+                    if (value === 'Error') {
+                      return <span style={{ color: 'red' }}>Error</span>;
+                    }
+                    // Use the custom body template from calculated field column
+                    if (column.calculatedField && column.calculatedField.body) {
+                      return column.calculatedField.body(rowData);
+                    }
+                    // Fallback formatting
+                    return formatCalculatedValue(value, column.format || 'number', {
+                      currency: adjustedPivotConfig.currency,
+                      locale: adjustedPivotConfig.numberFormat,
+                      precision: adjustedPivotConfig.precision
+                    });
+                  } :
                   pivotTransformation.isPivot && column.isPivotValue ? (rowData) => pivotValueBodyTemplate(rowData, column) :
                   pivotTransformation.isPivot && column.isPivotTotal ? (rowData) => pivotValueBodyTemplate(rowData, column) :
                   pivotTransformation.isPivot && column.isPivotRow ? (rowData) => pivotRowBodyTemplate(rowData, column) :
@@ -4489,6 +3032,56 @@ const PrimeDataTable = ({
                     ))
                   )}
                 </div>
+              </div>
+
+              {/* Calculated Fields */}
+              <div className="pivot-section pivot-calculated-fields-section">
+                <CalculatedFieldsManager 
+                  calculatedFields={localPivotConfig.calculatedFields || []}
+                  onCalculatedFieldsChange={(calculatedFields) => {
+                    setLocalPivotConfig(prev => ({
+                      ...prev,
+                      calculatedFields
+                    }));
+                  }}
+                  availableFields={[
+                    // Add aggregated value fields that can be used in calculated fields
+                    ...localPivotConfig.values.map(value => ({
+                      key: localPivotConfig.showRowTotals 
+                        ? (localPivotConfig.values.filter(v => v.field === value.field).length > 1 
+                          ? `${value.field}_${value.aggregation || 'sum'}_total` 
+                          : `${value.field}_total`)
+                        : (localPivotConfig.values.length > 1 && localPivotConfig.values.filter(v => v.field === value.field).length > 1 
+                          ? `${value.field}_${value.aggregation || 'sum'}` 
+                          : value.field),
+                      field: value.field,
+                      aggregation: value.aggregation || 'sum',
+                      type: 'number',
+                      title: `${getNumericFields.find(f => f.value === value.field)?.label || value.field} (${value.aggregation || 'sum'})`
+                    })),
+                    // Add column-specific value fields if columns are configured
+                    ...(localPivotConfig.columns.length > 0 && localPivotConfig.values.length > 0 
+                      ? localPivotConfig.columns.flatMap(colField => {
+                          // Get unique values for this column from the data
+                          const columnValues = finalTableData 
+                            ? [...new Set(finalTableData.map(row => row[colField]).filter(v => v !== null && v !== undefined))]
+                            : [];
+                          
+                          return columnValues.slice(0, 5).flatMap(colValue => // Limit to first 5 values for performance
+                            localPivotConfig.values.map(value => ({
+                              key: `${colValue}_${value.field}_${value.aggregation || 'sum'}`,
+                              field: value.field,
+                              aggregation: value.aggregation || 'sum',
+                              type: 'number',
+                              title: `${colValue} - ${getNumericFields.find(f => f.value === value.field)?.label || value.field} (${value.aggregation || 'sum'})`,
+                              pivotColumn: colValue
+                            }))
+                          );
+                        })
+                      : [])
+                  ]}
+                  sampleData={finalTableData?.slice(0, 1) || []}
+                />
               </div>
 
               {/* Display Options */}
