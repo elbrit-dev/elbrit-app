@@ -94,13 +94,18 @@ export const createPivotValueBodyTemplate = (adjustedPivotConfig, currencyColumn
     // Check if this row is a grand total (supports both original and paginated grand total rows)
     const isGrandTotal = rowData.isGrandTotal || rowData._isGrandTotalRow;
     
+    // ✅ Check if this is a calculated field column
+    const isCalculatedField = column.isPivotCalculatedField || (column.key && column.key.startsWith('calc_'));
+    
     // Format number based on pivot config with safe fallbacks
     let formattedValue;
     
     const isCurrencyColumn = currencyColumns.includes(column.key) || (column.pivotField && currencyColumns.includes(column.pivotField));
     const currency = adjustedPivotConfig.currency || 'USD';
     const numberFormat = adjustedPivotConfig.numberFormat || 'en-US';
-    const precision = adjustedPivotConfig.precision || 2;
+    
+    // ✅ Force 2 decimal places for calculated fields
+    const precision = isCalculatedField ? 2 : (adjustedPivotConfig.precision || 2);
     
     try {
       if (isCurrencyColumn && currency) {
@@ -118,10 +123,10 @@ export const createPivotValueBodyTemplate = (adjustedPivotConfig, currencyColumn
       }
     } catch (error) {
       console.warn('Pivot value formatting error:', error, { currency, numberFormat, precision });
-      // Fallback to simple number formatting
+      // Fallback to simple number formatting with 2 decimal places for calculated fields
       formattedValue = new Intl.NumberFormat('en-US', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        minimumFractionDigits: isCalculatedField ? 2 : precision,
+        maximumFractionDigits: isCalculatedField ? 2 : precision
       }).format(value);
     }
     
@@ -239,6 +244,9 @@ export const createFooterTemplate = (
     const isNumericColumn = (() => {
       // Check if column type is explicitly set to 'number'
       if (column.type === 'number') return true;
+      
+      // ✅ Check if this is a calculated field column
+      if (column.isPivotCalculatedField || (column.key && column.key.startsWith('calc_'))) return true;
       
       // Check if column key is in currencyColumns
       if (currencyColumns.includes(column.key)) return true;

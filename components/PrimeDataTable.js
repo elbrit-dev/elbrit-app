@@ -1216,6 +1216,53 @@ const PrimeDataTable = ({
       }
     });
     
+    // ✅ NEW: Calculate grand totals for calculated fields
+    const calculatedFields = config.calculatedFields || [];
+    if (calculatedFields.length > 0 && dataToCalculate.length > 0) {
+      calculatedFields.forEach(calcField => {
+        try {
+          // Get the calculated field key
+          const baseKey = calcField.id || calcField.name.replace(/\s+/g, '_');
+          const calcFieldKey = baseKey.startsWith('calc_') ? baseKey : `calc_${baseKey}`;
+          
+          // Extract calculated field values from all rows
+          const calculatedValues = dataToCalculate
+            .map(row => row[calcFieldKey])
+            .filter(v => typeof v === 'number' && !isNaN(v) && v !== 'Error');
+          
+          if (calculatedValues.length > 0) {
+            // Sum all calculated field values for grand total
+            const grandTotalValue = calculatedValues.reduce((sum, val) => sum + val, 0);
+            grandTotalRow[calcFieldKey] = grandTotalValue;
+            
+            // ✅ Round grand total to 2 decimal places
+            const roundedGrandTotal = Math.round(grandTotalValue * 100) / 100;
+            grandTotalRow[calcFieldKey] = roundedGrandTotal;
+            
+            console.log('✅ CALCULATED FIELD GRAND TOTAL:', {
+              fieldName: calcField.name,
+              calcFieldKey: calcFieldKey,
+              formula: calcField.formula,
+              valuesCount: calculatedValues.length,
+              grandTotal: grandTotalValue,
+              roundedGrandTotal: roundedGrandTotal
+            });
+          } else {
+            console.warn('⚠️ NO VALID CALCULATED FIELD VALUES FOR GRAND TOTAL:', {
+              fieldName: calcField.name,
+              calcFieldKey: calcFieldKey,
+              availableKeys: Object.keys(dataToCalculate[0] || {}).filter(k => k.startsWith('calc_'))
+            });
+          }
+        } catch (error) {
+          console.error('❌ ERROR CALCULATING GRAND TOTAL FOR CALCULATED FIELD:', {
+            fieldName: calcField.name,
+            error: error.message
+          });
+        }
+      });
+    }
+    
     return grandTotalRow;
   }, [
     pivotTransformation.isPivot, 
@@ -1393,10 +1440,28 @@ const PrimeDataTable = ({
                   if (value === 'Error') {
                     return <span style={{ color: 'red' }}>Error</span>;
                   }
+                  
+                  // ✅ Force 2 decimal places for calculated field values
+                  if (typeof value === 'number') {
+                    try {
+                      return new Intl.NumberFormat(
+                        adjustedPivotConfig.numberFormat || 'en-US',
+                        {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2
+                        }
+                      ).format(value);
+                    } catch (error) {
+                      // Fallback to simple 2 decimal formatting
+                      return value.toFixed(2);
+                    }
+                  }
+                  
+                  // Fallback to original formatting for non-numeric values
                   return formatCalculatedValue(value, meta.format || 'number', {
                     currency: adjustedPivotConfig.currency,
                     locale: adjustedPivotConfig.numberFormat,
-                    precision: adjustedPivotConfig.precision
+                    precision: 2 // ✅ Force 2 decimal places
                   });
                 }
               };
@@ -2672,11 +2737,11 @@ const PrimeDataTable = ({
                     if (column.calculatedField && column.calculatedField.body) {
                       return column.calculatedField.body(rowData);
                     }
-                    // Fallback formatting
+                    // ✅ Fallback formatting with forced 2 decimal places for calculated fields
                     return formatCalculatedValue(value, column.format || 'number', {
                       currency: adjustedPivotConfig.currency,
                       locale: adjustedPivotConfig.numberFormat,
-                      precision: adjustedPivotConfig.precision
+                      precision: 2 // ✅ Force 2 decimal places for calculated fields
                     });
                   } :
                   pivotTransformation.isPivot && column.isPivotValue ? (rowData) => pivotValueBodyTemplate(rowData, column) :

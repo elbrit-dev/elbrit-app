@@ -318,7 +318,8 @@ export const formatCalculatedValue = (value, format = 'number', options = {}) =>
       return value.toExponential(precision);
       
     default:
-      return typeof value === 'number' ? value : value.toString();
+      // ✅ Force 2 decimal places for calculated fields in default case
+      return typeof value === 'number' ? value.toFixed(2) : value.toString();
   }
 };
 
