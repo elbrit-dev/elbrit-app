@@ -7,6 +7,12 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
   const isAdminUser = useCallback(() => {
     const ADMIN_ROLE_ID = '6c2a85c7-116e-43b3-a4ff-db11b7858487';
     const userRole = user?.role || user?.roleId;
+    console.log('🔍 Checking admin permissions:', {
+      userRole,
+      ADMIN_ROLE_ID,
+      isAdmin: userRole === ADMIN_ROLE_ID,
+      user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+    });
     return userRole === ADMIN_ROLE_ID;
   }, [user]);
   
@@ -20,15 +26,29 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
   }, []);
   
   const saveToCMS = useCallback(async (configKey, pivotConfig) => {
+    console.log('💾 Starting CMS save process:', {
+      configKey,
+      pivotConfig,
+      workspaceId,
+      tableId,
+      hasApiToken: !!apiToken,
+      user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+    });
+
     if (!workspaceId) {
-      console.warn('Plasmic workspace ID not provided for CMS integration');
-      return null;
+      console.warn('❌ Plasmic workspace ID not provided for CMS integration');
+      throw new Error('Plasmic workspace ID not provided for CMS integration');
     }
 
     // Check if user has admin permissions
     if (!isAdminUser()) {
       console.warn('🚫 User does not have admin permissions to save configurations');
-      throw new Error('Access denied: Only admin users can save pivot configurations');
+      console.log('🔍 Admin check details:', {
+        userRole: user?.role || user?.roleId,
+        requiredRole: '6c2a85c7-116e-43b3-a4ff-db11b7858487',
+        user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+      });
+      throw new Error('Access denied: Only admin users can save pivot configurations. Please contact your administrator to get admin permissions.');
     }
 
     // Parse page and table names from configKey
@@ -36,6 +56,15 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
 
     // Always use secure API route to avoid CORS issues and improve security
     try {
+      console.log('📡 Sending save request to API:', {
+        action: 'save',
+        configKey,
+        pageName,
+        tableName,
+        userId: user?.email || null,
+        userRole: user?.role || user?.roleId || null
+      });
+
       const response = await fetch('/api/plasmic-cms', {
         method: 'POST',
         headers: {
@@ -52,15 +81,29 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
         })
       });
 
+      console.log('📡 API response status:', response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        console.error('❌ API save failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        
         if (response.status === 403) {
           throw new Error(errorData.message || 'Access denied: Only admin users can save pivot configurations');
         }
+        
+        if (response.status === 500) {
+          throw new Error(`CMS configuration error: ${errorData.details || errorData.error || 'Unknown server error'}`);
+        }
+        
         throw new Error(`API route failed: ${response.status} ${response.statusText}`);
       }
 
       const result = await response.json();
+      console.log('✅ CMS save successful:', result);
       return result.data;
     } catch (error) {
       console.error('❌ CMS SAVE FAILED (API route):', error);
