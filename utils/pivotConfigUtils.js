@@ -111,7 +111,9 @@ export const createPivotConfigHandlers = ({
       enablePivotPersistence,
       hasSaveFunction: !!finalSaveToCMS,
       isAdmin: isAdminUser(),
-      pivotConfigKey
+      pivotConfigKey,
+      isAdminUserFunction: typeof isAdminUser,
+      isAdminUserResult: isAdminUser()
     });
 
     if (!enablePivotPersistence || !finalSaveToCMS) {
@@ -125,6 +127,12 @@ export const createPivotConfigHandlers = ({
     
     if (!isAdminUser()) {
       console.warn('🚫 Manual save denied: Only admin users can save pivot configurations');
+      console.log('🔍 Manual save admin check details:', {
+        isAdminUserFunction: typeof isAdminUser,
+        isAdminUserResult: isAdminUser(),
+        enablePivotPersistence,
+        hasSaveFunction: !!finalSaveToCMS
+      });
       alert('Access denied: Only admin users can save pivot configurations.\n\nPlease contact your administrator to get admin permissions.');
       throw new Error('Access denied: Only admin users can save pivot configurations');
     }

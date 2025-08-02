@@ -561,11 +561,15 @@ const PrimeDataTable = ({
   // NEW: State to store filtered data for grand total calculations
   const [filteredDataForGrandTotal, setFilteredDataForGrandTotal] = useState([]);
 
+  // Get user from AuthContext
+  const { user } = useAuth();
+
   // NEW: Direct Plasmic CMS Integration
   const { saveToCMS: directSaveToCMS, loadFromCMS: directLoadFromCMS, listConfigurationsFromCMS, isAdminUser } = usePlasmicCMS(
     plasmicWorkspaceId || process.env.PLASMIC_WORKSPACE_ID || 'uP7RbyUnivSX75FTKL9RLp',
     plasmicTableConfigsId || process.env.PLASMIC_TABLE_CONFIGS_ID || 'o4o5VRFTDgHHmQ31fCfkuz',
-    plasmicApiToken || process.env.PLASMIC_API_TOKEN
+    plasmicApiToken || process.env.PLASMIC_API_TOKEN,
+    user
   );
 
 
@@ -591,9 +595,17 @@ const PrimeDataTable = ({
       
       setIsLoadingPivotConfig(true);
       try {
-        // console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
+        console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
+        console.log('📥 Load function check:', {
+          enablePivotPersistence,
+          hasLoadFunction: !!finalLoadFromCMS,
+          pivotConfigLoaded,
+          finalLoadFromCMS: typeof finalLoadFromCMS
+        });
         
         const savedConfig = await finalLoadFromCMS(pivotConfigKey);
+        console.log('📥 Load result:', savedConfig);
+        
         if (savedConfig && typeof savedConfig === 'object') {
           console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
           
@@ -613,7 +625,7 @@ const PrimeDataTable = ({
             }, 100);
           }
         } else {
-          // console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
+          console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
         }
       } catch (error) {
         console.error('❌ CMS LOAD FAILED:', error);
@@ -1327,6 +1339,23 @@ const PrimeDataTable = ({
     pivotConfigKey,
     setLocalPivotConfig
   });
+
+  // Debug logging for save functionality
+  useEffect(() => {
+    console.log('🔍 PrimeDataTable Debug Info:', {
+      user: user ? {
+        email: user.email,
+        role: user.role,
+        roleId: user.roleId,
+        roleIds: user.roleIds,
+        roleName: user.roleName
+      } : null,
+      isAdmin: isAdminUser(),
+      enablePivotPersistence,
+      hasSaveFunction: !!finalSaveToCMS,
+      pivotConfigKey
+    });
+  }, [user, isAdminUser, enablePivotPersistence, finalSaveToCMS, pivotConfigKey]);
 
   // HIBERNATION FIX: Comprehensive component unmount cleanup with performance monitoring
   useEffect(() => {
