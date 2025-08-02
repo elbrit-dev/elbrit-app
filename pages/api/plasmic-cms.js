@@ -7,7 +7,16 @@ export default async function handler(req, res) {
   
   // Admin user role ID - only this role can perform write operations
   const ADMIN_ROLE_ID = '6c2a85c7-116e-43b3-a4ff-db11b7858487';
-  const isAdminUser = userRole === ADMIN_ROLE_ID;
+  
+  // Enhanced admin check that considers multiple role properties
+  const isAdminUser = (role, roleIds, roleName) => {
+    const userRoleIds = roleIds || [];
+    return role === ADMIN_ROLE_ID || 
+           userRoleIds.includes(ADMIN_ROLE_ID) ||
+           (roleName === 'Admin' && role === ADMIN_ROLE_ID);
+  };
+  
+  const userIsAdmin = isAdminUser(userRole, req.body.userRoleIds, req.body.userRoleName);
   
   // Use CMS database ID for CMS operations (using your actual environment variables)
   const cmsDbId = process.env.PLASMIC_CMS_DATABASE_ID || 'uP7RbyUnivSX75FTKL9RLp';
@@ -55,12 +64,21 @@ export default async function handler(req, res) {
   try {
     if (action === 'save') {
       // Check if user has admin permissions for write operations
-      if (!isAdminUser) {
+      if (!userIsAdmin) {
+        console.log('🚫 Admin check failed:', {
+          userRole,
+          userRoleIds: req.body.userRoleIds,
+          userRoleName: req.body.userRoleName,
+          requiredRole: ADMIN_ROLE_ID,
+          isAdmin: userIsAdmin
+        });
         
         return res.status(403).json({ 
           error: 'Access denied', 
           message: 'Only admin users can save pivot configurations',
           userRole,
+          userRoleIds: req.body.userRoleIds,
+          userRoleName: req.body.userRoleName,
           requiredRole: ADMIN_ROLE_ID
         });
       }

@@ -6,14 +6,33 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
   // Helper function to check if user has admin permissions
   const isAdminUser = useCallback(() => {
     const ADMIN_ROLE_ID = '6c2a85c7-116e-43b3-a4ff-db11b7858487';
+    
+    // Check multiple possible role properties
     const userRole = user?.role || user?.roleId;
+    const userRoleIds = user?.roleIds || [];
+    
+    // Check if user has admin role in any of the possible locations
+    const hasAdminRole = userRole === ADMIN_ROLE_ID || 
+                        userRoleIds.includes(ADMIN_ROLE_ID) ||
+                        (user?.roleName === 'Admin' && user?.roleId === ADMIN_ROLE_ID);
+    
     console.log('🔍 Checking admin permissions:', {
       userRole,
+      userRoleIds,
+      userRoleName: user?.roleName,
+      userRoleId: user?.roleId,
       ADMIN_ROLE_ID,
-      isAdmin: userRole === ADMIN_ROLE_ID,
-      user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+      hasAdminRole,
+      user: user ? { 
+        email: user.email, 
+        role: user.role, 
+        roleId: user.roleId,
+        roleIds: user.roleIds,
+        roleName: user.roleName
+      } : null
     });
-    return userRole === ADMIN_ROLE_ID;
+    
+    return hasAdminRole;
   }, [user]);
   
   // Helper function to parse page and table names from configKey
@@ -32,7 +51,13 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
       workspaceId,
       tableId,
       hasApiToken: !!apiToken,
-      user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+      user: user ? { 
+        email: user.email, 
+        role: user.role, 
+        roleId: user.roleId,
+        roleIds: user.roleIds,
+        roleName: user.roleName
+      } : null
     });
 
     if (!workspaceId) {
@@ -45,8 +70,16 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
       console.warn('🚫 User does not have admin permissions to save configurations');
       console.log('🔍 Admin check details:', {
         userRole: user?.role || user?.roleId,
+        userRoleIds: user?.roleIds,
+        userRoleName: user?.roleName,
         requiredRole: '6c2a85c7-116e-43b3-a4ff-db11b7858487',
-        user: user ? { email: user.email, role: user.role, roleId: user.roleId } : null
+        user: user ? { 
+          email: user.email, 
+          role: user.role, 
+          roleId: user.roleId,
+          roleIds: user.roleIds,
+          roleName: user.roleName
+        } : null
       });
       throw new Error('Access denied: Only admin users can save pivot configurations. Please contact your administrator to get admin permissions.');
     }
@@ -62,7 +95,9 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
         pageName,
         tableName,
         userId: user?.email || null,
-        userRole: user?.role || user?.roleId || null
+        userRole: user?.role || user?.roleId || null,
+        userRoleIds: user?.roleIds || null,
+        userRoleName: user?.roleName || null
       });
 
       const response = await fetch('/api/plasmic-cms', {
@@ -77,7 +112,9 @@ export const usePlasmicCMS = (workspaceId, tableId, apiToken, user) => {
           pageName,
           tableName,
           userId: user?.email || null,
-          userRole: user?.role || user?.roleId || null
+          userRole: user?.role || user?.roleId || null,
+          userRoleIds: user?.roleIds || null,
+          userRoleName: user?.roleName || null
         })
       });
 
