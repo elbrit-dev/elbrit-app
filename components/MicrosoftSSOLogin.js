@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import app from "../firebase";
-import { getAuth } from "firebase/auth";
+import app from "../firebase"; // now using compat app
+import firebase from 'firebase/compat/app';
+import 'firebase/compat/auth';
 import dynamic from 'next/dynamic';
 
 // Dynamically import FirebaseUI to avoid SSR issues
@@ -17,16 +18,13 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
     if (!isClient) return;
 
     const initializeFirebaseUI = async () => {
-      const auth = getAuth(app);
-      
-      // Dynamically import FirebaseUI only on client side
+      const auth = app.auth(); // using compat auth
+
       const firebaseui = await import('firebaseui');
       await import('firebaseui/dist/firebaseui.css');
-      
-      // Initialize FirebaseUI
+
       uiRef.current = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
 
-      // Configure FirebaseUI
       const uiConfig = {
         signInOptions: [
           {
@@ -34,21 +32,29 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
             customParameters: {
               tenant: process.env.NEXT_PUBLIC_AZURE_TENANT_ID
             }
+          },
+          {
+            provider: 'phone',
+            recaptchaParameters: {
+              type: 'image',
+              size: 'normal',
+              badge: 'bottomleft'
+            },
+            defaultCountry: 'IN'
           }
         ],
         signInFlow: 'popup',
         callbacks: {
           signInSuccessWithAuthResult: (authResult, redirectUrl) => {
-            console.log('Microsoft SSO login successful:', authResult.user.email);
-            
-            // The AuthContext will automatically handle Firestore user creation
-            // and state management when Firebase Auth state changes
+            console.log('Login successful:', authResult.user.phoneNumber || authResult.user.email);
             if (onSuccess) onSuccess({ firebaseUser: authResult.user });
-            
-            return false; // Don't redirect, let the app handle it
+            return false; // Prevent redirect
           },
           signInFailure: (error) => {
-            console.error('Microsoft SSO login failed:', error);
+            console.error('Login failed:', error.code, error.message);
+            if (error.code === 'auth/timeout') {
+              alert('Phone verification timed out. Please retry.');
+            }
             if (onError) onError(error);
             return Promise.resolve();
           },
@@ -58,10 +64,8 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
         }
       };
 
-      // Start FirebaseUI
       uiRef.current.start(containerRef.current, uiConfig);
 
-      // Cleanup function
       return () => {
         if (uiRef.current) {
           uiRef.current.reset();
@@ -83,8 +87,7 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
   );
 };
 
-// Export the component with dynamic import to prevent SSR
 export default dynamic(() => Promise.resolve(FirebaseUIComponent), {
   ssr: false,
   loading: () => <div>Loading authentication...</div>
-}); 
+});

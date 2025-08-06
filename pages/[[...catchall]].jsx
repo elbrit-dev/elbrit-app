@@ -137,21 +137,27 @@ export default function PlasmicLoaderPage(props) {
   // HYDRATION FIX: Debug logging moved to useEffect to avoid render-time execution
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && typeof window !== "undefined") {
-      console.log("Plasmic user:", plasmicUser);
-      console.log("Plasmic token:", plasmicAuthToken);
-      console.log("User context:", userContext);
+      console.log("🔍 Plasmic user:", plasmicUser);
+      console.log("🔍 Plasmic token:", plasmicAuthToken);
+      console.log("🔍 User context:", userContext);
+      console.log("🔍 Auth loaded:", authLoaded);
+      console.log("🔍 Is stable:", isStable);
     }
-  }, [plasmicUser, plasmicAuthToken, userContext]);
+  }, [plasmicUser, plasmicAuthToken, userContext, authLoaded, isStable]);
 
   // HOOKS FIX: All hooks called - now we can do conditional returns
   if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
+    console.log("❌ No Plasmic data found, returning 404");
     return <Error statusCode={404} />;
   }
   
   // HYDRATION FIX: Show loading state until auth is loaded and stable
   if (!authLoaded || !isStable) {
+    console.log("⏳ Auth not loaded or not stable, showing loading...");
     return <div>Loading...</div>;
   }
+
+  console.log("✅ Rendering Plasmic component:", pageMeta?.displayName);
 
   return (
     <PlasmicRootProvider
