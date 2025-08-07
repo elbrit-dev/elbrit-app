@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import app from '../firebase';
-import { fetchOrCreateUser, updateFirestoreUserRoleIfNeeded } from '../utils/firestoreUser';
 
 const AuthContext = createContext();
 
@@ -70,16 +69,26 @@ export const AuthProvider = ({ children }) => {
   const loadAuthFromStorage = () => {
     if (typeof window !== 'undefined') {
       try {
-        const storedToken = localStorage.getItem('plasmicAuthToken');
-        const storedUser = localStorage.getItem('plasmicUser');
-        const storedPhoneNumber = localStorage.getItem('userPhoneNumber'); // Load phone number
-        const storedAuthProvider = localStorage.getItem('authProvider'); // Load auth provider
+        const storedToken = localStorage.getItem('erpnextAuthToken');
+        const storedUser = localStorage.getItem('erpnextUser');
+        const storedPhoneNumber = localStorage.getItem('userPhoneNumber');
+        const storedAuthProvider = localStorage.getItem('authProvider');
+        const storedAuthType = localStorage.getItem('authType');
+        const storedAuthMethod = localStorage.getItem('authMethod');
         
-        if (storedToken && storedUser) {
+        if (storedToken && storedUser && storedAuthType === 'erpnext') {
           const parsedUser = JSON.parse(storedUser);
           setToken(storedToken);
           setUser(parsedUser);
           setIsAuthenticated(!!parsedUser);
+          
+          console.log('📱 Loaded auth from localStorage:', {
+            authType: storedAuthType,
+            authProvider: storedAuthProvider,
+            authMethod: storedAuthMethod,
+            userEmail: parsedUser.email,
+            userRole: parsedUser.role
+          });
         }
         
         // Set phone number if available
@@ -94,70 +103,20 @@ export const AuthProvider = ({ children }) => {
       } catch (error) {
         console.error('Error loading auth from storage:', error);
         // Clear invalid data
-        localStorage.removeItem('plasmicAuthToken');
-        localStorage.removeItem('plasmicUser');
+        localStorage.removeItem('erpnextAuthToken');
+        localStorage.removeItem('erpnextUser');
         localStorage.removeItem('userPhoneNumber');
         localStorage.removeItem('authProvider');
+        localStorage.removeItem('authType');
+        localStorage.removeItem('authMethod');
+        localStorage.removeItem('userEmail');
+        localStorage.removeItem('userDisplayName');
+        localStorage.removeItem('userRole');
       }
     }
   };
 
-  // Function to handle phone login data processing
-  const processPhoneLoginData = async (firebaseUser) => {
-    try {
-      // Get employee data from localStorage
-      const employeeDataStr = localStorage.getItem('employeeData');
-      if (!employeeDataStr) {
-        console.log('❌ No employee data found in localStorage for phone login');
-        return null;
-      }
 
-      const employeeData = JSON.parse(employeeDataStr);
-      console.log('📱 Processing phone login data:', employeeData);
-
-      // Extract email from employee data
-      const email = employeeData.employeeData?.company_email || employeeData.employeeData?.user_id__name;
-      
-      if (!email) {
-        console.log('❌ No email found in employee data');
-        return null;
-      }
-
-      console.log('📧 Email from employee data:', email);
-
-      // Create user data without role assignment (role will come from Plasmic custom auth)
-      const userData = {
-        email: email,
-        displayName: employeeData.employeeData?.first_name || email.split('@')[0],
-        phoneNumber: employeeData.phoneNumber,
-        employeeData: employeeData.employeeData,
-        authProvider: 'phone',
-        customProperties: {
-          organization: "Elbrit Life Sciences", // Default organization
-          accessLevel: "full", // Default access level
-          provider: 'phone',
-          employeeId: employeeData.employeeData?.employee_number,
-          department: employeeData.employeeData?.department__name,
-          designation: employeeData.employeeData?.designation__name,
-          dateOfJoining: employeeData.employeeData?.date_of_joining,
-          dateOfBirth: employeeData.employeeData?.date_of_birth
-        }
-      };
-
-      console.log('👤 Created user data for phone login:', userData);
-
-      // Store in localStorage like Microsoft login
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('phoneUserData', JSON.stringify(userData));
-        console.log('💾 Phone user data stored in localStorage');
-      }
-
-      return userData;
-    } catch (error) {
-      console.error('❌ Error processing phone login data:', error);
-      return null;
-    }
-  };
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
@@ -205,99 +164,110 @@ export const AuthProvider = ({ children }) => {
           }
           
           try {
-            // Create or fetch user document in Firestore (for logging/profile only)
-            console.log('📝 Fetching/creating user in Firestore...');
-            await fetchOrCreateUser(user);
-
-            // Handle phone login data processing
-            let phoneUserData = null;
-            if (provider === 'phone') {
-              phoneUserData = await processPhoneLoginData(user);
-            }
-
-            // Always fetch Plasmic user and token for roles/permissions
-            console.log('🔑 Fetching Plasmic user data...');
+            // Always fetch ERPNext user and token for roles/permissions
+            console.log('🔑 Fetching ERPNext user data...');
             
-            // Use email from phone user data if available, otherwise use Firebase user email
-            const emailForPlasmic = phoneUserData?.email || user.email;
+            // For Microsoft SSO: use Firebase email directly
+            // For Phone Auth: ERPNext API will get company_email from Employee data
+            const emailForERPNext = user.email; // Always pass Firebase email (will be used for Microsoft SSO)
             
-            const response = await fetch('/api/auth/plasmic-custom', {
+            const response = await fetch('/api/erpnext/auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
-                email: emailForPlasmic,
-                phoneNumber: user.phoneNumber // Include original phone number in request
+                email: emailForERPNext,
+                phoneNumber: user.phoneNumber, // Include original phone number in request
+                authProvider: provider // Pass the auth provider
               })
             });
             
             if (response.ok) {
-              const plasmicData = await response.json();
-              const plasmicUser = plasmicData.user;
-              const plasmicToken = plasmicData.token;
+              const erpnextData = await response.json();
+              const erpnextUser = erpnextData.user;
+              const erpnextToken = erpnextData.token;
               
-              console.log('✅ Plasmic user data received:', plasmicUser.email || plasmicUser.phoneNumber);
+              console.log('✅ ERPNext user data received:', erpnextUser.email || erpnextUser.phoneNumber);
+              console.log('📊 User source:', erpnextData.userSource);
+              console.log('🔑 ERPNext user role:', erpnextUser.role);
+              console.log('🔑 ERPNext user data:', erpnextUser);
               
-              // Merge phone user data with Plasmic user data if available
-              let finalUser = plasmicUser;
-              if (phoneUserData) {
-                finalUser = {
-                  ...plasmicUser,
-                  ...phoneUserData,
-                  role: phoneUserData.role || plasmicUser.role,
-                  customProperties: {
-                    ...plasmicUser.customProperties,
-                    ...phoneUserData.customProperties
-                  }
-                };
-              }
+              // Use ERPNext user data directly (no merging needed)
+              const finalUser = erpnextUser;
               
+              console.log('🎯 Final user data being set:', finalUser);
               setUser(finalUser);
-              setToken(plasmicToken);
+              setToken(erpnextToken);
               setIsAuthenticated(true);
               
               if (typeof window !== 'undefined') {
                 try {
-                  localStorage.setItem('plasmicAuthToken', plasmicToken);
-                  localStorage.setItem('plasmicUser', JSON.stringify(finalUser));
-                  console.log('💾 Auth data saved to localStorage');
+                  // Store ERPNext auth data
+                  localStorage.setItem('erpnextAuthToken', erpnextToken);
+                  localStorage.setItem('erpnextUser', JSON.stringify(finalUser));
+                  
+                  // Store authentication type and provider info
+                  localStorage.setItem('authType', 'erpnext');
+                  localStorage.setItem('authProvider', provider);
+                  localStorage.setItem('authMethod', provider === 'phone' ? 'phone' : 'microsoft');
+                  
+                  // Store user details for easy access
+                  localStorage.setItem('userEmail', finalUser.email);
+                  localStorage.setItem('userDisplayName', finalUser.displayName);
+                  localStorage.setItem('userRole', finalUser.role);
+                  localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
+                  
+                  console.log('💾 Auth data saved to localStorage:', {
+                    authType: 'erpnext',
+                    authProvider: provider,
+                    authMethod: provider === 'phone' ? 'phone' : 'microsoft',
+                    userEmail: finalUser.email,
+                    userRole: finalUser.role
+                  });
                 } catch (storageError) {
                   console.warn('Failed to save auth data to localStorage:', storageError);
                 }
               }
               
-              // Update Firestore user role if needed
-              if (user.uid && finalUser.role) {
-                try {
-                  console.log('🔄 Updating user role in Firestore...');
-                  await updateFirestoreUserRoleIfNeeded(user.uid, finalUser.role);
-                  console.log('✅ User role updated in Firestore');
-                } catch (roleError) {
-                  console.warn('Failed to update user role in Firestore:', roleError);
-                }
-              }
+              // No longer updating Firestore - using ERPNext as single source of truth
               
               console.log('✅ Auth state updated successfully');
             } else {
-              console.error('Failed to fetch Plasmic user data:', response.status);
-              // Fallback: clear user
+              const errorData = await response.json().catch(() => ({}));
+              console.error('Failed to fetch ERPNext user data:', response.status, errorData);
+              
+              // Handle access denied error
+              if (response.status === 403) {
+                console.error('❌ Access denied - user not in organization:', errorData.message);
+                alert('Access Denied: You are not authorized to access this system. Please contact your administrator.');
+              }
+              
+              // Clear user data
               setUser(null);
               setToken(null);
               setIsAuthenticated(false);
               if (typeof window !== 'undefined') {
-                localStorage.removeItem('plasmicAuthToken');
-                localStorage.removeItem('plasmicUser');
+                localStorage.removeItem('erpnextAuthToken');
+                localStorage.removeItem('erpnextUser');
               }
             }
-          } catch (error) {
-            console.error('Error during auth state change:', error);
-            setUser(null);
-            setToken(null);
-            setIsAuthenticated(false);
-            if (typeof window !== 'undefined') {
-              localStorage.removeItem('plasmicAuthToken');
-              localStorage.removeItem('plasmicUser');
-            }
+                  } catch (error) {
+          console.error('Error during auth state change:', error);
+          setUser(null);
+          setToken(null);
+          setIsAuthenticated(false);
+          if (typeof window !== 'undefined') {
+            // Clear all auth data on error
+            localStorage.removeItem('erpnextAuthToken');
+            localStorage.removeItem('erpnextUser');
+            localStorage.removeItem('authType');
+            localStorage.removeItem('authProvider');
+            localStorage.removeItem('authMethod');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userDisplayName');
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userPhoneNumber');
           }
+        }
         } else {
           console.log('Firebase user signed out');
           // User signed out
@@ -307,12 +277,22 @@ export const AuthProvider = ({ children }) => {
           setPhoneNumber(null); // Clear phone number on logout
           setAuthProvider(null); // Clear auth provider on logout
           if (typeof window !== 'undefined') {
-            localStorage.removeItem('plasmicAuthToken');
-            localStorage.removeItem('plasmicUser');
-            localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
-            localStorage.removeItem('authProvider'); // Remove auth provider from storage
-            localStorage.removeItem('employeeData'); // Remove employee data
-            localStorage.removeItem('phoneUserData'); // Remove phone user data
+            // Clear all ERPNext auth data
+            localStorage.removeItem('erpnextAuthToken');
+            localStorage.removeItem('erpnextUser');
+            localStorage.removeItem('userPhoneNumber');
+            localStorage.removeItem('authProvider');
+            localStorage.removeItem('authType');
+            localStorage.removeItem('authMethod');
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userDisplayName');
+            localStorage.removeItem('userRole');
+            
+            // Clear old data
+            localStorage.removeItem('employeeData');
+            localStorage.removeItem('phoneUserData');
+            
+            console.log('🧹 Cleared all auth data from localStorage');
           }
         }
       } catch (error) {
@@ -338,12 +318,12 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
-  const login = (plasmicUser, plasmicToken) => {
-    setUser(plasmicUser);
-    setToken(plasmicToken);
+  const login = (erpnextUser, erpnextToken) => {
+    setUser(erpnextUser);
+    setToken(erpnextToken);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('plasmicAuthToken', plasmicToken);
-      localStorage.setItem('plasmicUser', JSON.stringify(plasmicUser));
+      localStorage.setItem('erpnextAuthToken', erpnextToken);
+      localStorage.setItem('erpnextUser', JSON.stringify(erpnextUser));
     }
   };
 
@@ -359,8 +339,8 @@ export const AuthProvider = ({ children }) => {
     setPhoneNumber(null); // Clear phone number on logout
     setAuthProvider(null); // Clear auth provider on logout
     if (typeof window !== 'undefined') {
-      localStorage.removeItem('plasmicAuthToken');
-      localStorage.removeItem('plasmicUser');
+      localStorage.removeItem('erpnextAuthToken');
+      localStorage.removeItem('erpnextUser');
       localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
       localStorage.removeItem('authProvider'); // Remove auth provider from storage
     }

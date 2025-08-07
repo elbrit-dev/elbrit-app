@@ -20,6 +20,19 @@ export const PLASMIC = initPlasmicLoader({
   // Fetches the latest revisions, whether or not they were unpublished!
   // Disable for production to ensure you render only published changes.
   preview: true,
+  
+  // Disable Plasmic's built-in authentication system
+  // This allows our custom authentication to work without interference
+  auth: {
+    // Disable Plasmic's built-in auth
+    enabled: false,
+    // Provide a custom auth handler that always returns authenticated
+    getUserAndToken: async () => {
+      // Return null to indicate no Plasmic auth is needed
+      // Our custom auth will handle everything
+      return null;
+    }
+  }
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {

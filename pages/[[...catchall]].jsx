@@ -56,22 +56,22 @@ export default function PlasmicLoaderPage(props) {
     isHydratedRef.current = true;
   }, []);
   
-  // HYDRATION FIX: Load Plasmic auth data from localStorage with hydration safety
+  // HYDRATION FIX: Load ERPNext auth data from localStorage with hydration safety
   useEffect(() => {
     if (!isHydratedRef.current) return;
     
     // Defer to next tick to avoid setState during render
     const timer = setTimeout(() => {
       if (typeof window !== 'undefined') {
-        const storedUser = localStorage.getItem('plasmicUser');
-        const storedToken = localStorage.getItem('plasmicAuthToken');
+        const storedUser = localStorage.getItem('erpnextUser');
+        const storedToken = localStorage.getItem('erpnextAuthToken');
         
         if (storedUser) {
           try {
             setPlasmicUser(JSON.parse(storedUser));
           } catch (error) {
             console.error('Failed to parse stored user:', error);
-            localStorage.removeItem('plasmicUser');
+            localStorage.removeItem('erpnextUser');
           }
         }
         if (storedToken) setPlasmicAuthToken(storedToken);
@@ -86,40 +86,41 @@ export default function PlasmicLoaderPage(props) {
   useEffect(() => {
     if (!isHydratedRef.current) return;
     
-    async function refreshPlasmicAuth() {
+    async function refreshERPNextAuth() {
       if (
         typeof window !== 'undefined' &&
         firebaseUser &&
         (!plasmicUser || !plasmicAuthToken)
       ) {
-        console.log('Refreshing Plasmic auth for Firebase user:', firebaseUser.email);
+        console.log('Refreshing ERPNext auth for Firebase user:', firebaseUser.email);
         try {
-          const response = await fetch('/api/auth/plasmic-custom', {
+          const response = await fetch('/api/erpnext/auth', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: firebaseUser.email,
-              groupIds: firebaseUser.groupIds || []
+              phoneNumber: firebaseUser.phoneNumber,
+              authProvider: firebaseUser.phoneNumber ? 'phone' : 'microsoft'
             })
           });
           if (response.ok) {
-            const plasmicData = await response.json();
-            console.log('Plasmic auth refresh successful:', plasmicData);
-            setPlasmicUser(plasmicData.user);
-            setPlasmicAuthToken(plasmicData.token);
-            localStorage.setItem('plasmicUser', JSON.stringify(plasmicData.user));
-            localStorage.setItem('plasmicAuthToken', plasmicData.token);
+            const erpnextData = await response.json();
+            console.log('ERPNext auth refresh successful:', erpnextData);
+            setPlasmicUser(erpnextData.user);
+            setPlasmicAuthToken(erpnextData.token);
+            localStorage.setItem('erpnextUser', JSON.stringify(erpnextData.user));
+            localStorage.setItem('erpnextAuthToken', erpnextData.token);
           } else {
-            console.error('Plasmic auth refresh failed:', response.status, response.statusText);
+            console.error('ERPNext auth refresh failed:', response.status, response.statusText);
           }
         } catch (err) {
-          console.error('Failed to refresh Plasmic Auth:', err);
+          console.error('Failed to refresh ERPNext Auth:', err);
         }
       }
     }
     
     // HYDRATION FIX: Defer execution to avoid setState during render
-    const timer = setTimeout(refreshPlasmicAuth, 0);
+    const timer = setTimeout(refreshERPNextAuth, 0);
     return () => clearTimeout(timer);
   }, [firebaseUser, plasmicUser, plasmicAuthToken]);
 
@@ -164,8 +165,8 @@ export default function PlasmicLoaderPage(props) {
       loader={PLASMIC}
       prefetchedData={plasmicData}
       prefetchedQueryData={queryCache}
-      userAuthToken={plasmicAuthToken}
-      user={plasmicUser}
+      // Disable Plasmic's built-in auth by not passing user/token
+      // Our custom auth will handle everything
       key={`plasmic-root-${pageMeta?.displayName || 'unknown'}-${authLoaded}`} // HYDRATION FIX: Force remount on auth changes
     >
       {/* HYDRATION FIX: Wrap in error boundary and stability check */}
