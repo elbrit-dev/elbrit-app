@@ -2,6 +2,26 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import app from '../firebase';
 
+// Function to generate SVG avatar from first letter
+const generateAvatarSvg = (letter) => {
+  const colors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9',
+    '#F8C471', '#82E0AA', '#F1948A', '#85C1E9', '#D7BDE2'
+  ];
+  
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+  const backgroundColor = randomColor;
+  
+  return `data:image/svg+xml;base64,${btoa(`
+    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="20" fill="${backgroundColor}"/>
+      <text x="20" y="26" font-family="Arial, sans-serif" font-size="16" font-weight="bold" 
+            text-anchor="middle" fill="white">${letter}</text>
+    </svg>
+  `)}`;
+};
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -75,6 +95,8 @@ export const AuthProvider = ({ children }) => {
         const storedAuthProvider = localStorage.getItem('authProvider');
         const storedAuthType = localStorage.getItem('authType');
         const storedAuthMethod = localStorage.getItem('authMethod');
+        const storedUserAvatar = localStorage.getItem('userAvatar');
+        const storedUserInitial = localStorage.getItem('userInitial');
         
         if (storedToken && storedUser && storedAuthType === 'erpnext') {
           const parsedUser = JSON.parse(storedUser);
@@ -87,7 +109,9 @@ export const AuthProvider = ({ children }) => {
             authProvider: storedAuthProvider,
             authMethod: storedAuthMethod,
             userEmail: parsedUser.email,
-            userRole: parsedUser.role
+            userRole: parsedUser.role,
+            userAvatar: storedUserAvatar ? 'Available' : 'Not available',
+            userInitial: storedUserInitial
           });
         }
         
@@ -210,11 +234,17 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('authProvider', provider);
                   localStorage.setItem('authMethod', provider === 'phone' ? 'phone' : 'microsoft');
                   
+                  // Generate avatar from first letter
+                  const firstLetter = finalUser.displayName?.charAt(0)?.toUpperCase() || finalUser.email?.charAt(0)?.toUpperCase() || 'U';
+                  const avatarSvg = generateAvatarSvg(firstLetter);
+                  
                   // Store user details for easy access
                   localStorage.setItem('userEmail', finalUser.email);
                   localStorage.setItem('userDisplayName', finalUser.displayName);
                   localStorage.setItem('userRole', finalUser.role);
                   localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
+                  localStorage.setItem('userAvatar', avatarSvg);
+                  localStorage.setItem('userInitial', firstLetter);
                   
                   console.log('💾 Auth data saved to localStorage:', {
                     authType: 'erpnext',
@@ -266,6 +296,10 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userDisplayName');
             localStorage.removeItem('userRole');
             localStorage.removeItem('userPhoneNumber');
+            localStorage.removeItem('userAvatar');
+            localStorage.removeItem('userInitial');
+            localStorage.removeItem('userAvatar');
+            localStorage.removeItem('userInitial');
           }
         }
         } else {
