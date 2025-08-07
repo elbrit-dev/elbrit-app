@@ -2,7 +2,7 @@ import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import app, { db } from "../firebase";
 
 export async function fetchOrCreateUser(firebaseUser) {
-  console.log('fetchOrCreateUser called with:', firebaseUser?.email, firebaseUser?.uid);
+  console.log('fetchOrCreateUser called with:', firebaseUser?.email, firebaseUser?.phoneNumber, firebaseUser?.uid);
   
   if (!firebaseUser || !firebaseUser.uid) {
     throw new Error('Invalid Firebase user provided');
@@ -17,12 +17,26 @@ export async function fetchOrCreateUser(firebaseUser) {
       console.log("User document already exists in Firestore:", firebaseUser.uid);
       const userData = userSnap.data();
       console.log("Existing user data:", userData);
+      
+      // Update phone number if it's not already stored
+      if (firebaseUser.phoneNumber && !userData.phoneNumber) {
+        try {
+          await updateDoc(userRef, {
+            phoneNumber: firebaseUser.phoneNumber,
+            lastUpdatedAt: new Date().toISOString()
+          });
+          console.log("✅ Phone number updated in existing user document");
+        } catch (updateError) {
+          console.warn("Failed to update phone number in existing user:", updateError);
+        }
+      }
+      
       return userData;
     } else {
       console.log("User document does not exist, creating new one for:", firebaseUser.uid);
       
-      // Assign role based on email domain
-      const domain = firebaseUser.email.split("@")[1]?.toLowerCase();
+      // Assign role based on email domain or phone number
+      const domain = firebaseUser.email?.split("@")[1]?.toLowerCase();
       let role = "Viewer";
       if (domain === "elbrit.org") {
         role = "Editor";
@@ -30,8 +44,9 @@ export async function fetchOrCreateUser(firebaseUser) {
       
       const newUser = {
         uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        displayName: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+        email: firebaseUser.email || null,
+        phoneNumber: firebaseUser.phoneNumber || null,
+        displayName: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || firebaseUser.phoneNumber || 'User',
         photoURL: firebaseUser.photoURL || null,
         role,
         createdAt: new Date().toISOString(),
@@ -39,7 +54,8 @@ export async function fetchOrCreateUser(firebaseUser) {
         customProperties: {
           organization: domain === "elbrit.org" ? "Elbrit Life Sciences" : "External User",
           accessLevel: domain === "elbrit.org" ? "full" : "limited",
-          provider: firebaseUser.providerData?.[0]?.providerId || 'unknown'
+          provider: firebaseUser.providerData?.[0]?.providerId || 'unknown',
+          authMethod: firebaseUser.email ? 'email' : 'phone'
         }
       };
       
@@ -55,7 +71,8 @@ export async function fetchOrCreateUser(firebaseUser) {
           code: setDocError.code,
           message: setDocError.message,
           user: firebaseUser.uid,
-          email: firebaseUser.email
+          email: firebaseUser.email,
+          phoneNumber: firebaseUser.phoneNumber
         });
         throw setDocError;
       }
@@ -66,7 +83,8 @@ export async function fetchOrCreateUser(firebaseUser) {
       code: getDocError.code,
       message: getDocError.message,
       user: firebaseUser.uid,
-      email: firebaseUser.email
+      email: firebaseUser.email,
+      phoneNumber: firebaseUser.phoneNumber
     });
     throw getDocError;
   }

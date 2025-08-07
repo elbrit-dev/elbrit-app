@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState(null); // Add phone number state
   
   // Add refs to prevent race conditions
   const authStateRef = useRef(null);
@@ -30,6 +31,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const storedToken = localStorage.getItem('plasmicAuthToken');
         const storedUser = localStorage.getItem('plasmicUser');
+        const storedPhoneNumber = localStorage.getItem('userPhoneNumber'); // Load phone number
         
         if (storedToken && storedUser) {
           const parsedUser = JSON.parse(storedUser);
@@ -37,11 +39,17 @@ export const AuthProvider = ({ children }) => {
           setUser(parsedUser);
           setIsAuthenticated(!!parsedUser);
         }
+        
+        // Set phone number if available
+        if (storedPhoneNumber) {
+          setPhoneNumber(storedPhoneNumber);
+        }
       } catch (error) {
         console.error('Error loading auth from storage:', error);
         // Clear invalid data
         localStorage.removeItem('plasmicAuthToken');
         localStorage.removeItem('plasmicUser');
+        localStorage.removeItem('userPhoneNumber');
       }
     }
   };
@@ -61,11 +69,20 @@ export const AuthProvider = ({ children }) => {
       authStateRef.current = user;
       
       try {
-        console.log('🔄 Auth state change triggered:', user?.email || 'no user');
+        console.log('🔄 Auth state change triggered:', user?.email || user?.phoneNumber || 'no user');
         setFirebaseUser(user);
         
         if (user) {
-          console.log('Firebase user authenticated:', user.email);
+          console.log('Firebase user authenticated:', user.email || user.phoneNumber);
+          
+          // Store phone number if available
+          if (user.phoneNumber) {
+            setPhoneNumber(user.phoneNumber);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('userPhoneNumber', user.phoneNumber);
+              console.log('📱 Phone number saved to localStorage:', user.phoneNumber);
+            }
+          }
           
           try {
             // Create or fetch user document in Firestore (for logging/profile only)
@@ -77,7 +94,10 @@ export const AuthProvider = ({ children }) => {
             const response = await fetch('/api/auth/plasmic-custom', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ email: user.email })
+              body: JSON.stringify({ 
+                email: user.email,
+                phoneNumber: user.phoneNumber // Include phone number in request
+              })
             });
             
             if (response.ok) {
@@ -85,7 +105,7 @@ export const AuthProvider = ({ children }) => {
               const plasmicUser = plasmicData.user;
               const plasmicToken = plasmicData.token;
               
-              console.log('✅ Plasmic user data received:', plasmicUser.email);
+              console.log('✅ Plasmic user data received:', plasmicUser.email || plasmicUser.phoneNumber);
               
               setUser(plasmicUser);
               setToken(plasmicToken);
@@ -140,9 +160,11 @@ export const AuthProvider = ({ children }) => {
           setUser(null);
           setToken(null);
           setIsAuthenticated(false);
+          setPhoneNumber(null); // Clear phone number on logout
           if (typeof window !== 'undefined') {
             localStorage.removeItem('plasmicAuthToken');
             localStorage.removeItem('plasmicUser');
+            localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
           }
         }
       } catch (error) {
@@ -150,6 +172,7 @@ export const AuthProvider = ({ children }) => {
         setUser(null);
         setToken(null);
         setIsAuthenticated(false);
+        setPhoneNumber(null);
       } finally {
         setLoading(false);
         isProcessingRef.current = false;
@@ -184,9 +207,11 @@ export const AuthProvider = ({ children }) => {
     }
     setUser(null);
     setToken(null);
+    setPhoneNumber(null); // Clear phone number on logout
     if (typeof window !== 'undefined') {
       localStorage.removeItem('plasmicAuthToken');
       localStorage.removeItem('plasmicUser');
+      localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
     }
   };
 
@@ -203,7 +228,8 @@ export const AuthProvider = ({ children }) => {
     logout,
     refreshAuth,
     isAuthenticated: !!user && !!token,
-    firebaseUser // Expose Firebase user for components that need it
+    firebaseUser, // Expose Firebase user for components that need it
+    phoneNumber // Expose phone number
   };
 
   // Make auth context available globally for components that can't use hooks

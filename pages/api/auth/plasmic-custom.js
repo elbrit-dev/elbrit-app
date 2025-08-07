@@ -5,10 +5,10 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email } = req.body;
+  const { email, phoneNumber } = req.body;
 
-  if (!email) {
-    return res.status(400).json({ error: 'Email is required' });
+  if (!email && !phoneNumber) {
+    return res.status(400).json({ error: 'Email or phone number is required' });
   }
 
   try {
@@ -17,9 +17,12 @@ export default async function handler(req, res) {
     const secretToken = process.env.PLASMIC_CMS_SECRET_TOKEN;
     const cmsDbId = process.env.PLASMIC_CMS_DATABASE_ID;
 
+    // Use email or phone number for authentication
+    const identifier = email || phoneNumber;
+
     // Ensure user exists in Plasmic
     const result = await ensurePlasmicAppUser({
-      email,
+      email: identifier, // Plasmic might need email format, but we can pass phone as email
       appSecret
     });
 
@@ -29,8 +32,21 @@ export default async function handler(req, res) {
 
     const { user: plasmicUser, token: plasmicUserToken } = result;
 
+    // Add phone number to user data if provided
+    let userWithPhone = plasmicUser;
+    if (phoneNumber) {
+      userWithPhone = {
+        ...plasmicUser,
+        phoneNumber: phoneNumber,
+        customProperties: {
+          ...plasmicUser.customProperties,
+          phoneNumber: phoneNumber
+        }
+      };
+    }
+
     // Fetch user role from CMS if we have the public token
-    let userWithRole = plasmicUser;
+    let userWithRole = userWithPhone;
     if (publicToken && cmsDbId) {
       try {
         // Look for user in the users table or any relevant table that contains roles
@@ -59,7 +75,7 @@ export default async function handler(req, res) {
             const queryParams = new URLSearchParams({
               q: JSON.stringify({
                 where: {
-                  email: email
+                  email: email || phoneNumber // Search by email or phone number
                 },
                 limit: 1
               })
@@ -83,12 +99,12 @@ export default async function handler(req, res) {
               if (cmsUser && userData?.roleId) {
                 console.log('🔑 Found user role in CMS:', userData.roleId);
                 userWithRole = {
-                  ...plasmicUser,
+                  ...userWithPhone,
                   role: userData.roleId,
                   roleId: userData.roleId,
                   roleName: userData.roleName || 'User',
                   customProperties: {
-                    ...plasmicUser.customProperties,
+                    ...userWithPhone.customProperties,
                     cmsRole: userData.roleId,
                     cmsRoleName: userData.roleName
                   }
