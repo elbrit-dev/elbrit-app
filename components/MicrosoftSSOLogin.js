@@ -3,12 +3,14 @@ import app from "../firebase"; // now using compat app
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import dynamic from 'next/dynamic';
+import { useRouter } from 'next/router';
 
 // Dynamically import FirebaseUI to avoid SSR issues
 const FirebaseUIComponent = ({ onSuccess, onError }) => {
   const uiRef = useRef(null);
   const containerRef = useRef(null);
   const [isClient, setIsClient] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setIsClient(true);
@@ -17,6 +19,27 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
   useEffect(() => {
     if (!isClient) return;
 
+    // If auth data already exists in localStorage, skip login and redirect
+    try {
+      const storedUser = localStorage.getItem('erpnextUser');
+      const storedToken = localStorage.getItem('erpnextAuthToken');
+      const storedAuthType = localStorage.getItem('authType');
+      if (storedUser && storedToken && (storedAuthType === 'erpnext' || !storedAuthType)) {
+        // Prefer Next router for SPA navigation; fallback to location.replace
+        const targetPath = '/';
+        if (router && router.replace) {
+          router.replace(targetPath);
+        } else if (typeof window !== 'undefined') {
+          window.location.replace(targetPath);
+        }
+        return; // Do not initialize FirebaseUI
+      }
+    } catch (e) {
+      // If localStorage isn't accessible, proceed with login UI
+      // eslint-disable-next-line no-console
+      console.warn('Unable to read localStorage for auth bypass; showing login UI.', e);
+    }
+
     const initializeFirebaseUI = async () => {
       const auth = app.auth(); // using compat auth
 
@@ -24,9 +47,6 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
       await import('firebaseui/dist/firebaseui.css');
 
       uiRef.current = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
-
-      // Detect mobile devices to avoid popup blockers
-      const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
       const uiConfig = {
         signInOptions: [
@@ -46,10 +66,7 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
             defaultCountry: 'IN'
           }
         ],
-        // Use redirect on mobile to prevent popup-blocked behavior
-        signInFlow: isMobile ? 'redirect' : 'popup',
-        // Disable account chooser helper to avoid extra interstitials
-        credentialHelper: firebaseui.auth.CredentialHelper.NONE,
+        signInFlow: 'popup',
         callbacks: {
           signInSuccessWithAuthResult: (authResult, redirectUrl) => {
             console.log('Login successful:', authResult.user.phoneNumber || authResult.user.email);
