@@ -18,6 +18,15 @@ const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore(app);
 db._delegate._databaseId.database = 'elbrit';
 
+// Ensure robust auth persistence across mobile redirect/popup flows
+try {
+  const auth = app.auth();
+  // Use local persistence when available; fallback handled by SDK
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+} catch (e) {
+  // Non-fatal in SSR or if auth not ready yet
+}
+
 // Expose to window for Plasmic if needed
 if (typeof window !== 'undefined') {
   window.firebaseApp = app;

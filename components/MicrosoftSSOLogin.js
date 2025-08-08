@@ -25,6 +25,9 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
 
       uiRef.current = firebaseui.auth.AuthUI.getInstance() || new firebaseui.auth.AuthUI(auth);
 
+      // Detect mobile devices to avoid popup blockers
+      const isMobile = typeof navigator !== 'undefined' && /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
       const uiConfig = {
         signInOptions: [
           {
@@ -43,7 +46,10 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
             defaultCountry: 'IN'
           }
         ],
-        signInFlow: 'popup',
+        // Use redirect on mobile to prevent popup-blocked behavior
+        signInFlow: isMobile ? 'redirect' : 'popup',
+        // Disable account chooser helper to avoid extra interstitials
+        credentialHelper: firebaseui.auth.CredentialHelper.NONE,
         callbacks: {
           signInSuccessWithAuthResult: (authResult, redirectUrl) => {
             console.log('Login successful:', authResult.user.phoneNumber || authResult.user.email);
