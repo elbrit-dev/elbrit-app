@@ -1,6 +1,6 @@
 import '../styles/globals.css';
 import { AuthProvider } from '../components/AuthContext';
-import '../plasmic-init'; // Import Plasmic configuration
+import '../plasmic-init'; 
 
 // PrimeReact CSS imports
 import 'primereact/resources/primereact.min.css';
