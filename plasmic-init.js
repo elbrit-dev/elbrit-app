@@ -1,5 +1,6 @@
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import MicrosoftSSOLogin from "./components/MicrosoftSSOLogin";
+import TruecallerSSOLogin from "./components/TruecallerSSOLogin";
 import PlasmicDataContext from "./components/PlasmicDataContext";
 import AdvancedTable from "./components/AdvancedTable";
 import PrimeDataTable from "./components/PrimeDataTable";
@@ -60,6 +61,58 @@ PLASMIC.registerComponent(MicrosoftSSOLogin, {
     }
   },
   importPath: "./components/MicrosoftSSOLogin"
+});
+
+PLASMIC.registerComponent(TruecallerSSOLogin, {
+  name: "TruecallerSSOLogin",
+  displayName: "Truecaller SSO Login",
+  description: "Truecaller deep-link login with backend polling",
+  props: {
+    apiUrl: {
+      type: "string",
+      description: "Base backend URL exposing /api/method/truecaller",
+      defaultValue: "https://uat.elbrit.org"
+    },
+    partnerKey: {
+      type: "string",
+      description: "Truecaller partner key",
+      defaultValue: ""
+    },
+    partnerName: { type: "string", defaultValue: "App" },
+    privacyUrl: { type: "string", defaultValue: "https://yourdomain.com/privacy" },
+    termsUrl: { type: "string", defaultValue: "https://yourdomain.com/terms" },
+    ttl: { type: "number", defaultValue: 60000 },
+    lang: { type: "string", defaultValue: "en" },
+    loginPrefix: { type: "string", defaultValue: "getstarted" },
+    loginSuffix: { type: "string", defaultValue: "register" },
+    ctaPrefix: { type: "string", defaultValue: "use" },
+    ctaColor: { type: "string", defaultValue: "#f75d34" },
+    ctaTextColor: { type: "string", defaultValue: "#ffffff" },
+    btnShape: { type: "choice", options: ["round", "square"], defaultValue: "round" },
+    skipOption: { type: "string", defaultValue: "useanothernum" },
+    buttonText: { type: "string", defaultValue: "Truecaller" },
+    showDebug: { type: "boolean", defaultValue: false },
+    showStatus: { type: "boolean", defaultValue: true },
+    showRequestId: { type: "boolean", defaultValue: false },
+    fullWidth: { type: "boolean", defaultValue: false },
+    enableAuthIntegration: { type: "boolean", defaultValue: false, description: "Store session/user and write to Firestore/ERPNext" },
+    redirectOnSuccess: { type: "boolean", defaultValue: true, description: "Navigate after successful verification" },
+    redirectPath: { type: "string", defaultValue: "/", description: "Path to navigate to on success" },
+    className: { type: "string", defaultValue: "" },
+    onSuccess: {
+      type: "eventHandler",
+      argTypes: [ { name: "response", type: "object" } ]
+    },
+    onError: {
+      type: "eventHandler",
+      argTypes: [ { name: "error", type: "object" } ]
+    },
+    onFailure: {
+      type: "eventHandler",
+      argTypes: [ { name: "error", type: "object" } ]
+    }
+  },
+  importPath: "./components/TruecallerSSOLogin"
 });
 
 // Register the Plasmic Data Context component
