@@ -200,7 +200,7 @@ const TruecallerComponent = ({
             phase: "response",
             requestId: nonce,
             attempt: retryCountRef.current + 1,
-            status: status || "unknown",
+            status: status || "unknow",
             data,
           });
         }
