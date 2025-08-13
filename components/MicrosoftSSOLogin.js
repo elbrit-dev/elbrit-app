@@ -19,19 +19,14 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
   useEffect(() => {
     if (!isClient) return;
 
-    // If auth data already exists in localStorage, skip login and redirect
+    // If auth data already exists in localStorage, skip initializing FirebaseUI
     try {
       const storedUser = localStorage.getItem('erpnextUser');
       const storedToken = localStorage.getItem('erpnextAuthToken');
       const storedAuthType = localStorage.getItem('authType');
       if (storedUser && storedToken && (storedAuthType === 'erpnext' || !storedAuthType)) {
-        // Prefer Next router for SPA navigation; fallback to location.replace
-        const targetPath = '/';
-        if (router && router.replace) {
-          router.replace(targetPath);
-        } else if (typeof window !== 'undefined') {
-          window.location.replace(targetPath);
-        }
+        // Let parent or global auth handler decide navigation to avoid double route changes
+        if (onSuccess) onSuccess({ bypass: true });
         return; // Do not initialize FirebaseUI
       }
     } catch (e) {
