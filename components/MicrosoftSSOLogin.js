@@ -62,10 +62,11 @@ const FirebaseUIComponent = ({ onSuccess, onError }) => {
           }
         ],
         signInFlow: 'popup',
-        callbacks: {
+          callbacks: {
           signInSuccessWithAuthResult: (authResult, redirectUrl) => {
             console.log('Login successful:', authResult.user.phoneNumber || authResult.user.email);
-            if (onSuccess) onSuccess({ firebaseUser: authResult.user });
+            // Defer onSuccess to avoid racing with UI teardown and route changes
+            if (onSuccess) setTimeout(() => onSuccess({ firebaseUser: authResult.user }), 0);
             return false; // Prevent redirect
           },
           signInFailure: (error) => {

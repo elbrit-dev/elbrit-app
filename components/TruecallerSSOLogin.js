@@ -49,6 +49,7 @@ const TruecallerComponent = ({
   const [debugPayload, setDebugPayload] = useState(null);
   const retryCountRef = useRef(0);
   const isPollingRef = useRef(false);
+  const pollStartTimeRef = useRef(null);
 
   const encodedPrivacyUrl = useMemo(
     () => encodeURIComponent(privacyUrl || ""),
@@ -250,10 +251,23 @@ const TruecallerComponent = ({
             break;
           }
           case "user_not_found": {
-            setMessage("User not found");
-            setIsLoading(false);
-            retryCountRef.current = 0;
-            notifyFailure({ code: "user_not_found", data });
+            // Grace period: treat as transient early on to avoid premature failure
+            const attempts = retryCountRef.current + 1;
+            const elapsedMs = pollStartTimeRef.current ? Date.now() - pollStartTimeRef.current : 0;
+            const withinGrace = attempts <= 5 || elapsedMs < 15000; // up to 5 tries or 15s
+            if (withinGrace) {
+              setMessage("Waiting for Truecaller response...");
+              retryCountRef.current += 1;
+              setTimeout(() => {
+                isPollingRef.current = false;
+                fetchResponseFromBackend(nonce);
+              }, 2000);
+            } else {
+              setMessage("User not found");
+              setIsLoading(false);
+              retryCountRef.current = 0;
+              notifyFailure({ code: "user_not_found", data });
+            }
             break;
           }
           case "user_rejected": {
@@ -331,6 +345,7 @@ const TruecallerComponent = ({
     const nonce = generateUuidv4();
     setRequestId(nonce);
     log(`Generated request ID: ${nonce}`);
+    pollStartTimeRef.current = Date.now();
 
     const url =
       `truecallersdk://truesdk/web_verify?type=btmsheet` +
@@ -367,7 +382,8 @@ const TruecallerComponent = ({
         setIsLoading(false);
       } else {
         setMessage("");
-        fetchResponseFromBackend(nonce);
+        // Delay first poll a bit longer to avoid premature 'user_not_found'
+        setTimeout(() => fetchResponseFromBackend(nonce), 1200);
       }
     }, 600);
   }, [
