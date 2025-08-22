@@ -1,275 +1,174 @@
-import React, { useMemo, useState, useEffect } from 'react';
+// /components/TagFilterPrimeReact.js
+'use client';
+import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import { Tag } from 'primereact/tag';
 import { Chip } from 'primereact/chip';
 import { Button } from 'primereact/button';
 import { Badge } from 'primereact/badge';
+import '../styles/TagFilter.css';
 
-/**
- * TagFilter Component for Plasmic Studio using PrimeReact
- * 
- * This component uses PrimeReact components for beautiful, professional tag designs
- * that can be configured through Plasmic Studio props.
- */
-const TagFilterPrimeReact = ({
-  // Tag data configuration
-  tagList = [], // Direct array of tags
-  tagDataSource = "props", // "props", "pageData", "queryData", "cmsData"
-  tagDataPath = "", // Path to extract tags from data source
-  tagField = "name", // Field name to extract from objects
-  
-  // Visual configuration
-  tagStyle = "tag", // "tag", "chip", "button", "badge"
-  selectedStyle = "filled", // "filled", "outlined", "highlighted"
-  tagSize = "medium", // "small", "medium", "large"
-  tagSpacing = 8, // Spacing between tags in pixels
-  
-  // PrimeReact specific styling
-  tagSeverity = "info", // "success", "info", "warn", "error", null
-  tagIcon = null, // Icon to show on tags
-  tagIconPos = "left", // "left" or "right"
-  
-  // Behavior configuration
-  multiSelect = true, // Allow multiple tag selection
-  allowDeselect = true, // Allow deselecting selected tags
-  maxSelections = 10, // Maximum number of tags that can be selected
-  
-  // State management
-  stateKey = "selectedTags", // Plasmic Studio state variable name
-  defaultSelected = [], // Default selected tags
-  
-  // Callbacks
-  onSelectionChange, // Called when selection changes
-  onTagClick, // Called when individual tag is clicked
-  
-  // Plasmic Studio props
-  className = "",
-  style = {},
-  
-  // Data context (will be provided by Plasmic Studio)
-  pageData,
-  queryData,
-  cmsData,
-  
-  ...plasmicProps
-}) => {
-  // Get the actual tag list based on data source
-  const tags = useMemo(() => {
-    if (tagDataSource === "props" && Array.isArray(tagList)) {
-      return tagList;
+export default function TagFilterPrimeReact(props) {
+  const {
+    tagList = [],
+    tagDataSource = 'props',
+    tagDataPath = '',
+    tagField = 'name',
+
+    tagStyle = 'tag',            // 'tag' | 'chip' | 'button' | 'badge'
+    selectedStyle = 'filled',    // 'filled' | 'outlined' | 'highlighted'
+    tagSize = 'medium',          // 'small' | 'medium' | 'large'
+    tagSpacing = 8,
+
+    tagSeverity = 'info',
+    tagIcon = null,
+    tagIconPos = 'left',
+
+    multiSelect = true,
+    allowDeselect = true,
+    maxSelections = 10,
+
+    stateKey = 'selectedTags',
+    defaultSelected = [],
+
+    onSelectionChange,
+    onTagClick,
+
+    className = '',
+    style = {},
+
+    pageData,
+    queryData,
+    cmsData,
+
+    ...plasmicProps
+  } = props;
+
+  const getNestedValue = useCallback((obj, path) => {
+    if (!path) return obj;
+    return path.split('.').reduce((cur, key) => (cur == null ? cur : cur[key]), obj);
+  }, []);
+
+  const extractTagsFromData = useCallback((data, field) => {
+    if (!data) return [];
+    if (Array.isArray(data)) {
+      if (typeof data[0] === 'string') return data.filter(Boolean);
+      if (typeof data[0] === 'object') {
+        return data.map((it) => it?.[field] ?? it?.name ?? it?.label ?? it?.id).filter(Boolean);
+      }
     }
-    
-    if (tagDataSource === "pageData" && pageData && tagDataPath) {
-      const data = getNestedValue(pageData, tagDataPath);
-      return extractTagsFromData(data, tagField);
+    if (typeof data === 'object') {
+      return (data.tags || data.categories || data.labels || []).filter(Boolean);
     }
-    
-    if (tagDataSource === "queryData" && queryData && tagDataPath) {
-      const data = getNestedValue(queryData, tagDataPath);
-      return extractTagsFromData(data, tagField);
-    }
-    
-    if (tagDataSource === "cmsData" && cmsData && tagDataPath) {
-      const data = getNestedValue(cmsData, tagDataPath);
-      return extractTagsFromData(data, tagField);
-    }
-    
     return [];
-  }, [tagDataSource, tagList, tagDataPath, tagField, pageData, queryData, cmsData]);
+  }, []);
 
-  // Selection state - this will be managed by Plasmic Studio
-  const [selectedTags, setSelectedTags] = useState(defaultSelected);
+  const tags = useMemo(() => {
+    if (tagDataSource === 'props') return Array.isArray(tagList) ? tagList : [];
+    if (tagDataSource === 'pageData') return extractTagsFromData(getNestedValue(pageData, tagDataPath), tagField);
+    if (tagDataSource === 'queryData') return extractTagsFromData(getNestedValue(queryData, tagDataPath), tagField);
+    if (tagDataSource === 'cmsData') return extractTagsFromData(getNestedValue(cmsData, tagDataPath), tagField);
+    return [];
+  }, [tagDataSource, tagList, tagDataPath, tagField, pageData, queryData, cmsData, getNestedValue, extractTagsFromData]);
 
-  // Update selected tags when defaultSelected changes
+  const [selected, setSelected] = useState(() => Array.isArray(defaultSelected) ? defaultSelected : []);
+
   useEffect(() => {
-    if (defaultSelected && defaultSelected.length > 0) {
-      setSelectedTags(defaultSelected);
-    }
+    if (Array.isArray(defaultSelected)) setSelected(defaultSelected);
   }, [defaultSelected]);
 
-  // Helper function to get nested object values
-  const getNestedValue = (obj, path) => {
-    if (!path) return obj;
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
-
-  // Helper function to extract tags from various data formats
-  const extractTagsFromData = (data, field) => {
-    if (!data) return [];
-    
-    if (Array.isArray(data)) {
-      if (typeof data[0] === 'string') {
-        return data;
-      }
-      if (typeof data[0] === 'object') {
-        return data.map(item => item[field] || item.name || item.label || item.id).filter(Boolean);
-      }
-    }
-    
-    if (typeof data === 'object') {
-      if (data.tags) return data.tags;
-      if (data.categories) return data.categories;
-      if (data.labels) return data.labels;
-    }
-    
-    return [];
-  };
-
-  // Handle tag selection/deselection
-  const handleTagClick = (tag) => {
-    let newSelection;
-    
-    if (multiSelect) {
-      if (selectedTags.includes(tag)) {
-        // Deselect tag
-        if (allowDeselect) {
-          newSelection = selectedTags.filter(t => t !== tag);
-        } else {
-          return; // Don't allow deselection
-        }
-      } else {
-        // Select tag
-        if (selectedTags.length >= maxSelections) {
-          // Remove oldest selection if at max
-          newSelection = [...selectedTags.slice(1), tag];
-        } else {
-          newSelection = [...selectedTags, tag];
-        }
-      }
-    } else {
-      // Single select mode
-      newSelection = selectedTags.includes(tag) ? [] : [tag];
-    }
-    
-    setSelectedTags(newSelection);
-    
-    // Call callbacks
-    if (onSelectionChange) {
-      onSelectionChange(newSelection, tag);
-    }
-    
-    if (onTagClick) {
-      onTagClick(tag, newSelection);
-    }
-    
-    // Dispatch custom event for Plasmic Studio integration
+  const commit = useCallback((next, clicked) => {
+    setSelected(next);
+    onSelectionChange?.(next, clicked);
+    onTagClick?.(clicked, next);
     if (typeof window !== 'undefined') {
-      const event = new CustomEvent('tag-filter-selection-change', {
-        detail: {
-          selectedTags: newSelection,
-          clickedTag: tag,
-          stateKey: stateKey
-        }
-      });
-      window.dispatchEvent(event);
+      window.dispatchEvent(new CustomEvent('tag-filter-selection-change', {
+        detail: { selectedTags: next, clickedTag: clicked, stateKey }
+      }));
     }
-  };
+  }, [onSelectionChange, onTagClick, stateKey]);
 
-  // Get PrimeReact component props based on selection state
-  const getTagProps = (tag) => {
-    const isSelected = selectedTags.includes(tag);
-    
-    // Base props for all tag types
-    const baseProps = {
-      onClick: () => handleTagClick(tag),
-      style: { cursor: 'pointer', margin: `${tagSpacing / 2}px` },
-      className: `tag-filter-item ${isSelected ? 'tag-selected' : ''}`,
-    };
+  const toggle = useCallback((tag) => {
+    const isSel = selected.includes(tag);
+    let next;
+    if (multiSelect) {
+      next = isSel
+        ? (allowDeselect ? selected.filter(t => t !== tag) : selected)
+        : (selected.length >= maxSelections ? [...selected.slice(1), tag] : [...selected, tag]);
+    } else {
+      next = isSel ? (allowDeselect ? [] : selected) : [tag];
+    }
+    commit(next, tag);
+  }, [selected, multiSelect, allowDeselect, maxSelections, commit]);
 
-    // Size-based props
-    const sizeProps = {
-      small: { size: 'small' },
-      medium: { size: 'normal' },
-      large: { size: 'large' }
-    };
+  const sizeProp = tagSize === 'small' ? 'small' : tagSize === 'large' ? 'large' : undefined;
+  const itemCommon = { style: { cursor: 'pointer', margin: `${tagSpacing / 2}px` } };
 
-    // Selection-based styling
-    const selectionProps = {
-      filled: {
-        severity: isSelected ? tagSeverity || 'success' : 'secondary',
-        className: isSelected ? 'p-tag-success' : 'p-tag-secondary'
-      },
-      outlined: {
-        severity: isSelected ? tagSeverity || 'info' : 'secondary',
-        className: isSelected ? 'p-tag-outlined p-tag-info' : 'p-tag-outlined p-tag-secondary'
-      },
-      highlighted: {
-        severity: isSelected ? 'warn' : 'secondary',
-        className: isSelected ? 'p-tag-warn' : 'p-tag-secondary'
-      }
-    };
-
-    return {
-      ...baseProps,
-      ...sizeProps[tagSize],
-      ...selectionProps[selectedStyle]
-    };
-  };
-
-  // Render different PrimeReact components based on tagStyle
-  const renderTag = (tag, index) => {
-    const tagProps = getTagProps(tag);
-    const isSelected = selectedTags.includes(tag);
-
+  const renderOne = (tag, i) => {
+    const isSel = selected.includes(tag);
     switch (tagStyle) {
       case 'chip':
         return (
           <Chip
-            key={`${tag}-${index}`}
-            label={tag}
+            key={`${String(tag)}-${i}`}
+            label={String(tag)}
             icon={tagIcon}
             iconPos={tagIconPos}
-            removable={isSelected && allowDeselect}
-            onRemove={() => handleTagClick(tag)}
-            {...tagProps}
+            removable={isSel && allowDeselect}
+            onRemove={() => toggle(tag)}
+            onClick={() => toggle(tag)}
+            {...itemCommon}
+            {...plasmicProps}
           />
         );
-
       case 'button':
         return (
           <Button
-            key={`${tag}-${index}`}
-            label={tag}
+            key={`${String(tag)}-${i}`}
+            label={String(tag)}
             icon={tagIcon}
             iconPos={tagIconPos}
-            severity={isSelected ? 'success' : 'secondary'}
+            severity={isSel ? (tagSeverity || 'success') : 'secondary'}
             outlined={selectedStyle === 'outlined'}
-            size={tagSize === 'small' ? 'small' : tagSize === 'large' ? 'large' : 'normal'}
-            onClick={() => handleTagClick(tag)}
-            style={{ margin: `${tagSpacing / 2}px` }}
-            className={`tag-filter-item ${isSelected ? 'tag-selected' : ''}`}
+            size={sizeProp}
+            onClick={() => toggle(tag)}
+            {...itemCommon}
+            {...plasmicProps}
           />
         );
-
       case 'badge':
         return (
-          <div key={`${tag}-${index}`} style={{ display: 'inline-block', margin: `${tagSpacing / 2}px` }}>
+          <span key={`${String(tag)}-${i}`} style={{ display: 'inline-block', ...itemCommon.style }} {...plasmicProps}>
             <Badge
-              value={tag}
-              severity={isSelected ? tagSeverity || 'success' : 'secondary'}
-              size={tagSize === 'small' ? 'small' : tagSize === 'large' ? 'large' : 'normal'}
-              onClick={() => handleTagClick(tag)}
+              value={String(tag)}
+              severity={isSel ? (tagSeverity || 'success') : 'secondary'}
+              size={sizeProp}
+              onClick={() => toggle(tag)}
               style={{ cursor: 'pointer' }}
-              className={`tag-filter-item ${isSelected ? 'tag-selected' : ''}`}
             />
-          </div>
+          </span>
         );
-
       case 'tag':
       default:
         return (
           <Tag
-            key={`${tag}-${index}`}
-            value={tag}
+            key={`${String(tag)}-${i}`}
+            value={String(tag)}
             icon={tagIcon}
             iconPos={tagIconPos}
-            {...tagProps}
+            severity={
+              selectedStyle === 'highlighted'
+                ? (isSel ? 'warn' : 'secondary')
+                : (isSel ? (tagSeverity || 'success') : 'secondary')
+            }
+            onClick={() => toggle(tag)}
+            {...itemCommon}
+            {...plasmicProps}
           />
         );
     }
   };
 
-  // Generate container styles
-  const getContainerStyle = () => ({
+  const containerStyle = {
     display: 'flex',
     flexWrap: 'wrap',
     gap: `${tagSpacing}px`,
@@ -277,39 +176,19 @@ const TagFilterPrimeReact = ({
     minHeight: '40px',
     padding: '8px 0',
     ...style
-  });
+  };
 
-  // Render nothing if no tags
-  if (!tags || tags.length === 0) {
+  if (!tags?.length) {
     return (
-      <div className={`tag-filter-container ${className}`} style={getContainerStyle()}>
-        <span style={{ color: '#999', fontStyle: 'italic' }}>
-          No tags available
-        </span>
+      <div className={`tag-filter-container ${className}`} style={containerStyle}>
+        <span style={{ color: '#999', fontStyle: 'italic' }}>No tags available</span>
       </div>
     );
   }
 
   return (
-    <div className={`tag-filter-container ${className}`} style={getContainerStyle()}>
-      {tags.map((tag, index) => renderTag(tag, index))}
-      
-      {/* Selection counter */}
-      {multiSelect && (
-        <div style={{ 
-          marginLeft: 'auto', 
-          fontSize: '12px', 
-          color: '#6c757d',
-          padding: '4px 8px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '12px',
-          border: '1px solid #dee2e6'
-        }}>
-          {selectedTags.length} selected
-        </div>
-      )}
+    <div className={`tag-filter-container ${className}`} style={containerStyle}>
+      {tags.map(renderOne)}
     </div>
   );
-};
-
-export default TagFilterPrimeReact; 
+}
