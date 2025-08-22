@@ -9,10 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.2.6",
     "@plasmicapp/auth-api": "^0.0.17",
     "@plasmicapp/loader-nextjs": "^1.0.434",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
+    "antd": "^5.12.8",
     "clsx": "^2.1.1",
     "firebase": "^10.0.0",
     "firebaseui": "^6.1.0",

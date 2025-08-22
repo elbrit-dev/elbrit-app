@@ -1,5 +1,4 @@
 import '../styles/globals.css';
-import '../styles/TagFilter.css';
 import { AuthProvider } from '../components/AuthContext';
 import '../plasmic-init'; 
 import { DataProvider } from '@plasmicapp/host';
@@ -8,6 +7,9 @@ import { DataProvider } from '@plasmicapp/host';
 import 'primereact/resources/primereact.min.css';
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primeicons/primeicons.css';
+
+// Ant Design CSS import
+import 'antd/dist/reset.css';
 
 // ✅ Advanced universal deep flattener with renaming and dynamic prefix mapping
 const flatten = (renameMapOrData, maybeData, options = {}) => {
