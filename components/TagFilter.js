@@ -1,7 +1,6 @@
 'use client';
 import React, { useMemo, useState, useEffect, useCallback } from 'react';
 import clsx from 'clsx';
-import '../styles/TagFilter.css';
 
 export default function TagFilter({
   tagList = [],

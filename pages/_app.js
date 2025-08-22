@@ -1,4 +1,5 @@
 import '../styles/globals.css';
+import '../styles/TagFilter.css';
 import { AuthProvider } from '../components/AuthContext';
 import '../plasmic-init'; 
 import { DataProvider } from '@plasmicapp/host';

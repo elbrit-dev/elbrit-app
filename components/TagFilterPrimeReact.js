@@ -5,7 +5,6 @@ import { Tag } from 'primereact/tag';
 import { Chip } from 'primereact/chip';
 import { Button } from 'primereact/button';
 import { Badge } from 'primereact/badge';
-import '../styles/TagFilter.css';
 
 export default function TagFilterPrimeReact(props) {
   const {
