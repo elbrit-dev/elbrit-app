@@ -2420,63 +2420,63 @@ PLASMIC.registerComponent(PrimeDataTable, {
 // import TagFilterAntDesign from "./components/TagFilterAntDesign";
 
 // plasmic-init.js
-import TagFilter from "./components/TagFilter";
-import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+// import TagFilter from "./components/TagFilter";
+// import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
 
 // ...
 
-PLASMIC.registerComponent(TagFilter, {
-  name: "TagFilter",
-  displayName: "Tag Filter (Plain)",
-  props: {
-    tagList: { type: "object", defaultValue: ["All", "Active", "Pending", "Closed"] },
-    tagDataSource: { type: "choice", options: ["props","pageData","queryData","cmsData"], defaultValue: "props" },
-    tagDataPath: { type: "string", defaultValue: "" },
-    tagField: { type: "string", defaultValue: "name" },
-    tagStyle: { type: "choice", options: ["pill","button","chip","badge"], defaultValue: "pill" },
-    selectedStyle: { type: "choice", options: ["filled","outlined","highlighted"], defaultValue: "filled" },
-    tagSize: { type: "choice", options: ["small","medium","large"], defaultValue: "medium" },
-    tagSpacing: { type: "number", defaultValue: 8 },
-    multiSelect: { type: "boolean", defaultValue: true },
-    allowDeselect: { type: "boolean", defaultValue: true },
-    maxSelections: { type: "number", defaultValue: 10 },
-    stateKey: { type: "string", defaultValue: "selectedTags" },
-    defaultSelected: { type: "object", defaultValue: [] },
-    onSelectionChange: { type: "eventHandler", argTypes: [{ name: "selected", type: "object" }, { name: "clickedTag", type: "string" }] },
-    onTagClick: { type: "eventHandler", argTypes: [{ name: "clickedTag", type: "string" }, { name: "selected", type: "object" }] },
-    className: { type: "string", defaultValue: "" },
-    style: { type: "object", defaultValue: {} }
-  },
-  importPath: "./components/TagFilter"
-});
+// PLASMIC.registerComponent(TagFilter, {
+//   name: "TagFilter",
+//   displayName: "Tag Filter (Plain)",
+//   props: {
+//     tagList: { type: "object", defaultValue: ["All", "Active", "Pending", "Closed"] },
+//     tagDataSource: { type: "choice", options: ["props","pageData","queryData","cmsData"], defaultValue: "props" },
+//     tagDataPath: { type: "string", defaultValue: "" },
+//     tagField: { type: "string", defaultValue: "name" },
+//     tagStyle: { type: "choice", options: ["pill","button","chip","badge"], defaultValue: "pill" },
+//     selectedStyle: { type: "choice", options: ["filled","outlined","highlighted"], defaultValue: "filled" },
+//     tagSize: { type: "choice", options: ["small","medium","large"], defaultValue: "medium" },
+//     tagSpacing: { type: "number", defaultValue: 8 },
+//     multiSelect: { type: "boolean", defaultValue: true },
+//     allowDeselect: { type: "boolean", defaultValue: true },
+//     maxSelections: { type: "number", defaultValue: 10 },
+//     stateKey: { type: "string", defaultValue: "selectedTags" },
+//     defaultSelected: { type: "object", defaultValue: [] },
+//     onSelectionChange: { type: "eventHandler", argTypes: [{ name: "selected", type: "object" }, { name: "clickedTag", type: "string" }] },
+//     onTagClick: { type: "eventHandler", argTypes: [{ name: "clickedTag", type: "string" }, { name: "selected", type: "object" }] },
+//     className: { type: "string", defaultValue: "" },
+//     style: { type: "object", defaultValue: {} }
+//   },
+//   importPath: "./components/TagFilter"
+// });
 
-PLASMIC.registerComponent(TagFilterPrimeReact, {
-  name: "TagFilterPrimeReact",
-  displayName: "Tag Filter (PrimeReact)",
-  props: {
-    tagList: { type: "object", defaultValue: ["All", "Active", "Pending", "Closed"] },
-    tagDataSource: { type: "choice", options: ["props","pageData","queryData","cmsData"], defaultValue: "props" },
-    tagDataPath: { type: "string", defaultValue: "" },
-    tagField: { type: "string", defaultValue: "name" },
-    tagStyle: { type: "choice", options: ["tag","chip","button","badge"], defaultValue: "tag" },
-    selectedStyle: { type: "choice", options: ["filled","outlined","highlighted"], defaultValue: "filled" },
-    tagSeverity: { type: "choice", options: [null,"success","info","warn","error"], defaultValue: "info" },
-    tagIcon: { type: "string", defaultValue: null },
-    tagIconPos: { type: "choice", options: ["left","right"], defaultValue: "left" },
-    tagSize: { type: "choice", options: ["small","medium","large"], defaultValue: "medium" },
-    tagSpacing: { type: "number", defaultValue: 8 },
-    multiSelect: { type: "boolean", defaultValue: true },
-    allowDeselect: { type: "boolean", defaultValue: true },
-    maxSelections: { type: "number", defaultValue: 10 },
-    stateKey: { type: "string", defaultValue: "selectedTags" },
-    defaultSelected: { type: "object", defaultValue: [] },
-    onSelectionChange: { type: "eventHandler", argTypes: [{ name: "selected", type: "object" }, { name: "clickedTag", type: "string" }] },
-    onTagClick: { type: "eventHandler", argTypes: [{ name: "clickedTag", type: "string" }, { name: "selected", type: "object" }] },
-    className: { type: "string", defaultValue: "" },
-    style: { type: "object", defaultValue: {} }
-  },
-  importPath: "./components/TagFilterPrimeReact"
-});
+// PLASMIC.registerComponent(TagFilterPrimeReact, {
+//   name: "TagFilterPrimeReact",
+//   displayName: "Tag Filter (PrimeReact)",
+//   props: {
+//     tagList: { type: "object", defaultValue: ["All", "Active", "Pending", "Closed"] },
+//     tagDataSource: { type: "choice", options: ["props","pageData","queryData","cmsData"], defaultValue: "props" },
+//     tagDataPath: { type: "string", defaultValue: "" },
+//     tagField: { type: "string", defaultValue: "name" },
+//     tagStyle: { type: "choice", options: ["tag","chip","button","badge"], defaultValue: "tag" },
+//     selectedStyle: { type: "choice", options: ["filled","outlined","highlighted"], defaultValue: "filled" },
+//     tagSeverity: { type: "choice", options: [null,"success","info","warn","error"], defaultValue: "info" },
+//     tagIcon: { type: "string", defaultValue: null },
+//     tagIconPos: { type: "choice", options: ["left","right"], defaultValue: "left" },
+//     tagSize: { type: "choice", options: ["small","medium","large"], defaultValue: "medium" },
+//     tagSpacing: { type: "number", defaultValue: 8 },
+//     multiSelect: { type: "boolean", defaultValue: true },
+//     allowDeselect: { type: "boolean", defaultValue: true },
+//     maxSelections: { type: "number", defaultValue: 10 },
+//     stateKey: { type: "string", defaultValue: "selectedTags" },
+//     defaultSelected: { type: "object", defaultValue: [] },
+//     onSelectionChange: { type: "eventHandler", argTypes: [{ name: "selected", type: "object" }, { name: "clickedTag", type: "string" }] },
+//     onTagClick: { type: "eventHandler", argTypes: [{ name: "clickedTag", type: "string" }, { name: "selected", type: "object" }] },
+//     className: { type: "string", defaultValue: "" },
+//     style: { type: "object", defaultValue: {} }
+//   },
+//   importPath: "./components/TagFilterPrimeReact"
+// });
 
 
 // Register the Ant Design TagFilter component (commented out - requires antd dependency)
