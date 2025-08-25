@@ -966,6 +966,21 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable row expansion functionality",
       defaultValue: false
     },
+    rowExpansionTemplate: {
+      type: "function",
+      description: "Custom template function for expanded row content. Receives row data as parameter.",
+      defaultValue: null
+    },
+    expandedRows: {
+      type: "object",
+      description: "Object controlling which rows are expanded. Use with onRowToggle for state management.",
+      defaultValue: null
+    },
+    onRowToggle: {
+      type: "function",
+      description: "Callback function called when rows are expanded or collapsed. Receives event object with expanded rows data.",
+      defaultValue: null
+    },
     enableFrozenColumns: {
       type: "boolean",
       description: "Enable frozen columns",
@@ -1545,6 +1560,29 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "object",
       description: "Custom aggregation functions for pivot table. Object with function names as keys",
       defaultValue: {}
+    },
+    
+    // Expandable Table Props
+    rowExpansionTemplate: {
+      type: "function",
+      description: "Custom template function for expanded row content. Receives row data as parameter. Example: (data) => <div>Details for {data.name}</div>",
+      defaultValue: null
+    },
+    expandedRows: {
+      type: "object",
+      description: "Object controlling which rows are expanded. Use with onRowToggle for state management. Example: { 1: true, 3: true }",
+      defaultValue: null
+    },
+    onRowToggle: {
+      type: "eventHandler",
+      description: "Callback function called when rows are expanded or collapsed. Receives event object with expanded rows data.",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Event object containing expanded rows data"
+        }
+      ]
     }
   },
   
@@ -1933,6 +1971,21 @@ PLASMIC.registerComponent(PrimeDataTable, {
 //       type: "boolean",
 //       description: "Enable row expansion functionality",
 //       defaultValue: false
+//     },
+//     rowExpansionTemplate: {
+//       type: "function",
+//       description: "Custom template function for expanded row content. Receives row data as parameter.",
+//       defaultValue: null
+//     },
+//     expandedRows: {
+//       type: "object",
+//       description: "Object controlling which rows are expanded. Use with onRowToggle for state management.",
+//       defaultValue: null
+//     },
+//     onRowToggle: {
+//       type: "function",
+//       description: "Callback function called when rows are expanded or collapsed. Receives event object with expanded rows data.",
+//       defaultValue: null
 //     },
 //     enableFrozenColumns: {
 //       type: "boolean",
@@ -2410,6 +2463,29 @@ PLASMIC.registerComponent(PrimeDataTable, {
 //       type: "object",
 //       description: "Custom aggregation functions for pivot table. Object with function names as keys",
 //       defaultValue: {}
+//     },
+//     
+//     // Expandable Table Props
+//     rowExpansionTemplate: {
+//       type: "function",
+//       description: "Custom template function for expanded row content. Receives row data as parameter. Example: (data) => <div>Details for {data.name}</div>",
+//       defaultValue: null
+//     },
+//     expandedRows: {
+//       type: "object",
+//       description: "Object controlling which rows are expanded. Use with onRowToggle for state management. Example: { 1: true, 3: true }",
+//       defaultValue: null
+//     },
+//     onRowToggle: {
+//       type: "eventHandler",
+//       description: "Callback function called when rows are expanded or collapsed. Receives event object with expanded rows data.",
+//       argTypes: [
+//         {
+//           name: "event",
+//           type: "object",
+//           description: "Event object containing expanded rows data"
+//         }
+//       ]
 //     }
 //   },
   

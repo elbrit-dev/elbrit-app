@@ -1,6 +1,6 @@
 # Plasmic Interface Configuration Examples
 
-This document shows exactly how to configure the PrimeDataTable pivot table props in the Plasmic interface.
+This document shows exactly how to configure the PrimeDataTable pivot table and expandable table props in the Plasmic interface.
 
 ## Plasmic Right Panel - Pivot Table Props Section
 
@@ -281,6 +281,139 @@ Plasmic will validate your configuration and show errors for:
 1. **Preview Mode**: Use Plasmic's preview to see your pivot table
 2. **Debug Info**: Enable debug mode to see pivot configuration details
 3. **Data Validation**: Check the browser console for any data issues
+
+## Plasmic Right Panel - Expandable Table Props Section
+
+When you select the PrimeDataTable component in Plasmic, you'll also see these expandable table fields in the right panel:
+
+```
+┌─────────────────────────────────────────┐
+│ PrimeDataTable Properties               │
+├─────────────────────────────────────────┤
+│ ... (other existing props)              │
+├─────────────────────────────────────────┤
+│ ▼ Expandable Table Props                │
+│                                         │
+│ □ enableRowExpansion                    │
+│   Enable row expansion functionality    │
+│                                         │
+│ rowExpansionTemplate        [ + ]       │
+│ Custom template function for expanded   │
+│ row content. Receives row data as      │
+│ parameter                               │
+│                                         │
+│ expandedRows                [ + ]       │
+│ Object controlling which rows are       │
+│ expanded. Use with onRowToggle for     │
+│ state management                        │
+│                                         │
+│ onRowToggle                 [ + ]       │
+│ Event handler for row expansion/       │
+│ collapse events                         │
+└─────────────────────────────────────────┘
+```
+
+## Step-by-Step Expandable Table Configuration
+
+### Example 1: Basic Employee Details Expansion
+
+**Step 1: Enable Row Expansion**
+```
+✓ enableRowExpansion: true
+```
+
+**Step 2: Configure Expansion Template**
+Click on `rowExpansionTemplate` → Add Function:
+```jsx
+(data) => (
+  <div style={{ padding: '16px', backgroundColor: '#f8f9fa' }}>
+    <h5 style={{ margin: '0 0 12px 0', color: '#007bff' }}>
+      Details for {data.name}
+    </h5>
+    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+      <div>
+        <p><strong>Department:</strong> {data.department}</p>
+        <p><strong>Email:</strong> {data.email}</p>
+        <p><strong>Salary:</strong> ${data.salary?.toLocaleString()}</p>
+      </div>
+      <div>
+        <p><strong>Skills:</strong> {data.skills?.join(', ') || 'N/A'}</p>
+        <p><strong>Projects:</strong> {data.projects?.join(', ') || 'N/A'}</p>
+      </div>
+    </div>
+  </div>
+)
+```
+
+**Step 3: Configure State Management**
+Click on `expandedRows` → Add Object:
+```json
+{}
+```
+
+**Step 4: Configure Event Handler**
+Click on `onRowToggle` → Add Event Handler:
+```jsx
+// In your page component, add this function:
+const handleRowToggle = (e) => {
+  // e.data contains the expanded rows object
+  // Update your local state or CMS
+  console.log('Expanded rows:', e.data);
+};
+```
+
+### Example 2: Advanced Expansion with Custom Styling
+
+**Step 1: Enable Row Expansion**
+```
+✓ enableRowExpansion: true
+```
+
+**Step 2: Advanced Template with Tailwind CSS**
+```jsx
+(data) => (
+  <div className="p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border-t border-blue-200">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="space-y-3">
+        <h5 className="text-lg font-semibold text-blue-800">
+          📊 Employee Details
+        </h5>
+        <div className="space-y-2 text-sm">
+          <p><span className="font-medium">Start Date:</span> {data.startDate}</p>
+          <p><span className="font-medium">Manager:</span> {data.manager}</p>
+          <p><span className="font-medium">Department:</span> {data.department}</p>
+        </div>
+      </div>
+      
+      <div className="space-y-3">
+        <h6 className="font-semibold text-green-700">🛠️ Skills</h6>
+        <div className="flex flex-wrap gap-2">
+          {data.skills?.map((skill, index) => (
+            <span key={index} className="px-3 py-1 bg-green-100 text-green-800 text-xs rounded-full">
+              {skill}
+            </span>
+          )) || <span className="text-gray-500">No skills listed</span>}
+        </div>
+        
+        <h6 className="font-semibold text-purple-700">📋 Projects</h6>
+        <div className="flex flex-wrap gap-2">
+          {data.projects?.map((project, index) => (
+            <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 text-xs rounded-full">
+              {project}
+            </span>
+          )) || <span className="text-gray-500">No projects listed</span>}
+        </div>
+      </div>
+    </div>
+    
+    <div className="mt-4 pt-3 border-t border-blue-200">
+      <p className="text-sm text-gray-600">
+        <strong>Contact:</strong> {data.email}
+      </p>
+    </div>
+  </div>
+)
+```
 
 ## Integration with Other Props
 

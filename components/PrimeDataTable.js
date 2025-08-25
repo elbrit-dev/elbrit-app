@@ -185,6 +185,23 @@ import { useAuth } from './AuthContext';
  *     numberFormat: "en-US",
  *     currency: "USD"
  *   }}
+ * />
+ *
+ * Expandable Table:
+ * <PrimeDataTable
+ *   data={salesData}
+ *   enableRowExpansion={true}
+ *   rowExpansionTemplate={(data) => (
+ *     <div className="p-3">
+ *       <h5>Details for {data.name}</h5>
+ *       <p>Additional information: {data.description}</p>
+ *       <p>Created: {data.createdDate}</p>
+ *     </div>
+ *   )}
+ *   expandedRows={expandedRows}
+ *   onRowToggle={(e) => setExpandedRows(e.data)}
+ * />
+ *   }}
  *   currencyColumns={["serviceAmount", "supportValue"]}
  * />
  */
@@ -248,6 +265,9 @@ const PrimeDataTable = ({
   enableLazyLoading = false,
   enableRowGrouping = false,
   enableRowExpansion = false,
+  rowExpansionTemplate = null, // Custom template for expanded content
+  expandedRows = null, // External control of expanded rows
+  onRowToggle = null, // Callback when rows are expanded/collapsed
   enableFrozenColumns = false,
   enableFrozenRows = false,
   
@@ -525,6 +545,9 @@ const PrimeDataTable = ({
   const [localContextMenuSelection, setLocalContextMenuSelection] = useState(contextMenuSelection || null);
   const contextMenuRef = useRef(null);
 
+  // Row expansion state
+  const [localExpandedRows, setLocalExpandedRows] = useState(expandedRows || {});
+
   // GraphQL data state
   const [graphqlData, setGraphqlData] = useState([]);
   const [graphqlLoading, setGraphqlLoading] = useState(false);
@@ -787,6 +810,13 @@ const PrimeDataTable = ({
       activeRequests.clear();
     };
   }, [graphqlQuery, graphqlVariables, refetchInterval, onGraphqlData]);
+
+  // Sync external expandedRows prop with local state
+  useEffect(() => {
+    if (expandedRows !== undefined && expandedRows !== null) {
+      setLocalExpandedRows(expandedRows);
+    }
+  }, [expandedRows]);
 
   // HIBERNATION FIX: Optimized pivot config with reduced dependencies
   const mergedPivotConfig = useMemo(() => {
@@ -2089,6 +2119,14 @@ const PrimeDataTable = ({
     onRowEditInit
   });
 
+  // Row expansion handler
+  const handleRowToggle = useCallback((e) => {
+    setLocalExpandedRows(e.data);
+    if (onRowToggle) {
+      onRowToggle(e);
+    }
+  }, [onRowToggle]);
+
   // Custom cell renderers moved to utils/templateUtils.js
   const imageBodyTemplate = createImageBodyTemplate(popupImageFields, setImageModalSrc, setImageModalAlt, setShowImageModal);
   const roiBodyTemplate = createROIBodyTemplate(formatROIValue, getROIColor);
@@ -2544,7 +2582,9 @@ const PrimeDataTable = ({
         lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)} // HIBERNATION FIX: Auto-enable lazy loading for large datasets
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
-        rowExpansionTemplate={enableRowExpansion ? (data) => <div>Expanded content for {data.name}</div> : undefined}
+        rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || ((data) => <div>Expanded content for {data.name}</div>)) : undefined}
+        expandedRows={enableRowExpansion ? localExpandedRows : undefined}
+        onRowToggle={enableRowExpansion ? handleRowToggle : undefined}
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2556,6 +2596,14 @@ const PrimeDataTable = ({
           <Column
             selectionMode="multiple"
 
+            frozen={enableFrozenColumns}
+          />
+        )}
+
+        {enableRowExpansion && (
+          <Column
+            expander
+            style={{ width: '3rem' }}
             frozen={enableFrozenColumns}
           />
         )}
