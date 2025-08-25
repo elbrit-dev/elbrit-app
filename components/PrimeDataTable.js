@@ -2582,7 +2582,93 @@ const PrimeDataTable = ({
         lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)} // HIBERNATION FIX: Auto-enable lazy loading for large datasets
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
-        rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || ((data) => <div>Expanded content for {data.name}</div>)) : undefined}
+        rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || ((data) => {
+          // Dynamic nested structure detection and rendering
+          const nestedArrays = Object.entries(data).filter(([key, value]) => 
+            Array.isArray(value) && value.length > 0
+          );
+          
+          if (nestedArrays.length > 0) {
+            return (
+              <div className="p-4 bg-gray-50 border-l-4 border-blue-500">
+                <h5 className="text-lg font-semibold mb-3">Details for {Object.values(data)[0] || 'Item'}</h5>
+                {nestedArrays.map(([arrayKey, arrayData]) => (
+                  <div key={arrayKey} className="mb-4">
+                    <h6 className="text-md font-medium text-gray-700 mb-2 capitalize">
+                      {arrayKey.replace(/([A-Z])/g, ' $1').trim()} ({arrayData.length})
+                    </h6>
+                    {arrayData.map((item, index) => (
+                      <div key={index} className="p-3 bg-white rounded border mb-2">
+                        {/* Dynamically render item properties */}
+                        <div className="grid grid-cols-2 gap-2">
+                          {Object.entries(item).map(([propKey, propValue]) => {
+                            // Skip if it's another nested array
+                            if (Array.isArray(propValue)) return null;
+                            
+                            return (
+                              <div key={propKey} className="text-sm">
+                                <span className="font-medium text-gray-600 capitalize">
+                                  {propKey.replace(/([A-Z])/g, ' $1').trim()}:
+                                </span>
+                                <span className="ml-1 text-gray-800">
+                                  {typeof propValue === 'number' ? propValue.toLocaleString() : propValue}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        {/* Check for nested arrays within this item */}
+                        {Object.entries(item).some(([key, value]) => Array.isArray(value) && value.length > 0) && (
+                          <div className="mt-2 pt-2 border-t">
+                            {Object.entries(item).map(([nestedKey, nestedValue]) => {
+                              if (!Array.isArray(nestedValue) || nestedValue.length === 0) return null;
+                              
+                              return (
+                                <div key={nestedKey} className="mt-2">
+                                  <span className="text-xs font-medium text-gray-500 capitalize">
+                                    {nestedKey.replace(/([A-Z])/g, ' $1').trim()}:
+                                  </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {nestedValue.map((nestedItem, nestedIndex) => (
+                                      <span key={nestedIndex} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                        {Object.values(nestedItem)[0] || 'Item'} 
+                                        {Object.values(nestedItem)[1] && ` (${Object.values(nestedItem)[1]})`}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            );
+          }
+          
+          // Fallback for simple data
+          return (
+            <div className="p-4">
+              <h5 className="text-lg font-semibold mb-2">Details</h5>
+              <div className="grid grid-cols-2 gap-2">
+                {Object.entries(data).map(([key, value]) => (
+                  <div key={key} className="text-sm">
+                    <span className="font-medium text-gray-600 capitalize">
+                      {key.replace(/([A-Z])/g, ' $1').trim()}:
+                    </span>
+                    <span className="ml-1 text-gray-800">
+                      {typeof value === 'number' ? value.toLocaleString() : value}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })) : undefined}
         expandedRows={enableRowExpansion ? localExpandedRows : undefined}
         onRowToggle={enableRowExpansion ? handleRowToggle : undefined}
         frozenColumns={enableFrozenColumns ? 1 : undefined}

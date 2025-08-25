@@ -300,7 +300,8 @@ When you select the PrimeDataTable component in Plasmic, you'll also see these e
 │ rowExpansionTemplate        [ + ]       │
 │ Custom template function for expanded   │
 │ row content. Receives row data as      │
-│ parameter                               │
+│ parameter (optional - auto-detection    │
+│ available when not specified)           │
 │                                         │
 │ expandedRows                [ + ]       │
 │ Object controlling which rows are       │
@@ -310,6 +311,11 @@ When you select the PrimeDataTable component in Plasmic, you'll also see these e
 │ onRowToggle                 [ + ]       │
 │ Event handler for row expansion/       │
 │ collapse events                         │
+│                                         │
+│ 🎯 Auto-Detection: When no custom      │
+│ template is provided, automatically     │
+│ detects nested arrays and renders them  │
+│ with any data structure!               │
 └─────────────────────────────────────────┘
 ```
 
@@ -362,7 +368,43 @@ const handleRowToggle = (e) => {
 };
 ```
 
-### Example 2: Advanced Expansion with Custom Styling
+### Example 2: Auto-Detection Expansion (No Template Needed!)
+
+**🎯 Magic Feature**: Simply enable row expansion and the component automatically detects nested data!
+
+**Step 1: Enable Row Expansion**
+```
+✓ enableRowExpansion: true
+```
+
+**Step 2: That's it!** The component automatically:
+- Finds nested arrays in your data
+- Renders them with proper formatting
+- Works with any field names (not hardcoded)
+- Handles unlimited nesting levels
+
+**Example Data Structure:**
+```javascript
+const data = [
+  {
+    customerName: "ABC Corp",
+    invoices: [
+      {
+        invoiceNumber: "INV-001",
+        amount: 50000,
+        products: [
+          { name: "Product A", price: 25000 },
+          { name: "Product B", price: 25000 }
+        ]
+      }
+    ]
+  }
+];
+```
+
+**Result**: Automatically detects `invoices` and `products` arrays and renders them beautifully!
+
+### Example 3: Advanced Expansion with Custom Styling
 
 **Step 1: Enable Row Expansion**
 ```

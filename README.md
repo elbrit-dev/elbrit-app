@@ -13,79 +13,84 @@ This is a comprehensive data table component built with PrimeReact, featuring ad
 - **CMS Integration** - Direct Plasmic CMS integration for configuration persistence
 
 ### 📊 Expandable Table Feature
-The expandable table feature allows users to click on rows to reveal additional information:
+The expandable table feature automatically detects and renders nested data structures without requiring hardcoded field names:
 
 ```jsx
 <PrimeDataTable
-  data={employeeData}
+  data={anyNestedData}
   enableRowExpansion={true}
-  rowExpansionTemplate={(data) => (
-    <div className="p-4">
-      <h5>Details for {data.name}</h5>
-      <p>Skills: {data.skills.join(', ')}</p>
-      <p>Projects: {data.projects.join(', ')}</p>
-    </div>
-  )}
-  expandedRows={expandedRows}
-  onRowToggle={(e) => setExpandedRows(e.data)}
+  // No need to specify rowExpansionTemplate - it auto-detects structure!
 />
 ```
 
+**Key Features:**
+✅ **Auto-Detection**: Automatically finds nested arrays in your data  
+✅ **Dynamic Rendering**: Works with any field names (not hardcoded)  
+✅ **Multi-Level Support**: Handles unlimited nesting levels  
+✅ **Smart Formatting**: Automatically formats field names and values  
+
 **Props:**
 - `enableRowExpansion` - Enable/disable row expansion
-- `rowExpansionTemplate` - Custom template for expanded content
+- `rowExpansionTemplate` - Custom template for expanded content (optional)
 - `expandedRows` - Control which rows are expanded
 - `onRowToggle` - Callback when rows are expanded/collapsed
 
-### 🔄 Nested Expandable Tables
-For hierarchical data like Customer → Invoice → Brand, you can create nested expandable tables:
+### 🔄 Dynamic Nested Expansion
+The component automatically handles nested data structures of any depth:
 
+**Example 1: Customer → Invoice → Brand**
 ```jsx
-// Customer level expansion (shows invoices)
-const customerExpansionTemplate = (customerData) => (
-  <div className="p-4">
-    <h5>Invoices for {customerData.Customer}</h5>
-    <PrimeDataTable
-      data={customerData.invoices}
-      enableRowExpansion={true}
-      rowExpansionTemplate={invoiceExpansionTemplate} // Invoice level
-      // ... other props
-    />
-  </div>
-);
-
-// Invoice level expansion (shows brands)
-const invoiceExpansionTemplate = (invoiceData) => (
-  <div className="p-4">
-    <h6>Brands for {invoiceData.Invoice}</h6>
-    <PrimeDataTable
-      data={invoiceData.brands}
-      // ... other props
-    />
-  </div>
-);
-```
-
-**Data Structure Required:**
-```json
-[
+const customerData = [
   {
-    "Customer": "AADITYA PHARMEX",
-    "EBSCode": "EBS042",
-    "invoices": [
+    customerName: "ABC Corp",
+    location: "Mumbai",
+    invoices: [
       {
-        "Invoice": "INV-25-10451",
-        "brands": [
-          {
-            "Brand": "PAINFREE",
-            "Incentive": 1200
-          }
+        invoiceNumber: "INV-001",
+        amount: 50000,
+        brands: [
+          { brandName: "Brand A", incentive: 5000 },
+          { brandName: "Brand B", incentive: 3000 }
         ]
       }
     ]
   }
-]
+];
+
+<PrimeDataTable
+  data={customerData}
+  enableRowExpansion={true}
+  // Automatically detects 'invoices' and 'brands' arrays!
+/>
 ```
+
+**Example 2: Employee → Department → Projects**
+```jsx
+const employeeData = [
+  {
+    employeeName: "John Doe",
+    position: "Developer",
+    departments: [
+      {
+        deptName: "Engineering",
+        projects: [
+          { projectName: "E-commerce", duration: "6 months" },
+          { projectName: "Mobile App", duration: "4 months" }
+        ]
+      }
+    ]
+  }
+];
+
+<PrimeDataTable
+  data={employeeData}
+  enableRowExpansion={true}
+  // Automatically detects 'departments' and 'projects' arrays!
+/>
+```
+
+**Any Other Structure:**
+The component will work with any nested data - just pass your data and enable expansion!
 
 ### 🔧 Configuration
 - **Filter Types**: Dropdown, date picker, number, text, boolean
@@ -97,6 +102,7 @@ const invoiceExpansionTemplate = (invoiceData) => (
 ## Examples
 
 Check out the examples directory for complete implementations:
+- `examples/DynamicExpandableTableExample.jsx` - **NEW!** Dynamic expandable table that auto-detects any nested structure
 - `examples/ExpandableTableExample.jsx` - Expandable table with custom templates
 - `examples/PivotTableExample.jsx` - Pivot table functionality
 - `examples/ColumnGroupingExample.js` - Column grouping and organization
