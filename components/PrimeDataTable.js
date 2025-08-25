@@ -2583,39 +2583,71 @@ const PrimeDataTable = ({
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
         rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || ((data) => {
+          // Safety check for data parameter
+          if (!data || typeof data !== 'object') {
+            return <div className="p-4 text-red-500">Invalid data format</div>;
+          }
+          
           // Dynamic nested structure detection and rendering
           const nestedArrays = Object.entries(data).filter(([key, value]) => 
             Array.isArray(value) && value.length > 0
           );
           
+          // Helper function to safely render values
+          const safeRenderValue = (value) => {
+            if (value === null || value === undefined) return 'N/A';
+            if (typeof value === 'object') return JSON.stringify(value);
+            if (typeof value === 'number') return value.toLocaleString();
+            return String(value);
+          };
+          
+          // Helper function to get a safe display name
+          const getDisplayName = (data) => {
+            // Find the first non-object, non-array value for display
+            for (const [key, value] of Object.entries(data)) {
+              if (value !== null && value !== undefined && typeof value !== 'object' && !Array.isArray(value)) {
+                return String(value);
+              }
+            }
+            // If all values are objects/arrays, use the first key
+            const firstKey = Object.keys(data)[0];
+            return firstKey ? firstKey.charAt(0).toUpperCase() + firstKey.slice(1) : 'Item';
+          };
+          
           if (nestedArrays.length > 0) {
             return (
               <div className="p-4 bg-gray-50 border-l-4 border-blue-500">
-                <h5 className="text-lg font-semibold mb-3">Details for {Object.values(data)[0] || 'Item'}</h5>
+                <h5 className="text-lg font-semibold mb-3">Details for {getDisplayName(data)}</h5>
                 {nestedArrays.map(([arrayKey, arrayData]) => (
                   <div key={arrayKey} className="mb-4">
                     <h6 className="text-md font-medium text-gray-700 mb-2 capitalize">
                       {arrayKey.replace(/([A-Z])/g, ' $1').trim()} ({arrayData.length})
                     </h6>
-                    {arrayData.map((item, index) => (
-                      <div key={index} className="p-3 bg-white rounded border mb-2">
-                        {/* Dynamically render item properties */}
-                        <div className="grid grid-cols-2 gap-2">
-                          {Object.entries(item).map(([propKey, propValue]) => {
-                            // Skip if it's another nested array
-                            if (Array.isArray(propValue)) return null;
-                            
-                            return (
-                              <div key={propKey} className="text-sm">
-                                <span className="font-medium text-gray-600 capitalize">
-                                  {propKey.replace(/([A-Z])/g, ' $1').trim()}:
-                                </span>
-                                <span className="ml-1 text-gray-800">
-                                  {typeof propValue === 'number' ? propValue.toLocaleString() : propValue}
-                                </span>
-                              </div>
-                            );
-                          })}
+                    {arrayData.map((item, index) => {
+                      // Safety check for item
+                      if (!item || typeof item !== 'object') {
+                        return <div key={index} className="p-3 bg-red-100 text-red-600">Invalid item data</div>;
+                      }
+                      
+                      return (
+                        <div key={index} className="p-3 bg-white rounded border mb-2">
+                          {/* Dynamically render item properties */}
+                          <div className="grid grid-cols-2 gap-2">
+                            {Object.entries(item).map(([propKey, propValue]) => {
+                              // Skip if it's another nested array
+                              if (Array.isArray(propValue)) return null;
+                              
+                              return (
+                                <div key={propKey} className="text-sm">
+                                  <span className="font-medium text-gray-600 capitalize">
+                                    {propKey.replace(/([A-Z])/g, ' $1').trim()}:
+                                  </span>
+                                  <span className="ml-1 text-gray-800">
+                                    {safeRenderValue(propValue)}
+                                  </span>
+                                </div>
+                              );
+                            })}
                         </div>
                         
                         {/* Check for nested arrays within this item */}
@@ -2632,8 +2664,14 @@ const PrimeDataTable = ({
                                   <div className="flex flex-wrap gap-1 mt-1">
                                     {nestedValue.map((nestedItem, nestedIndex) => (
                                       <span key={nestedIndex} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                        {Object.values(nestedItem)[0] || 'Item'} 
-                                        {Object.values(nestedItem)[1] && ` (${Object.values(nestedItem)[1]})`}
+                                        {getDisplayName(nestedItem)}
+                                        {(() => {
+                                          const values = Object.values(nestedItem);
+                                          if (values[1] && typeof values[1] !== 'object' && !Array.isArray(values[1])) {
+                                            return ` (${safeRenderValue(values[1])})`;
+                                          }
+                                          return '';
+                                        })()}
                                       </span>
                                     ))}
                                   </div>
@@ -2643,7 +2681,8 @@ const PrimeDataTable = ({
                           </div>
                         )}
                       </div>
-                    ))}
+                    );
+                    })}
                   </div>
                 ))}
               </div>
@@ -2661,7 +2700,7 @@ const PrimeDataTable = ({
                       {key.replace(/([A-Z])/g, ' $1').trim()}:
                     </span>
                     <span className="ml-1 text-gray-800">
-                      {typeof value === 'number' ? value.toLocaleString() : value}
+                      {safeRenderValue(value)}
                     </span>
                   </div>
                 ))}
