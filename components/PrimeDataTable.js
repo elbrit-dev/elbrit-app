@@ -2682,7 +2682,7 @@ const PrimeDataTable = ({
                         )}
                       </div>
                     );
-                    })}
+                  })}
                   </div>
                 ))}
               </div>
