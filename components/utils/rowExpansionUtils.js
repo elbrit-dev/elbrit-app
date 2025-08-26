@@ -63,26 +63,17 @@ export const generateExpansionColumn = ({
   position = 'left', // 'left' or 'right'
   width = '5rem'
 } = {}) => {
-  // Create a simple expander function that doesn't cause serialization issues
-  const simpleExpander = (rowData) => {
-    try {
-      return canExpandRowFn(rowData);
-    } catch (error) {
-      console.warn('Error in expander function:', error);
-      return false;
-    }
-  };
-  
   const alignFrozen = position === 'right' ? 'right' : 'left';
   return {
-    expander: true,                 // PrimeReact expects boolean, not predicate
-    style: { ...style, width },
+    expander: true,                      // ✅ boolean
+    style: { ...style, width },          // ✅ fixed spread
     header,
     body,
-    frozen: position === 'left' || position === 'right',
-    alignFrozen                       // <-- add this key for right-side freezing
+    frozen: position === 'left' || position === 'right', // ✅ boolean
+    alignFrozen                           // ✅ right-side freezing
   };
 };
+
 
 /**
  * Get nested data label based on data structure
