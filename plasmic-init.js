@@ -961,6 +961,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable row grouping functionality",
       defaultValue: false
     },
+    // Row Expansion Props
     enableRowExpansion: {
       type: "boolean",
       description: "Enable row expansion functionality",
@@ -980,6 +981,102 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "function",
       description: "Callback function called when rows are expanded or collapsed. Receives event object with expanded rows data.",
       defaultValue: null
+    },
+    onRowExpand: {
+      type: "function",
+      description: "Callback function called when a row is expanded. Receives event object with row data.",
+      defaultValue: null
+    },
+    onRowCollapse: {
+      type: "function",
+      description: "Callback function called when a row is collapsed. Receives event object with row data.",
+      defaultValue: null
+    },
+    allowExpansion: {
+      type: "function",
+      description: "Function to determine if a row can be expanded. Receives row data and should return boolean.",
+      defaultValue: null
+    },
+    validateExpansion: {
+      type: "function",
+      description: "Custom validation function for row expansion. Receives row data and should return boolean.",
+      defaultValue: null
+    },
+    expansionColumnStyle: {
+      type: "object",
+      description: "Style object for the expansion column",
+      defaultValue: { width: '5rem' }
+    },
+    expansionColumnWidth: {
+      type: "string",
+      description: "Width of the expansion column (e.g., '5rem', '60px')",
+      defaultValue: "5rem"
+    },
+    expansionColumnHeader: {
+      type: "string",
+      description: "Custom header text for the expansion column",
+      defaultValue: null
+    },
+    expansionColumnBody: {
+      type: "function",
+      description: "Custom body template for the expansion column. Receives row data and should return JSX.",
+      defaultValue: null
+    },
+    expansionColumnPosition: {
+      type: "choice",
+      options: ["left", "right"],
+      description: "Position of the expansion column",
+      defaultValue: "left"
+    },
+    showExpandAllButtons: {
+      type: "boolean",
+      description: "Show expand/collapse all buttons in the toolbar",
+      defaultValue: true
+    },
+    expandAllLabel: {
+      type: "string",
+      description: "Label for the expand all button",
+      defaultValue: "Expand All"
+    },
+    collapseAllLabel: {
+      type: "string",
+      description: "Label for the collapse all button",
+      defaultValue: "Collapse All"
+    },
+    expansionButtonStyle: {
+      type: "object",
+      description: "Style object for the expansion buttons",
+      defaultValue: {}
+    },
+    expansionButtonClassName: {
+      type: "string",
+      description: "CSS class name for the expansion buttons",
+      defaultValue: ""
+    },
+    expandIcon: {
+      type: "string",
+      description: "Icon class for the expand button (e.g., 'pi pi-plus')",
+      defaultValue: "pi pi-plus"
+    },
+    collapseIcon: {
+      type: "string",
+      description: "Icon class for the collapse button (e.g., 'pi pi-minus')",
+      defaultValue: "pi pi-minus"
+    },
+    enableExpansionAnimation: {
+      type: "boolean",
+      description: "Enable animations for row expansion/collapse",
+      defaultValue: true
+    },
+    nestedDataConfig: {
+      type: "object",
+      description: "Configuration for nested data display in expanded rows",
+      defaultValue: {
+        enableNestedSorting: true,
+        enableNestedFiltering: true,
+        enableNestedPagination: false,
+        nestedPageSize: 10
+      }
     },
     enableFrozenColumns: {
       type: "boolean",

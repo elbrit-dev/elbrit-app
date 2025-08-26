@@ -50,6 +50,9 @@ import { createPivotConfigHandlers } from './utils/pivotConfigUtils';
 import { createColumnGroupingHandlers } from './utils/columnGroupingUtils';
 import CalculatedFieldsManager from './CalculatedFieldsManager';
 
+// NEW: Import row expansion hook
+import useRowExpansion from '../hooks/useRowExpansion';
+
 // HIBERNATION FIX: Production-safe console wrapper
 const safeConsole = {
   log: process.env.NODE_ENV === 'development' ? console.log : () => {},
@@ -189,6 +192,27 @@ import { useAuth } from './AuthContext';
  *
  *   currencyColumns={["serviceAmount", "supportValue"]}
  * />
+ *
+ * Row Expansion:
+ * <PrimeDataTable
+ *   data={productsWithOrders}
+ *   enableRowExpansion={true}
+ *   rowExpansionTemplate={(data) => (
+ *     <div className="p-3">
+ *       <h5>Orders for {data.name}</h5>
+ *       <DataTable value={data.orders}>
+ *         <Column field="id" header="Order ID" sortable />
+ *         <Column field="customer" header="Customer" sortable />
+ *         <Column field="amount" header="Amount" sortable />
+ *         <Column field="status" header="Status" sortable />
+ *       </DataTable>
+ *     </div>
+ *   )}
+ *   allowExpansion={(rowData) => rowData.orders.length > 0}
+ *   showExpandAllButtons={true}
+ *   expandAllLabel="Expand All Products"
+ *   collapseAllLabel="Collapse All Products"
+ * />
  */
 
 const PrimeDataTable = ({
@@ -251,6 +275,34 @@ const PrimeDataTable = ({
   enableRowGrouping = false,
   enableFrozenColumns = false,
   enableFrozenRows = false,
+  // NEW: Row Expansion Props
+  enableRowExpansion = false,
+  expandedRows = null,
+  onRowToggle = null,
+  onRowExpand = null,
+  onRowCollapse = null,
+  rowExpansionTemplate = null,
+  allowExpansion = null,
+  validateExpansion = null,
+  expansionColumnStyle = { width: '5rem' },
+  expansionColumnWidth = '5rem',
+  expansionColumnHeader = null,
+  expansionColumnBody = null,
+  expansionColumnPosition = 'left',
+  showExpandAllButtons = true,
+  expandAllLabel = "Expand All",
+  collapseAllLabel = "Collapse All",
+  expansionButtonStyle = {},
+  expansionButtonClassName = "",
+  expandIcon = "pi pi-plus",
+  collapseIcon = "pi pi-minus",
+  enableExpansionAnimation = true,
+  nestedDataConfig = {
+    enableNestedSorting: true,
+    enableNestedFiltering: true,
+    enableNestedPagination: false,
+    nestedPageSize: 10
+  },
   
   // Pagination
   pageSize = 10,
@@ -2390,6 +2442,34 @@ const PrimeDataTable = ({
     footerTemplate
   });
   
+  // NEW: Row expansion hook
+  const rowExpansion = useRowExpansion({
+    enabled: enableRowExpansion,
+    data: finalTableData,
+    dataKey: 'id',
+    expandedRows,
+    onRowToggle,
+    onRowExpand,
+    onRowCollapse,
+    rowExpansionTemplate,
+    allowExpansion,
+    validateExpansion,
+    expansionColumnStyle,
+    expansionColumnWidth,
+    expansionColumnHeader,
+    expansionColumnBody,
+    expansionColumnPosition,
+    showExpandAllButtons,
+    expandAllLabel,
+    collapseAllLabel,
+    expansionButtonStyle,
+    expansionButtonClassName,
+    expandIcon,
+    collapseIcon,
+    enableExpansionAnimation,
+    nestedDataConfig
+  });
+  
   // Loading and error states
   if (isLoading) {
     return (
@@ -2428,6 +2508,9 @@ const PrimeDataTable = ({
 
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
+      
+      {/* NEW: Row Expansion Header */}
+      {rowExpansion.expansionHeader}
 
 
 
@@ -2495,6 +2578,12 @@ const PrimeDataTable = ({
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
         dataKey="id"
+        
+        expandedRows={rowExpansion.expandedRows}
+        onRowToggle={rowExpansion.onRowToggle}
+        onRowExpand={rowExpansion.onRowExpand}
+        onRowCollapse={rowExpansion.onRowCollapse}
+        rowExpansionTemplate={rowExpansion.rowExpansionTemplate}
         paginator={enablePagination}
         rows={localPageSize}
         rowsPerPageOptions={pageSizeOptions}
@@ -2504,32 +2593,22 @@ const PrimeDataTable = ({
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
         size={tableSize}
-        
-        // Enhanced pagination
         showFirstLastIcon={showFirstLastIcon}
         showPageLinks={showPageLinks}
         showCurrentPageReport={showCurrentPageReport}
         currentPageReportTemplate={currentPageReportTemplate}
-        
-        // Enhanced filtering
         filterDelay={filterDelay}
         globalFilterPlaceholder={globalFilterPlaceholder}
         filterLocale={filterLocale}
-        
-        // Inline editing
         editingRows={enableInlineEditing ? localEditingRows : undefined}
         onRowEditSave={enableInlineEditing ? handleRowEditSave : undefined}
         onRowEditCancel={enableInlineEditing ? handleRowEditCancel : undefined}
         onRowEditInit={enableInlineEditing ? handleRowEditInit : undefined}
         onEditingRowsChange={enableInlineEditing ? handleEditingRowsChange : undefined}
-        
-
         contextMenu={enableContextMenu ? contextMenu : undefined}
         contextMenuSelection={enableContextMenu ? localContextMenuSelection : undefined}
         onContextMenuSelectionChange={enableContextMenu ? handleContextMenuSelectionChange : undefined}
         onContextMenu={enableContextMenu ? handleContextMenu : undefined}
-        
-        // Advanced selection
         selectionMode={enableRowSelection ? selectionMode : undefined}
         metaKeySelection={enableRowSelection ? metaKeySelection : undefined}
         selectOnEdit={enableRowSelection ? selectOnEdit : undefined}
@@ -2539,17 +2618,13 @@ const PrimeDataTable = ({
           enableVirtualScrolling || (Array.isArray(finalTableData) && finalTableData.length > 1000) ? 
           { 
             itemSize: 46,
-            // HIBERNATION FIX: Auto-enable virtual scrolling for large datasets
-                          numToleratedItems: (Array.isArray(finalTableData) && finalTableData.length > 5000) ? 10 : 5,
-              delay: (Array.isArray(finalTableData) && finalTableData.length > 10000) ? 150 : 0
+            numToleratedItems: (Array.isArray(finalTableData) && finalTableData.length > 5000) ? 10 : 5,
+            delay: (Array.isArray(finalTableData) && finalTableData.length > 10000) ? 150 : 0
           } : undefined
         }
-        lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)} // HIBERNATION FIX: Auto-enable lazy loading for large datasets
+        lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)}
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
-
-          
-
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2560,8 +2635,18 @@ const PrimeDataTable = ({
         {enableRowSelection && (
           <Column
             selectionMode="multiple"
-
             frozen={enableFrozenColumns}
+          />
+        )}
+        
+        {/* NEW: Row Expansion Column */}
+        {rowExpansion.expansionColumn && (
+          <Column
+            expander={rowExpansion.expansionColumn.expander}
+            style={rowExpansion.expansionColumn.style}
+            header={rowExpansion.expansionColumn.header}
+            body={rowExpansion.expansionColumn.body}
+            frozen={rowExpansion.expansionColumn.frozen}
           />
         )}
 
