@@ -266,6 +266,43 @@ const RowExpansionManager = ({
     expansionButtonStyle
   ]);
   
+  // Utility functions (moved to top to avoid hoisting issues)
+  const formatCurrency = (value) => {
+    if (typeof value !== 'number') return value;
+    return value.toLocaleString('en-US', { 
+      style: 'currency', 
+      currency: 'USD' 
+    });
+  };
+  
+  const getStatusSeverity = (status) => {
+    if (!status) return null;
+    
+    const statusLower = status.toLowerCase();
+    switch (statusLower) {
+      case 'delivered':
+      case 'completed':
+      case 'active':
+      case 'success':
+        return 'success';
+      case 'pending':
+      case 'processing':
+      case 'warning':
+        return 'warning';
+      case 'cancelled':
+      case 'failed':
+      case 'error':
+      case 'danger':
+        return 'danger';
+      case 'returned':
+      case 'refunded':
+      case 'info':
+        return 'info';
+      default:
+        return null;
+    }
+  };
+  
   // Enhanced row expansion template with nested DataTable support
   const enhancedRowExpansionTemplate = useCallback((rowData) => {
     if (!rowExpansionTemplate) {
@@ -523,42 +560,7 @@ const RowExpansionManager = ({
     );
   }, [nestedDataConfig]);
   
-  // Utility functions
-  const formatCurrency = (value) => {
-    if (typeof value !== 'number') return value;
-    return value.toLocaleString('en-US', { 
-      style: 'currency', 
-      currency: 'USD' 
-    });
-  };
-  
-  const getStatusSeverity = (status) => {
-    if (!status) return null;
-    
-    const statusLower = status.toLowerCase();
-    switch (statusLower) {
-      case 'delivered':
-      case 'completed':
-      case 'active':
-      case 'success':
-        return 'success';
-      case 'pending':
-      case 'processing':
-      case 'warning':
-        return 'warning';
-      case 'cancelled':
-      case 'failed':
-      case 'error':
-      case 'danger':
-        return 'danger';
-      case 'returned':
-      case 'refunded':
-      case 'info':
-        return 'info';
-      default:
-        return null;
-    }
-  };
+
   
   // Return the expansion configuration object
   return {
