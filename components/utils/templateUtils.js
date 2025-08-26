@@ -391,9 +391,7 @@ export const createRightToolbarTemplate = (
   enableRefresh,
   handleRefresh,
   isRefreshing,
-  enableRowExpansion,
-  expandAll,
-  collapseAll
+
 ) => {
   return () => (
     <div>
@@ -465,27 +463,7 @@ export const createRightToolbarTemplate = (
         />
       )}
 
-      {/* NEW: Row Expansion Controls */}
-      {enableRowExpansion && (
-        <div className="flex gap-2">
-          <Button
-            icon="pi pi-plus"
-            label="Expand All"
-            onClick={expandAll}
-            className="p-button-outlined p-button-info p-button-sm"
-            tooltip="Expand all expandable rows"
-            tooltipOptions={{ position: 'top' }}
-          />
-          <Button
-            icon="pi pi-minus"
-            label="Collapse All"
-            onClick={collapseAll}
-            className="p-button-outlined p-button-secondary p-button-sm"
-            tooltip="Collapse all expanded rows"
-            tooltipOptions={{ position: 'top' }}
-          />
-        </div>
-      )}
+
     </div>
   );
 };

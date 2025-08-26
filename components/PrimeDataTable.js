@@ -187,21 +187,6 @@ import { useAuth } from './AuthContext';
  *   }}
  * />
  *
- * Expandable Table:
- * <PrimeDataTable
- *   data={salesData}
- *   enableRowExpansion={true}
- *   rowExpansionTemplate={(data) => (
- *     <div className="p-3">
- *       <h5>Details for {data.name}</h5>
- *       <p>Additional information: {data.description}</p>
- *       <p>Created: {data.createdDate}</p>
- *     </div>
- *   )}
- *   expandedRows={expandedRows}
- *   onRowToggle={(e) => setExpandedRows(e.data)}
- * />
- *   }}
  *   currencyColumns={["serviceAmount", "supportValue"]}
  * />
  */
@@ -264,10 +249,6 @@ const PrimeDataTable = ({
   enableVirtualScrolling = false,
   enableLazyLoading = false,
   enableRowGrouping = false,
-  enableRowExpansion = false,
-  rowExpansionTemplate = null, // Custom template for expanded content
-  expandedRows = null, // External control of expanded rows
-  onRowToggle = null, // Callback when rows are expanded/collapsed
   enableFrozenColumns = false,
   enableFrozenRows = false,
   
@@ -282,8 +263,6 @@ const PrimeDataTable = ({
 
 
   tableSize = "normal", // small, normal, large
-
-  
 
 
   // Event handlers
@@ -544,10 +523,6 @@ const PrimeDataTable = ({
   // Context menu state
   const [localContextMenuSelection, setLocalContextMenuSelection] = useState(contextMenuSelection || null);
   const contextMenuRef = useRef(null);
-
-  // Row expansion state
-  const [localExpandedRows, setLocalExpandedRows] = useState(expandedRows || {});
-  const [expandedRowsData, setExpandedRowsData] = useState({}); // Store expanded row data for dynamic rendering
 
   // GraphQL data state
   const [graphqlData, setGraphqlData] = useState([]);
@@ -812,12 +787,7 @@ const PrimeDataTable = ({
     };
   }, [graphqlQuery, graphqlVariables, refetchInterval, onGraphqlData]);
 
-  // Sync external expandedRows prop with local state
-  useEffect(() => {
-    if (expandedRows !== undefined && expandedRows !== null) {
-      setLocalExpandedRows(expandedRows);
-    }
-  }, [expandedRows]);
+
 
   // HIBERNATION FIX: Optimized pivot config with reduced dependencies
   const mergedPivotConfig = useMemo(() => {
@@ -2120,89 +2090,7 @@ const PrimeDataTable = ({
     onRowEditInit
   });
 
-  // Row expansion handler
-  const handleRowToggle = useCallback((e) => {
-    setLocalExpandedRows(e.data);
-    
-    // Store expanded row data for dynamic rendering
-    if (e.data && Object.keys(e.data).length > 0) {
-      const newExpandedData = {};
-      Object.keys(e.data).forEach(rowKey => {
-        if (e.data[rowKey]) {
-          // Find the row data by key
-          const rowData = finalTableData.find(row => {
-            const keyField = row.id || row.key || row.drCode || row.brand || row.name;
-            return String(keyField) === String(rowKey);
-          });
-          if (rowData) {
-            newExpandedData[rowKey] = rowData;
-          }
-        }
-      });
-      setExpandedRowsData(newExpandedData);
-    } else {
-      setExpandedRowsData({});
-    }
-    
-    if (onRowToggle) {
-      onRowToggle(e);
-    }
-  }, [onRowToggle, finalTableData]);
 
-  // NEW: Expand/Collapse all functionality
-  const expandAll = useCallback(() => {
-    if (!finalTableData || finalTableData.length === 0) return;
-    
-    const expandedRowsMap = {};
-    finalTableData.forEach((row, index) => {
-      const keyField = row.id || row.key || row.drCode || row.brand || row.name || index;
-      expandedRowsMap[String(keyField)] = true;
-    });
-    
-    setLocalExpandedRows(expandedRowsMap);
-    
-    // Update expanded rows data
-    const newExpandedData = {};
-    finalTableData.forEach((row, index) => {
-      const keyField = row.id || row.key || row.drCode || row.brand || row.name || index;
-      newExpandedData[String(keyField)] = row;
-    });
-    setExpandedRowsData(newExpandedData);
-    
-    // Call external callback if provided
-    if (onRowToggle) {
-      onRowToggle({ data: expandedRowsMap });
-    }
-  }, [finalTableData, onRowToggle]);
-
-  const collapseAll = useCallback(() => {
-    setLocalExpandedRows({});
-    setExpandedRowsData({});
-    
-    // Call external callback if provided
-    if (onRowToggle) {
-      onRowToggle({ data: {} });
-    }
-  }, [onRowToggle]);
-
-  // NEW: Check if row can be expanded
-  const allowExpansion = useCallback((rowData) => {
-    if (!rowData || typeof rowData !== 'object') return false;
-    
-    // Check if row has any nested arrays or objects that can be expanded
-    const hasExpandableContent = Object.values(rowData).some(value => {
-      if (Array.isArray(value) && value.length > 0) return true;
-      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-        // Check if object has any non-primitive values
-        return Object.values(value).some(v => 
-          Array.isArray(v) || (typeof v === 'object' && v !== null)
-        );
-      }
-      return false;
-    });
-    
-    return hasExpandableContent;
-  }, []);
 
   // Custom cell renderers moved to utils/templateUtils.js
   const imageBodyTemplate = createImageBodyTemplate(popupImageFields, setImageModalSrc, setImageModalAlt, setShowImageModal);
@@ -2292,10 +2180,7 @@ const PrimeDataTable = ({
     handleExport,
     enableRefresh,
     handleRefresh,
-    isRefreshing,
-    enableRowExpansion,
-    expandAll,
-    collapseAll
+    isRefreshing
   );
 
   // Common filter toolbar for column grouping
@@ -2662,246 +2547,9 @@ const PrimeDataTable = ({
         lazy={enableLazyLoading || (Array.isArray(finalTableData) && finalTableData.length > 2000)} // HIBERNATION FIX: Auto-enable lazy loading for large datasets
         rowGroupMode={enableRowGrouping ? 'subheader' : undefined}
         expandableRowGroups={enableRowGrouping}
-        rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || ((data) => {
-          // Safety check for data parameter
-          if (!data || typeof data !== 'object') {
-            return <div className="p-4 text-red-500">Invalid data format</div>;
-          }
+
           
-          // Dynamic nested structure detection and rendering
-          const nestedArrays = Object.entries(data).filter(([key, value]) => 
-            Array.isArray(value) && value.length > 0
-          );
-          
-          // Helper function to safely render values
-          const safeRenderValue = (value) => {
-            if (value === null || value === undefined) return 'N/A';
-            if (typeof value === 'object') return JSON.stringify(value);
-            if (typeof value === 'number') return value.toLocaleString();
-            return String(value);
-          };
-          
-          // Helper function to get a safe display name
-          const getDisplayName = (data) => {
-            // Find the first non-object, non-array value for display
-            for (const [key, value] of Object.entries(data)) {
-              if (value !== null && value !== undefined && typeof value !== 'object' && !Array.isArray(value)) {
-                return String(value);
-              }
-            }
-            // If all values are objects/arrays, use the first key
-            const firstKey = Object.keys(data)[0];
-            return firstKey ? firstKey.charAt(0).toUpperCase() + firstKey.slice(1) : 'Item';
-          };
-          
-          // NEW: Enhanced dynamic table rendering for nested data
-          if (nestedArrays.length > 0) {
-            return (
-              <div className="p-4 bg-gray-50 border-l-4 border-blue-500">
-                <h5 className="text-lg font-semibold mb-3">Details for {getDisplayName(data)}</h5>
-                {nestedArrays.map(([arrayKey, arrayData]) => (
-                  <div key={arrayKey} className="mb-4">
-                    <h6 className="text-md font-medium text-gray-700 mb-2 capitalize">
-                      {arrayKey.replace(/([A-Z])/g, ' $1').trim()} ({arrayData.length})
-                    </h6>
-                    
-                    {/* NEW: Dynamic DataTable for nested arrays */}
-                    {arrayData.length > 0 && (
-                      <DataTable 
-                        value={arrayData} 
-                        size="small"
-                        className="nested-expansion-table"
-                        tableStyle={{ minWidth: '40rem' }}
-                      >
-                        {/* Auto-generate columns based on first item */}
-                        {(() => {
-                          if (arrayData.length === 0) return null;
-                          
-                          const firstItem = arrayData[0];
-                          if (!firstItem || typeof firstItem !== 'object') return null;
-                          
-                          return Object.keys(firstItem).map(key => {
-                            const value = firstItem[key];
-                            let columnType = 'text';
-                            
-                            // Determine column type
-                            if (typeof value === 'number') columnType = 'number';
-                            else if (typeof value === 'boolean') columnType = 'boolean';
-                            else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) columnType = 'date';
-                            else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) columnType = 'datetime';
-                            else if (Array.isArray(value)) columnType = 'array';
-                            else if (typeof value === 'object' && value !== null) columnType = 'object';
-                            
-                            // Skip complex nested objects for now
-                            if (columnType === 'object' && value !== null) {
-                              return (
-                                <Column 
-                                  key={key} 
-                                  field={key} 
-                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                  body={(rowData) => {
-                                    const val = rowData[key];
-                                    if (val === null || val === undefined) return 'N/A';
-                                    if (typeof val === 'object') {
-                                      return (
-                                        <div className="text-xs bg-gray-100 p-2 rounded">
-                                          {JSON.stringify(val, null, 2)}
-                                        </div>
-                                      );
-                                    }
-                                    return String(val);
-                                  }}
-                                />
-                              );
-                            }
-                            
-                            // Handle arrays
-                            if (columnType === 'array') {
-                              return (
-                                <Column 
-                                  key={key} 
-                                  field={key} 
-                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                  body={(rowData) => {
-                                    const val = rowData[key];
-                                    if (!Array.isArray(val)) return 'N/A';
-                                    if (val.length === 0) return 'Empty';
-                                    
-                                    return (
-                                      <div className="flex flex-wrap gap-1">
-                                        {val.slice(0, 3).map((item, index) => (
-                                          <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                            {typeof item === 'object' ? JSON.stringify(item).substring(0, 20) + '...' : String(item)}
-                                          </span>
-                                        ))}
-                                        {val.length > 3 && (
-                                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
-                                            +{val.length - 3} more
-                                          </span>
-                                        )}
-                                      </div>
-                                    );
-                                  }}
-                                />
-                              );
-                            }
-                            
-                            // Handle dates
-                            if (columnType === 'date') {
-                              return (
-                                <Column 
-                                  key={key} 
-                                  field={key} 
-                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                  body={(rowData) => {
-                                    const val = rowData[key];
-                                    if (!val) return 'N/A';
-                                    try {
-                                      return new Date(val).toLocaleDateString();
-                                    } catch {
-                                      return String(val);
-                                    }
-                                  }}
-                                />
-                              );
-                            }
-                            
-                            // Handle numbers
-                            if (columnType === 'number') {
-                              return (
-                                <Column 
-                                  key={key} 
-                                  field={key} 
-                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                  body={(rowData) => {
-                                    const val = rowData[key];
-                                    if (val === null || val === undefined) return 'N/A';
-                                    return typeof val === 'number' ? val.toLocaleString() : String(val);
-                                  }}
-                                />
-                              );
-                            }
-                            
-                            // Handle booleans
-                            if (columnType === 'boolean') {
-                              return (
-                                <Column 
-                                  key={key} 
-                                  field={key} 
-                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                  body={(rowData) => {
-                                    const val = rowData[key];
-                                    if (val === null || val === undefined) return 'N/A';
-                                    return (
-                                      <span className={`px-2 py-1 rounded text-xs ${
-                                        val ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                                      }`}>
-                                        {val ? 'Yes' : 'No'}
-                                      </span>
-                                    );
-                                  }}
-                                />
-                              );
-                            }
-                            
-                            // Default text column
-                            return (
-                              <Column 
-                                key={key} 
-                                field={key} 
-                                header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
-                                body={(rowData) => {
-                                  const val = rowData[key];
-                                  if (val === null || val === undefined) return 'N/A';
-                                  return String(val);
-                                }}
-                              />
-                            );
-                          });
-                        })()}
-                      </DataTable>
-                    )}
-                  </div>
-                ))}
-              </div>
-            );
-          }
-          
-          // Fallback for simple data
-          return (
-            <div className="p-4">
-              <h5 className="text-lg font-semibold mb-2">Details</h5>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(data).map(([key, value]) => (
-                  <div key={key} className="text-sm">
-                    <span className="font-medium text-gray-600 capitalize">
-                      {key.replace(/([A-Z])/g, ' $1').trim()}:
-                    </span>
-                    <span className="ml-1 text-gray-800">
-                      {safeRenderValue(value)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })) : undefined}
-        expandedRows={enableRowExpansion ? localExpandedRows : undefined}
-        onRowToggle={enableRowExpansion ? handleRowToggle : undefined}
-        onRowExpand={enableRowExpansion ? (e) => {
-          // Call external callback if provided
-          if (onRowToggle) {
-            onRowToggle({ data: { ...localExpandedRows, [e.data.id || e.data.key || e.data.drCode || e.data.brand || e.data.name]: true } });
-          }
-        } : undefined}
-        onRowCollapse={enableRowExpansion ? (e) => {
-          // Call external callback if provided
-          if (onRowToggle) {
-            const newExpandedRows = { ...localExpandedRows };
-            delete newExpandedRows[e.data.id || e.data.key || e.data.drCode || e.data.brand || e.data.name];
-            onRowToggle({ data: newExpandedRows });
-          }
-        } : undefined}
+
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2917,13 +2565,7 @@ const PrimeDataTable = ({
           />
         )}
 
-        {enableRowExpansion && (
-          <Column
-            expander={allowExpansion}
-            style={{ width: '3rem' }}
-            frozen={enableFrozenColumns}
-          />
-        )}
+
 
         {(() => {
           // Generate columns in the correct order for grouping
