@@ -193,6 +193,11 @@ const RowExpansionManager = ({
   
   // Check if a row can be expanded
   const canExpandRow = useCallback((rowData) => {
+    // Safety check for empty or invalid row data
+    if (!rowData || typeof rowData !== 'object') {
+      return false;
+    }
+    
     if (validateExpansion) {
       return validateExpansion(rowData);
     }
@@ -273,6 +278,15 @@ const RowExpansionManager = ({
   
   // Generate auto-detected expansion template
   const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
+    // Safety check for empty or invalid row data
+    if (!rowData || typeof rowData !== 'object') {
+      return (
+        <div className="p-3">
+          <p className="text-muted">Invalid row data.</p>
+        </div>
+      );
+    }
+    
     // Auto-detect nested data patterns - prioritize invoices for your data structure
     const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
     

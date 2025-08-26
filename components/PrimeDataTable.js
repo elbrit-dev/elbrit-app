@@ -2444,8 +2444,8 @@ const PrimeDataTable = ({
   
   // NEW: Row expansion hook with auto-detection
   const rowExpansion = useRowExpansion({
-    enabled: enableRowExpansion,
-    data: finalTableData,
+    enabled: enableRowExpansion && Array.isArray(finalTableData) && finalTableData.length > 0,
+    data: finalTableData || [],
     dataKey: (() => {
       // Auto-detect the best unique identifier from your data
       if (!Array.isArray(finalTableData) || finalTableData.length === 0) return 'id';
@@ -2533,7 +2533,7 @@ const PrimeDataTable = ({
       {commonFilterToolbarTemplate()}
       
       {/* NEW: Row Expansion Header */}
-      {rowExpansion.expansionHeader}
+      {rowExpansion.expansionHeader && Array.isArray(finalTableData) && finalTableData.length > 0 && rowExpansion.expansionHeader}
 
 
 
@@ -2686,7 +2686,7 @@ const PrimeDataTable = ({
         )}
         
         {/* NEW: Row Expansion Column */}
-        {rowExpansion.expansionColumn && (
+        {rowExpansion.expansionColumn && Array.isArray(finalTableData) && finalTableData.length > 0 && (
           <Column
             expander={rowExpansion.expansionColumn.expander}
             style={rowExpansion.expansionColumn.style}
