@@ -324,99 +324,168 @@ const RowExpansionManager = ({
       );
     }
     
-    // Auto-detect nested data patterns - prioritize invoices for your data structure
-    const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+         // Auto-detect nested data patterns - prioritize invoices for your data structure
+     const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+     
+     if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
+       return (
+         <div className="p-3">
+           <p className="text-muted">No nested data available for this row.</p>
+         </div>
+       );
+     }
+     
+     // Validate that nested data contains valid objects
+     const validNestedData = nestedData.filter(item => 
+       item && typeof item === 'object' && !Array.isArray(item)
+     );
+     
+     if (validNestedData.length === 0) {
+       return (
+         <div className="p-3">
+           <p className="text-muted">Invalid nested data structure.</p>
+         </div>
+       );
+     }
     
-    if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
-      return (
-        <div className="p-3">
-          <p className="text-muted">No nested data available for this row.</p>
-        </div>
-      );
-    }
-    
-    // Auto-generate columns based on nested data structure
-    const sampleNestedRow = nestedData[0];
-    if (!sampleNestedRow) return null;
-    
-    const autoColumns = Object.keys(sampleNestedRow).map(key => {
-      const value = sampleNestedRow[key];
-      let type = 'text';
-      let body = undefined;
-      
-      // Determine column type and body template
-      if (typeof value === 'number') {
-        type = 'number';
-        if (key.toLowerCase().includes('incentive') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.toLowerCase().includes('cost')) {
-          body = (row) => (
-            <span className={row[key] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-              ₹{row[key].toLocaleString()}
-            </span>
-          );
-        } else if (key.toLowerCase().includes('credit') || key.toLowerCase().includes('debit')) {
-          body = (row) => (
-            <span className={row[key] >= 0 ? 'text-green-600' : 'text-red-600'}>
-              ₹{row[key].toLocaleString()}
-            </span>
-          );
-        } else {
-          body = (row) => (
-            <span className="font-medium">
-              {row[key].toLocaleString()}
-            </span>
-          );
-        }
-      } else if (typeof value === 'boolean') {
-        type = 'boolean';
-        body = (row) => (
-          <Tag 
-            value={row[key] ? 'Yes' : 'No'} 
-            severity={row[key] ? 'success' : 'danger'} 
-          />
-        );
-      } else if (typeof value === 'string') {
-        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('posting')) {
-          body = (row) => (
-            <span className="font-medium text-blue-600">
-              {new Date(row[key]).toLocaleDateString()}
-            </span>
-          );
-        } else if (key.toLowerCase().includes('invoice') || key.toLowerCase().includes('id')) {
-          body = (row) => (
-            <span className="font-mono font-semibold text-purple-600">
-              {row[key]}
-            </span>
-          );
-        } else if (key.toLowerCase().includes('hq') || key.toLowerCase().includes('location')) {
-          body = (row) => (
-            <span className="font-medium text-gray-700">
-              {row[key]}
-            </span>
-          );
-        } else if (key.toLowerCase().includes('status')) {
-          body = (row) => (
-            <Tag 
-              value={row[key].toLowerCase()} 
-              severity={getStatusSeverity(row[key])} 
-            />
-          );
-        } else {
-          body = (row) => (
-            <span className="font-medium">
-              {row[key]}
-            </span>
-          );
-        }
-      }
-      
-      return {
-        field: key,
-        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-        sortable: nestedDataConfig.enableNestedSorting,
-        filter: nestedDataConfig.enableNestedFiltering,
-        body: body
-      };
-    });
+         // Auto-generate columns based on nested data structure
+     const sampleNestedRow = nestedData[0];
+     if (!sampleNestedRow) return null;
+     
+     const autoColumns = Object.keys(sampleNestedRow).map(key => {
+       const value = sampleNestedRow[key];
+       let type = 'text';
+       let body = undefined;
+       
+       // Determine column type and body template
+       if (typeof value === 'number') {
+         type = 'number';
+         if (key.toLowerCase().includes('incentive') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.toLowerCase().includes('cost')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
+             return (
+               <span className={cellValue >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+                 ₹{cellValue.toLocaleString()}
+               </span>
+             );
+           };
+         } else if (key.toLowerCase().includes('credit') || key.toLowerCase().includes('debit')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
+             return (
+               <span className={cellValue >= 0 ? 'text-green-600' : 'text-red-600'}>
+                 ₹{cellValue.toLocaleString()}
+               </span>
+             );
+           };
+         } else {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
+             return (
+               <span className="font-medium">
+                 {cellValue.toLocaleString()}
+               </span>
+             );
+           };
+         }
+       } else if (typeof value === 'boolean') {
+         type = 'boolean';
+         body = (row) => {
+           const cellValue = row[key];
+           if (typeof cellValue !== 'boolean') return <span>Invalid data</span>;
+           return (
+             <Tag 
+               value={cellValue ? 'Yes' : 'No'} 
+               severity={cellValue ? 'success' : 'danger'} 
+             />
+           );
+         };
+       } else if (typeof value === 'string') {
+         if (key.toLowerCase().includes('date') || key.toLowerCase().includes('posting')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
+             try {
+               const date = new Date(cellValue);
+               if (isNaN(date.getTime())) return <span>{cellValue}</span>;
+               return (
+                 <span className="font-medium text-blue-600">
+                   {date.toLocaleDateString()}
+                 </span>
+               );
+             } catch (error) {
+               return <span>{cellValue}</span>;
+             }
+           };
+         } else if (key.toLowerCase().includes('invoice') || key.toLowerCase().includes('id')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
+             return (
+               <span className="font-mono font-semibold text-purple-600">
+                 {cellValue}
+               </span>
+             );
+           };
+         } else if (key.toLowerCase().includes('hq') || key.toLowerCase().includes('location')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
+             return (
+               <span className="font-medium text-gray-700">
+                 {cellValue}
+               </span>
+             );
+           };
+         } else if (key.toLowerCase().includes('status')) {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
+             return (
+               <Tag 
+                 value={cellValue.toLowerCase()} 
+                 severity={getStatusSeverity(cellValue)} 
+               />
+             );
+           };
+         } else {
+           body = (row) => {
+             const cellValue = row[key];
+             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
+             return (
+               <span className="font-medium">
+                 {cellValue}
+               </span>
+             );
+           };
+         }
+       } else {
+         // Handle other types (objects, arrays, etc.) safely
+         body = (row) => {
+           const cellValue = row[key];
+           if (cellValue === null || cellValue === undefined) {
+             return <span className="text-muted">-</span>;
+           } else if (typeof cellValue === 'object') {
+             return <span className="text-muted">[Object]</span>;
+           } else if (Array.isArray(cellValue)) {
+             return <span className="text-muted">[Array]</span>;
+           } else {
+             return <span>{String(cellValue)}</span>;
+           }
+         };
+       }
+       
+       return {
+         field: key,
+         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+         sortable: nestedDataConfig.enableNestedSorting,
+         filter: nestedDataConfig.enableNestedFiltering,
+         body: body
+       };
+     });
     
     // Auto-detect parent row identifier for better title
     const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
@@ -426,14 +495,14 @@ const RowExpansionManager = ({
         <h5 className="text-lg font-semibold text-gray-800 mb-3">
           {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
         </h5>
-        <DataTable 
-          value={nestedData}
-          paginator={nestedDataConfig.enableNestedPagination}
-          rows={nestedDataConfig.nestedPageSize}
-          showGridlines
-          stripedRows
-          className="nested-data-table"
-        >
+                 <DataTable 
+           value={validNestedData}
+           paginator={nestedDataConfig.enableNestedPagination}
+           rows={nestedDataConfig.nestedPageSize}
+           showGridlines
+           stripedRows
+           className="nested-data-table"
+         >
           {autoColumns.map((col, index) => (
             <Column
               key={index}
