@@ -2,9 +2,6 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from 'primereact/button';
 import { DataTable } from 'primereact/datatable';
 import { Column } from 'primereact/column';
-import { Tag } from 'primereact/tag';
-import { Rating } from 'primereact/rating';
-import { Image } from 'next/image';
 
 /**
  * RowExpansionManager - Handles row expansion functionality for PrimeReact DataTable
@@ -193,28 +190,43 @@ const RowExpansionManager = ({
   
   // Check if a row can be expanded
   const canExpandRow = useCallback((rowData) => {
-    // Safety check for empty or invalid row data
-    if (!rowData || typeof rowData !== 'object') {
+    try {
+      // Safety check for empty or invalid row data
+      if (!rowData || typeof rowData !== 'object') {
+        return false;
+      }
+      
+      if (validateExpansion) {
+        return validateExpansion(rowData);
+      }
+      
+      if (allowExpansion) {
+        return allowExpansion(rowData);
+      }
+      
+      // Auto-detect nested data patterns - prioritize invoices for your data structure
+      const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+      return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
+    } catch (error) {
+      console.warn('Error checking if row can be expanded:', error);
       return false;
     }
-    
-    if (validateExpansion) {
-      return validateExpansion(rowData);
-    }
-    
-    if (allowExpansion) {
-      return allowExpansion(rowData);
-    }
-    
-    // Auto-detect nested data patterns - prioritize invoices for your data structure
-    const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-    return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
   }, [allowExpansion, validateExpansion]);
   
   // Generate expansion column
   const generateExpansionColumn = useCallback(() => {
+    // Create a simple expander function that doesn't cause serialization issues
+    const simpleExpander = (rowData) => {
+      try {
+        return canExpandRow(rowData);
+      } catch (error) {
+        console.warn('Error in expander function:', error);
+        return false;
+      }
+    };
+    
     const expansionColumn = {
-      expander: canExpandRow,
+      expander: simpleExpander,
       style: { ...expansionColumnStyle, width: expansionColumnWidth },
       header: expansionColumnHeader,
       body: expansionColumnBody,
@@ -224,7 +236,7 @@ const RowExpansionManager = ({
     
     return expansionColumn;
   }, [
-    canExpandRow, 
+    canExpandRow,
     expansionColumnStyle, 
     expansionColumnWidth, 
     expansionColumnHeader, 
@@ -266,298 +278,116 @@ const RowExpansionManager = ({
     expansionButtonStyle
   ]);
   
-  // Utility functions (moved to top to avoid hoisting issues)
-  const formatCurrency = (value) => {
-    if (typeof value !== 'number') return value;
-    return value.toLocaleString('en-US', { 
-      style: 'currency', 
-      currency: 'USD' 
-    });
-  };
-  
-  const getStatusSeverity = (status) => {
-    if (!status) return null;
-    
-    const statusLower = status.toLowerCase();
-    switch (statusLower) {
-      case 'delivered':
-      case 'completed':
-      case 'active':
-      case 'success':
-        return 'success';
-      case 'pending':
-      case 'processing':
-      case 'warning':
-        return 'warning';
-      case 'cancelled':
-      case 'failed':
-      case 'error':
-      case 'danger':
-        return 'danger';
-      case 'returned':
-      case 'refunded':
-      case 'info':
-        return 'info';
-      default:
-        return null;
-    }
-  };
+
   
   // Enhanced row expansion template with nested DataTable support
   const enhancedRowExpansionTemplate = useCallback((rowData) => {
-    if (!rowExpansionTemplate) {
-      // Auto-detect and generate template based on data structure
-      return generateAutoDetectedExpansionTemplate(rowData);
+    try {
+      if (!rowExpansionTemplate) {
+        // Auto-detect and generate template based on data structure
+        return generateAutoDetectedExpansionTemplate(rowData);
+      }
+      
+      return rowExpansionTemplate(rowData);
+    } catch (error) {
+      console.error('Error in row expansion template:', error);
+      return (
+        <div className="p-3">
+          <p className="text-red-500">Error rendering expansion content</p>
+        </div>
+      );
     }
-    
-    return rowExpansionTemplate(rowData);
-  }, [rowExpansionTemplate]);
+  }, [rowExpansionTemplate, generateAutoDetectedExpansionTemplate]);
   
-     // Generate auto-detected expansion template
-   const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
-     // Safety check for empty or invalid row data
-     if (!rowData || typeof rowData !== 'object') {
-       return (
-         <div className="p-3">
-           <p className="text-muted">Invalid row data.</p>
-         </div>
-       );
-     }
-     
-     // Debug logging
-     console.log('🔍 Row expansion template called with:', {
-       rowData,
-       rowDataKeys: Object.keys(rowData),
-       rowDataTypes: Object.keys(rowData).map(key => ({
-         key,
-         type: typeof rowData[key],
-         value: rowData[key],
-         isArray: Array.isArray(rowData[key])
-       }))
-     });
-    
-         // Auto-detect nested data patterns - prioritize invoices for your data structure
-     const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-     
-     if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
-       return (
-         <div className="p-3">
-           <p className="text-muted">No nested data available for this row.</p>
-         </div>
-       );
-     }
-     
-     // Debug logging for nested data
-     console.log('🔍 Nested data found:', {
-       nestedData,
-       nestedDataLength: nestedData.length,
-       sampleItem: nestedData[0],
-       sampleItemKeys: nestedData[0] ? Object.keys(nestedData[0]) : null,
-       sampleItemTypes: nestedData[0] ? Object.keys(nestedData[0]).map(key => ({
-         key,
-         type: typeof nestedData[0][key],
-         value: nestedData[0][key]
-       })) : null
-     });
-     
-     // Validate that nested data contains valid objects
-     const validNestedData = nestedData.filter(item => 
-       item && typeof item === 'object' && !Array.isArray(item)
-     );
-     
-     if (validNestedData.length === 0) {
-       return (
-         <div className="p-3">
-           <p className="text-muted">Invalid nested data structure.</p>
-         </div>
-       );
-     }
-    
-         // Auto-generate columns based on nested data structure
-     const sampleNestedRow = nestedData[0];
-     if (!sampleNestedRow) return null;
-     
-     const autoColumns = Object.keys(sampleNestedRow).map(key => {
-       const value = sampleNestedRow[key];
-       let type = 'text';
-       let body = undefined;
+           // Generate auto-detected expansion template
+    const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
+      try {
+        // Safety check for empty or invalid row data
+        if (!rowData || typeof rowData !== 'object') {
+          return (
+            <div className="p-3">
+              <p className="text-muted">Invalid row data.</p>
+            </div>
+          );
+        }
+      
+        // Auto-detect nested data patterns - prioritize invoices for your data structure
+        const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+        
+        if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
+          return (
+            <div className="p-3">
+              <p className="text-muted">No nested data available for this row.</p>
+            </div>
+          );
+        }
+        
+        // Validate that nested data contains valid objects
+        const validNestedData = nestedData.filter(item => 
+          item && typeof item === 'object' && !Array.isArray(item)
+        );
+        
+        if (validNestedData.length === 0) {
+          return (
+            <div className="p-3">
+              <p className="text-muted">Invalid nested data structure.</p>
+            </div>
+          );
+        }
        
-       // Determine column type and body template
-       if (typeof value === 'number') {
-         type = 'number';
-         if (key.toLowerCase().includes('incentive') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.toLowerCase().includes('cost')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
-             return (
-               <span className={cellValue >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-                 ₹{cellValue.toLocaleString()}
-               </span>
-             );
-           };
-         } else if (key.toLowerCase().includes('credit') || key.toLowerCase().includes('debit')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
-             return (
-               <span className={cellValue >= 0 ? 'text-green-600' : 'text-red-600'}>
-                 ₹{cellValue.toLocaleString()}
-               </span>
-             );
-           };
-         } else {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'number') return <span>Invalid data</span>;
-             return (
-               <span className="font-medium">
-                 {cellValue.toLocaleString()}
-               </span>
-             );
-           };
-         }
-       } else if (typeof value === 'boolean') {
-         type = 'boolean';
-         body = (row) => {
-           const cellValue = row[key];
-           if (typeof cellValue !== 'boolean') return <span>Invalid data</span>;
-           return (
-             <Tag 
-               value={cellValue ? 'Yes' : 'No'} 
-               severity={cellValue ? 'success' : 'danger'} 
-             />
-           );
-         };
-       } else if (typeof value === 'string') {
-         if (key.toLowerCase().includes('date') || key.toLowerCase().includes('posting')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
-             try {
-               const date = new Date(cellValue);
-               if (isNaN(date.getTime())) return <span>{cellValue}</span>;
-               return (
-                 <span className="font-medium text-blue-600">
-                   {date.toLocaleDateString()}
-                 </span>
-               );
-             } catch (error) {
-               return <span>{cellValue}</span>;
-             }
-           };
-         } else if (key.toLowerCase().includes('invoice') || key.toLowerCase().includes('id')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
-             return (
-               <span className="font-mono font-semibold text-purple-600">
-                 {cellValue}
-               </span>
-             );
-           };
-         } else if (key.toLowerCase().includes('hq') || key.toLowerCase().includes('location')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
-             return (
-               <span className="font-medium text-gray-700">
-                 {cellValue}
-               </span>
-             );
-           };
-         } else if (key.toLowerCase().includes('status')) {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
-             return (
-               <Tag 
-                 value={cellValue.toLowerCase()} 
-                 severity={getStatusSeverity(cellValue)} 
-               />
-             );
-           };
-         } else {
-           body = (row) => {
-             const cellValue = row[key];
-             if (typeof cellValue !== 'string') return <span>Invalid data</span>;
-             return (
-               <span className="font-medium">
-                 {cellValue}
-               </span>
-             );
-           };
-         }
-       } else {
-         // Handle other types (objects, arrays, etc.) safely
-         body = (row) => {
-           const cellValue = row[key];
-           if (cellValue === null || cellValue === undefined) {
-             return <span className="text-muted">-</span>;
-           } else if (typeof cellValue === 'object') {
-             return <span className="text-muted">[Object]</span>;
-           } else if (Array.isArray(cellValue)) {
-             return <span className="text-muted">[Array]</span>;
-           } else {
-             return <span>{String(cellValue)}</span>;
-           }
-         };
-       }
+        // Auto-generate columns based on nested data structure
+        const sampleNestedRow = nestedData[0];
+        if (!sampleNestedRow) return null;
+        
+        // Create a simple column configuration without body functions to avoid React serialization issues
+        const autoColumns = Object.keys(sampleNestedRow).map(key => {
+          const value = sampleNestedRow[key];
+          
+          return {
+            field: key,
+            header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+            sortable: nestedDataConfig.enableNestedSorting,
+            filter: nestedDataConfig.enableNestedFiltering
+          };
+        });
        
-       // Ensure every column has a body template
-       if (!body) {
-         body = (row) => {
-           const cellValue = row[key];
-           if (cellValue === null || cellValue === undefined) {
-             return <span className="text-muted">-</span>;
-           } else if (typeof cellValue === 'object') {
-             return <span className="text-muted">[Object]</span>;
-           } else if (Array.isArray(cellValue)) {
-             return <span className="text-muted">[Array]</span>;
-           } else {
-             return <span>{String(cellValue)}</span>;
-           }
-         };
-       }
-       
-       return {
-         field: key,
-         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-         sortable: nestedDataConfig.enableNestedSorting,
-         filter: nestedDataConfig.enableNestedFiltering,
-         body: body
-       };
-     });
-    
-    // Auto-detect parent row identifier for better title
-    const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
-    
-    return (
-      <div className="p-3">
-        <h5 className="text-lg font-semibold text-gray-800 mb-3">
-          {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
-        </h5>
-                 <DataTable 
-           value={validNestedData}
-           paginator={nestedDataConfig.enableNestedPagination}
-           rows={nestedDataConfig.nestedPageSize}
-           showGridlines
-           stripedRows
-           className="nested-data-table"
-         >
-          {autoColumns.map((col, index) => (
-            <Column
-              key={index}
-              field={col.field}
-              header={col.header}
-              sortable={col.sortable}
-              filter={col.filter}
-              body={col.body}
-            />
-          ))}
-        </DataTable>
-      </div>
-    );
-  }, [nestedDataConfig]);
+        // Auto-detect parent row identifier for better title
+        const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
+        
+        return (
+          <div className="p-3">
+            <h5 className="text-lg font-semibold text-gray-800 mb-3">
+              {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
+            </h5>
+            <DataTable 
+              value={validNestedData}
+              paginator={nestedDataConfig.enableNestedPagination}
+              rows={nestedDataConfig.nestedPageSize}
+              showGridlines
+              stripedRows
+              className="nested-data-table"
+            >
+              {autoColumns.map((col, index) => (
+                <Column
+                  key={index}
+                  field={col.field}
+                  header={col.header}
+                  sortable={col.sortable}
+                  filter={col.filter}
+                />
+              ))}
+            </DataTable>
+          </div>
+        );
+      } catch (error) {
+        console.error('Error generating auto-detected expansion template:', error);
+        return (
+          <div className="p-3">
+            <p className="text-red-500">Error generating expansion content</p>
+          </div>
+        );
+      }
+    }, [nestedDataConfig]);
   
   // Helper function to get nested data label
   const getNestedDataLabel = useCallback((nestedData) => {
@@ -594,54 +424,15 @@ const RowExpansionManager = ({
     const sampleNestedRow = nestedData[0];
     if (!sampleNestedRow) return null;
     
+    // Create simple columns without body functions to avoid React serialization issues
     const autoColumns = Object.keys(sampleNestedRow).map(key => {
       const value = sampleNestedRow[key];
-      let type = 'text';
-      let body = undefined;
-      
-      // Determine column type and body template
-      if (typeof value === 'number') {
-        type = 'number';
-        if (key.toLowerCase().includes('price') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('cost')) {
-          body = (row) => formatCurrency(row[key]);
-        }
-      } else if (typeof value === 'boolean') {
-        type = 'boolean';
-        body = (row) => (
-          <Tag 
-            value={row[key] ? 'Yes' : 'No'} 
-            severity={row[key] ? 'success' : 'danger'} 
-          />
-        );
-      } else if (typeof value === 'string') {
-        if (key.toLowerCase().includes('status')) {
-          body = (row) => (
-            <Tag 
-              value={row[key].toLowerCase()} 
-              severity={getStatusSeverity(row[key])} 
-            />
-          );
-        } else if (key.toLowerCase().includes('rating')) {
-          body = (row) => <Rating value={row[key]} readOnly cancel={false} />;
-        } else if (key.toLowerCase().includes('image') || key.toLowerCase().includes('photo')) {
-          body = (row) => (
-            <img 
-              src={row[key]} 
-              alt={key} 
-              width="64px" 
-              className="shadow-4" 
-              style={{ objectFit: 'cover' }}
-            />
-          );
-        }
-      }
       
       return {
         field: key,
         header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
         sortable: nestedDataConfig.enableNestedSorting,
-        filter: nestedDataConfig.enableNestedFiltering,
-        body: body
+        filter: nestedDataConfig.enableNestedFiltering
       };
     });
     
@@ -662,7 +453,6 @@ const RowExpansionManager = ({
               header={col.header}
               sortable={col.sortable}
               filter={col.filter}
-              body={col.body}
             />
           ))}
         </DataTable>
