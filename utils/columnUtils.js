@@ -168,8 +168,22 @@ export const generateDefaultColumns = (data, fields, imageFields, popupImageFiel
   if (Array.isArray(fields) && fields.length > 0) {
     columnKeys = fields;
   } else {
-    // Extract from data
-    columnKeys = Object.keys(sampleRow);
+    // Extract from data but filter out expansion fields
+    columnKeys = Object.keys(sampleRow).filter(key => {
+      const value = sampleRow[key];
+      
+      // Filter out fields that are meant for row expansion
+      if (key === 'invoices' || key === 'orders' || key === 'children' || key === 'subItems' || key === 'nestedData') {
+        return false;
+      }
+      
+      // Filter out fields that contain arrays of objects (potential expansion data)
+      if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+        return false;
+      }
+      
+      return true;
+    });
   }
 
   return columnKeys.map(key => {
