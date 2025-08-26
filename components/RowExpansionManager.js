@@ -201,9 +201,9 @@ const RowExpansionManager = ({
       return allowExpansion(rowData);
     }
     
-    // Default: check if row has nested data
-    return rowData.children || rowData.orders || rowData.subItems || 
-           (Array.isArray(rowData.nestedData) && rowData.nestedData.length > 0);
+    // Auto-detect nested data patterns - prioritize invoices for your data structure
+    const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+    return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
   }, [allowExpansion, validateExpansion]);
   
   // Generate expansion column
@@ -264,14 +264,159 @@ const RowExpansionManager = ({
   // Enhanced row expansion template with nested DataTable support
   const enhancedRowExpansionTemplate = useCallback((rowData) => {
     if (!rowExpansionTemplate) {
-      // Default template that handles common nested data patterns
-      return generateDefaultExpansionTemplate(rowData);
+      // Auto-detect and generate template based on data structure
+      return generateAutoDetectedExpansionTemplate(rowData);
     }
     
     return rowExpansionTemplate(rowData);
   }, [rowExpansionTemplate]);
   
-  // Generate default expansion template
+  // Generate auto-detected expansion template
+  const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
+    // Auto-detect nested data patterns - prioritize invoices for your data structure
+    const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+    
+    if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
+      return (
+        <div className="p-3">
+          <p className="text-muted">No nested data available for this row.</p>
+        </div>
+      );
+    }
+    
+    // Auto-generate columns based on nested data structure
+    const sampleNestedRow = nestedData[0];
+    if (!sampleNestedRow) return null;
+    
+    const autoColumns = Object.keys(sampleNestedRow).map(key => {
+      const value = sampleNestedRow[key];
+      let type = 'text';
+      let body = undefined;
+      
+      // Determine column type and body template
+      if (typeof value === 'number') {
+        type = 'number';
+        if (key.toLowerCase().includes('incentive') || key.toLowerCase().includes('amount') || key.toLowerCase().includes('price') || key.toLowerCase().includes('cost')) {
+          body = (row) => (
+            <span className={row[key] >= 0 ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+              ₹{row[key].toLocaleString()}
+            </span>
+          );
+        } else if (key.toLowerCase().includes('credit') || key.toLowerCase().includes('debit')) {
+          body = (row) => (
+            <span className={row[key] >= 0 ? 'text-green-600' : 'text-red-600'}>
+              ₹{row[key].toLocaleString()}
+            </span>
+          );
+        } else {
+          body = (row) => (
+            <span className="font-medium">
+              {row[key].toLocaleString()}
+            </span>
+          );
+        }
+      } else if (typeof value === 'boolean') {
+        type = 'boolean';
+        body = (row) => (
+          <Tag 
+            value={row[key] ? 'Yes' : 'No'} 
+            severity={row[key] ? 'success' : 'danger'} 
+          />
+        );
+      } else if (typeof value === 'string') {
+        if (key.toLowerCase().includes('date') || key.toLowerCase().includes('posting')) {
+          body = (row) => (
+            <span className="font-medium text-blue-600">
+              {new Date(row[key]).toLocaleDateString()}
+            </span>
+          );
+        } else if (key.toLowerCase().includes('invoice') || key.toLowerCase().includes('id')) {
+          body = (row) => (
+            <span className="font-mono font-semibold text-purple-600">
+              {row[key]}
+            </span>
+          );
+        } else if (key.toLowerCase().includes('hq') || key.toLowerCase().includes('location')) {
+          body = (row) => (
+            <span className="font-medium text-gray-700">
+              {row[key]}
+            </span>
+          );
+        } else if (key.toLowerCase().includes('status')) {
+          body = (row) => (
+            <Tag 
+              value={row[key].toLowerCase()} 
+              severity={getStatusSeverity(row[key])} 
+            />
+          );
+        } else {
+          body = (row) => (
+            <span className="font-medium">
+              {row[key]}
+            </span>
+          );
+        }
+      }
+      
+      return {
+        field: key,
+        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+        sortable: nestedDataConfig.enableNestedSorting,
+        filter: nestedDataConfig.enableNestedFiltering,
+        body: body
+      };
+    });
+    
+    // Auto-detect parent row identifier for better title
+    const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
+    
+    return (
+      <div className="p-3">
+        <h5 className="text-lg font-semibold text-gray-800 mb-3">
+          {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
+        </h5>
+        <DataTable 
+          value={nestedData}
+          paginator={nestedDataConfig.enableNestedPagination}
+          rows={nestedDataConfig.nestedPageSize}
+          showGridlines
+          stripedRows
+          className="nested-data-table"
+        >
+          {autoColumns.map((col, index) => (
+            <Column
+              key={index}
+              field={col.field}
+              header={col.header}
+              sortable={col.sortable}
+              filter={col.filter}
+              body={col.body}
+            />
+          ))}
+        </DataTable>
+      </div>
+    );
+  }, [nestedDataConfig]);
+  
+  // Helper function to get nested data label
+  const getNestedDataLabel = useCallback((nestedData) => {
+    if (!nestedData || nestedData.length === 0) return 'Items';
+    
+    const sampleRow = nestedData[0];
+    if (!sampleRow) return 'Items';
+    
+    // Auto-detect based on common field names
+    if (sampleRow.Invoice || sampleRow.invoice) return 'Invoices';
+    if (sampleRow.Order || sampleRow.order) return 'Orders';
+    if (sampleRow.Product || sampleRow.product) return 'Products';
+    if (sampleRow.Item || sampleRow.item) return 'Items';
+    if (sampleRow.Transaction || sampleRow.transaction) return 'Transactions';
+    if (sampleRow.Record || sampleRow.record) return 'Records';
+    
+    return 'Items';
+  }, []);
+  
+  // Generate default expansion template (fallback)
   const generateDefaultExpansionTemplate = useCallback((rowData) => {
     // Try to find nested data
     const nestedData = rowData.children || rowData.orders || rowData.subItems || rowData.nestedData;

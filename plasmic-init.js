@@ -967,6 +967,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable row expansion functionality",
       defaultValue: false
     },
+    dataKey: {
+      type: "string",
+      description: "Unique identifier field for rows (e.g., 'id', 'EBSCode'). Used for row expansion and selection.",
+      defaultValue: "id"
+    },
     rowExpansionTemplate: {
       type: "function",
       description: "Custom template function for expanded row content. Receives row data as parameter.",
