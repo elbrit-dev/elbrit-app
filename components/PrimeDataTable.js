@@ -2444,18 +2444,14 @@ const PrimeDataTable = ({
     footerTemplate
   });
   
-  // NEW: Automatic row expansion configuration
+  // NEW: Automatic row expansion configuration with comprehensive SSR safety
   const rowExpansion = useMemo(() => {
-    // SSR Safety: Check if we're in a browser environment
-    if (typeof window === 'undefined') {
-      return {
-        expansionColumn: null,
-        expansionButtons: null,
-        rowExpansionTemplate: () => null
-      };
-    }
-    
-    if (!enableRowExpansion || !Array.isArray(finalTableData) || finalTableData.length === 0) {
+    // Comprehensive SSR Safety: Disable row expansion during server-side rendering
+    if (typeof window === 'undefined' || 
+        typeof document === 'undefined' || 
+        !enableRowExpansion || 
+        !Array.isArray(finalTableData) || 
+        finalTableData.length === 0) {
       return {
         expansionColumn: null,
         expansionButtons: null,
@@ -2488,12 +2484,15 @@ const PrimeDataTable = ({
       return possibleIdFields[0] || 'id';
     })();
 
-    // Create automatic expansion column
+    // Create automatic expansion column with comprehensive SSR safety
     const expansionColumn = {
       expander: (rowData) => {
         try {
-          // SSR Safety: Don't expand during server-side rendering
-          if (typeof window === 'undefined') {
+          // Comprehensive SSR Safety: Check multiple conditions
+          if (typeof window === 'undefined' || 
+              !rowData || 
+              typeof rowData !== 'object' ||
+              !rowData.invoices && !rowData.orders && !rowData.children && !rowData.subItems && !rowData.nestedData) {
             return false;
           }
           
@@ -2512,11 +2511,16 @@ const PrimeDataTable = ({
               expansionColumnPosition === 'right' ? 'right' : false
     };
 
-    // Create automatic expansion template
+    // Create automatic expansion template with comprehensive SSR safety
     const autoExpansionTemplate = (rowData) => {
       try {
-        // SSR Safety: Return simple content during server-side rendering
-        if (typeof window === 'undefined') {
+        // Comprehensive SSR Safety: Check multiple conditions
+        if (typeof window === 'undefined' || 
+            typeof DataTable === 'undefined' || 
+            typeof Column === 'undefined' ||
+            !rowData || 
+            typeof rowData !== 'object') {
+          // Server-side rendering or missing components - return simple placeholder
           return (
             <div className="p-3">
               <p className="text-muted">Loading expansion content...</p>
@@ -2579,31 +2583,46 @@ const PrimeDataTable = ({
           return 'Items';
         };
         
-        return (
-          <div className="p-3">
-            <h5 className="text-lg font-semibold text-gray-800 mb-3">
-              {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
-            </h5>
-            <DataTable 
-              value={validNestedData}
-              paginator={nestedDataConfig.enableNestedPagination}
-              rows={nestedDataConfig.nestedPageSize}
-              showGridlines
-              stripedRows
-              className="nested-data-table"
-            >
-              {autoColumns.map((col, index) => (
-                <Column
-                  key={index}
-                  field={col.field}
-                  header={col.header}
-                  sortable={col.sortable}
-                  filter={col.filter}
-                />
-              ))}
-            </DataTable>
-          </div>
-        );
+        // SSR Safety: Only render DataTable in browser environment
+        if (typeof window !== 'undefined') {
+          return (
+            <div className="p-3">
+              <h5 className="text-lg font-semibold text-gray-800 mb-3">
+                {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
+              </h5>
+              <DataTable 
+                value={validNestedData}
+                paginator={nestedDataConfig.enableNestedPagination}
+                rows={nestedDataConfig.nestedPageSize}
+                showGridlines
+                stripedRows
+                className="nested-data-table"
+              >
+                {autoColumns.map((col, index) => (
+                  <Column
+                    key={index}
+                    field={col.field}
+                    header={col.header}
+                    sortable={col.sortable}
+                    filter={col.filter}
+                  />
+                ))}
+              </DataTable>
+            </div>
+          );
+        } else {
+          // Fallback for SSR
+          return (
+            <div className="p-3">
+              <h5 className="text-lg font-semibold text-gray-800 mb-3">
+                {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
+              </h5>
+              <div className="nested-data-placeholder">
+                <p className="text-muted">DataTable will load in browser</p>
+              </div>
+            </div>
+          );
+        }
       } catch (error) {
         console.error('Error generating auto-expansion template:', error);
         return (
@@ -2614,8 +2633,8 @@ const PrimeDataTable = ({
       }
     };
 
-    // Create expand/collapse all buttons if enabled
-    const expansionButtons = showExpandAllButtons ? (
+    // Create expand/collapse all buttons if enabled with SSR safety
+    const expansionButtons = showExpandAllButtons && typeof window !== 'undefined' ? (
       <div className="flex flex-wrap justify-content-end gap-2 mb-3">
         <Button 
           icon="pi pi-plus" 
@@ -2664,7 +2683,17 @@ const PrimeDataTable = ({
     return {
       expansionColumn,
       expansionButtons,
-      rowExpansionTemplate: rowExpansionTemplate || autoExpansionTemplate
+      rowExpansionTemplate: (rowData) => {
+        // Final SSR safety check
+        if (typeof window === 'undefined' || typeof document === 'undefined') {
+          return (
+            <div className="p-3">
+              <p className="text-muted">Loading expansion content...</p>
+            </div>
+          );
+        }
+        return (rowExpansionTemplate || autoExpansionTemplate)(rowData);
+      }
     };
   }, [
     enableRowExpansion,
@@ -2724,7 +2753,7 @@ const PrimeDataTable = ({
       {commonFilterToolbarTemplate()}
       
       {/* NEW: Row Expansion Header */}
-      {rowExpansion.expansionButtons && Array.isArray(finalTableData) && finalTableData.length > 0 && rowExpansion.expansionButtons}
+      {typeof window !== 'undefined' && rowExpansion.expansionButtons && Array.isArray(finalTableData) && finalTableData.length > 0 && rowExpansion.expansionButtons}
 
 
 
@@ -2816,16 +2845,16 @@ const PrimeDataTable = ({
           return possibleIdFields[0] || 'id';
         })()}
         
-        expandedRows={expandedRows !== undefined ? expandedRows : localExpandedRows}
-        onRowToggle={(event) => {
+        expandedRows={typeof window !== 'undefined' ? (expandedRows !== undefined ? expandedRows : localExpandedRows) : {}}
+        onRowToggle={typeof window !== 'undefined' ? (event) => {
           setLocalExpandedRows(event.data);
           if (onRowToggle) {
             onRowToggle(event);
           }
-        }}
-        onRowExpand={onRowExpand}
-        onRowCollapse={onRowCollapse}
-        rowExpansionTemplate={rowExpansion.rowExpansionTemplate}
+        } : undefined}
+        onRowExpand={typeof window !== 'undefined' ? onRowExpand : undefined}
+        onRowCollapse={typeof window !== 'undefined' ? onRowCollapse : undefined}
+        rowExpansionTemplate={typeof window !== 'undefined' ? rowExpansion.rowExpansionTemplate : undefined}
         paginator={enablePagination}
         rows={localPageSize}
         rowsPerPageOptions={pageSizeOptions}
@@ -2882,7 +2911,7 @@ const PrimeDataTable = ({
         )}
         
         {/* NEW: Row Expansion Column */}
-        {rowExpansion.expansionColumn && Array.isArray(finalTableData) && finalTableData.length > 0 && (
+        {typeof window !== 'undefined' && rowExpansion.expansionColumn && Array.isArray(finalTableData) && finalTableData.length > 0 && (
           <Column
             expander={rowExpansion.expansionColumn.expander}
             style={rowExpansion.expansionColumn.style}
