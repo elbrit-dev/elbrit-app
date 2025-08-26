@@ -547,6 +547,7 @@ const PrimeDataTable = ({
 
   // Row expansion state
   const [localExpandedRows, setLocalExpandedRows] = useState(expandedRows || {});
+  const [expandedRowsData, setExpandedRowsData] = useState({}); // Store expanded row data for dynamic rendering
 
   // GraphQL data state
   const [graphqlData, setGraphqlData] = useState([]);
@@ -2122,10 +2123,86 @@ const PrimeDataTable = ({
   // Row expansion handler
   const handleRowToggle = useCallback((e) => {
     setLocalExpandedRows(e.data);
+    
+    // Store expanded row data for dynamic rendering
+    if (e.data && Object.keys(e.data).length > 0) {
+      const newExpandedData = {};
+      Object.keys(e.data).forEach(rowKey => {
+        if (e.data[rowKey]) {
+          // Find the row data by key
+          const rowData = finalTableData.find(row => {
+            const keyField = row.id || row.key || row.drCode || row.brand || row.name;
+            return String(keyField) === String(rowKey);
+          });
+          if (rowData) {
+            newExpandedData[rowKey] = rowData;
+          }
+        }
+      });
+      setExpandedRowsData(newExpandedData);
+    } else {
+      setExpandedRowsData({});
+    }
+    
     if (onRowToggle) {
       onRowToggle(e);
     }
+  }, [onRowToggle, finalTableData]);
+
+  // NEW: Expand/Collapse all functionality
+  const expandAll = useCallback(() => {
+    if (!finalTableData || finalTableData.length === 0) return;
+    
+    const expandedRowsMap = {};
+    finalTableData.forEach((row, index) => {
+      const keyField = row.id || row.key || row.drCode || row.brand || row.name || index;
+      expandedRowsMap[String(keyField)] = true;
+    });
+    
+    setLocalExpandedRows(expandedRowsMap);
+    
+    // Update expanded rows data
+    const newExpandedData = {};
+    finalTableData.forEach((row, index) => {
+      const keyField = row.id || row.key || row.drCode || row.brand || row.name || index;
+      newExpandedData[String(keyField)] = row;
+    });
+    setExpandedRowsData(newExpandedData);
+    
+    // Call external callback if provided
+    if (onRowToggle) {
+      onRowToggle({ data: expandedRowsMap });
+    }
+  }, [finalTableData, onRowToggle]);
+
+  const collapseAll = useCallback(() => {
+    setLocalExpandedRows({});
+    setExpandedRowsData({});
+    
+    // Call external callback if provided
+    if (onRowToggle) {
+      onRowToggle({ data: {} });
+    }
   }, [onRowToggle]);
+
+  // NEW: Check if row can be expanded
+  const allowExpansion = useCallback((rowData) => {
+    if (!rowData || typeof rowData !== 'object') return false;
+    
+    // Check if row has any nested arrays or objects that can be expanded
+    const hasExpandableContent = Object.values(rowData).some(value => {
+      if (Array.isArray(value) && value.length > 0) return true;
+      if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+        // Check if object has any non-primitive values
+        return Object.values(value).some(v => 
+          Array.isArray(v) || (typeof v === 'object' && v !== null)
+        );
+      }
+      return false;
+    });
+    
+    return hasExpandableContent;
+  }, []);
 
   // Custom cell renderers moved to utils/templateUtils.js
   const imageBodyTemplate = createImageBodyTemplate(popupImageFields, setImageModalSrc, setImageModalAlt, setShowImageModal);
@@ -2215,7 +2292,10 @@ const PrimeDataTable = ({
     handleExport,
     enableRefresh,
     handleRefresh,
-    isRefreshing
+    isRefreshing,
+    enableRowExpansion,
+    expandAll,
+    collapseAll
   );
 
   // Common filter toolbar for column grouping
@@ -2614,6 +2694,7 @@ const PrimeDataTable = ({
             return firstKey ? firstKey.charAt(0).toUpperCase() + firstKey.slice(1) : 'Item';
           };
           
+          // NEW: Enhanced dynamic table rendering for nested data
           if (nestedArrays.length > 0) {
             return (
               <div className="p-4 bg-gray-50 border-l-4 border-blue-500">
@@ -2623,66 +2704,163 @@ const PrimeDataTable = ({
                     <h6 className="text-md font-medium text-gray-700 mb-2 capitalize">
                       {arrayKey.replace(/([A-Z])/g, ' $1').trim()} ({arrayData.length})
                     </h6>
-                    {arrayData.map((item, index) => {
-                      // Safety check for item
-                      if (!item || typeof item !== 'object') {
-                        return <div key={index} className="p-3 bg-red-100 text-red-600">Invalid item data</div>;
-                      }
-                      
-                      return (
-                        <div key={index} className="p-3 bg-white rounded border mb-2">
-                          {/* Dynamically render item properties */}
-                          <div className="grid grid-cols-2 gap-2">
-                            {Object.entries(item).map(([propKey, propValue]) => {
-                              // Skip if it's another nested array
-                              if (Array.isArray(propValue)) return null;
-                              
+                    
+                    {/* NEW: Dynamic DataTable for nested arrays */}
+                    {arrayData.length > 0 && (
+                      <DataTable 
+                        value={arrayData} 
+                        size="small"
+                        className="nested-expansion-table"
+                        tableStyle={{ minWidth: '40rem' }}
+                      >
+                        {/* Auto-generate columns based on first item */}
+                        {(() => {
+                          if (arrayData.length === 0) return null;
+                          
+                          const firstItem = arrayData[0];
+                          if (!firstItem || typeof firstItem !== 'object') return null;
+                          
+                          return Object.keys(firstItem).map(key => {
+                            const value = firstItem[key];
+                            let columnType = 'text';
+                            
+                            // Determine column type
+                            if (typeof value === 'number') columnType = 'number';
+                            else if (typeof value === 'boolean') columnType = 'boolean';
+                            else if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) columnType = 'date';
+                            else if (typeof value === 'string' && value.includes('T') && value.includes('Z')) columnType = 'datetime';
+                            else if (Array.isArray(value)) columnType = 'array';
+                            else if (typeof value === 'object' && value !== null) columnType = 'object';
+                            
+                            // Skip complex nested objects for now
+                            if (columnType === 'object' && value !== null) {
                               return (
-                                <div key={propKey} className="text-sm">
-                                  <span className="font-medium text-gray-600 capitalize">
-                                    {propKey.replace(/([A-Z])/g, ' $1').trim()}:
-                                  </span>
-                                  <span className="ml-1 text-gray-800">
-                                    {safeRenderValue(propValue)}
-                                  </span>
-                                </div>
+                                <Column 
+                                  key={key} 
+                                  field={key} 
+                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                  body={(rowData) => {
+                                    const val = rowData[key];
+                                    if (val === null || val === undefined) return 'N/A';
+                                    if (typeof val === 'object') {
+                                      return (
+                                        <div className="text-xs bg-gray-100 p-2 rounded">
+                                          {JSON.stringify(val, null, 2)}
+                                        </div>
+                                      );
+                                    }
+                                    return String(val);
+                                  }}
+                                />
                               );
-                            })}
-                          </div>
-                        
-                        {/* Check for nested arrays within this item */}
-                        {Object.entries(item).some(([key, value]) => Array.isArray(value) && value.length > 0) && (
-                          <div className="mt-2 pt-2 border-t">
-                            {Object.entries(item).map(([nestedKey, nestedValue]) => {
-                              if (!Array.isArray(nestedValue) || nestedValue.length === 0) return null;
-                              
+                            }
+                            
+                            // Handle arrays
+                            if (columnType === 'array') {
                               return (
-                                <div key={nestedKey} className="mt-2">
-                                  <span className="text-xs font-medium text-gray-500 capitalize">
-                                    {nestedKey.replace(/([A-Z])/g, ' $1').trim()}:
-                                  </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {nestedValue.map((nestedItem, nestedIndex) => (
-                                      <span key={nestedIndex} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                                        {getDisplayName(nestedItem)}
-                                        {(() => {
-                                          const values = Object.values(nestedItem);
-                                          if (values[1] && typeof values[1] !== 'object' && !Array.isArray(values[1])) {
-                                            return ` (${safeRenderValue(values[1])})`;
-                                          }
-                                          return '';
-                                        })()}
+                                <Column 
+                                  key={key} 
+                                  field={key} 
+                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                  body={(rowData) => {
+                                    const val = rowData[key];
+                                    if (!Array.isArray(val)) return 'N/A';
+                                    if (val.length === 0) return 'Empty';
+                                    
+                                    return (
+                                      <div className="flex flex-wrap gap-1">
+                                        {val.slice(0, 3).map((item, index) => (
+                                          <span key={index} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                            {typeof item === 'object' ? JSON.stringify(item).substring(0, 20) + '...' : String(item)}
+                                          </span>
+                                        ))}
+                                        {val.length > 3 && (
+                                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">
+                                            +{val.length - 3} more
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  }}
+                                />
+                              );
+                            }
+                            
+                            // Handle dates
+                            if (columnType === 'date') {
+                              return (
+                                <Column 
+                                  key={key} 
+                                  field={key} 
+                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                  body={(rowData) => {
+                                    const val = rowData[key];
+                                    if (!val) return 'N/A';
+                                    try {
+                                      return new Date(val).toLocaleDateString();
+                                    } catch {
+                                      return String(val);
+                                    }
+                                  }}
+                                />
+                              );
+                            }
+                            
+                            // Handle numbers
+                            if (columnType === 'number') {
+                              return (
+                                <Column 
+                                  key={key} 
+                                  field={key} 
+                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                  body={(rowData) => {
+                                    const val = rowData[key];
+                                    if (val === null || val === undefined) return 'N/A';
+                                    return typeof val === 'number' ? val.toLocaleString() : String(val);
+                                  }}
+                                />
+                              );
+                            }
+                            
+                            // Handle booleans
+                            if (columnType === 'boolean') {
+                              return (
+                                <Column 
+                                  key={key} 
+                                  field={key} 
+                                  header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                  body={(rowData) => {
+                                    const val = rowData[key];
+                                    if (val === null || val === undefined) return 'N/A';
+                                    return (
+                                      <span className={`px-2 py-1 rounded text-xs ${
+                                        val ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                                      }`}>
+                                        {val ? 'Yes' : 'No'}
                                       </span>
-                                    ))}
-                                  </div>
-                                </div>
+                                    );
+                                  }}
+                                />
                               );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                            }
+                            
+                            // Default text column
+                            return (
+                              <Column 
+                                key={key} 
+                                field={key} 
+                                header={key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')}
+                                body={(rowData) => {
+                                  const val = rowData[key];
+                                  if (val === null || val === undefined) return 'N/A';
+                                  return String(val);
+                                }}
+                              />
+                            );
+                          });
+                        })()}
+                      </DataTable>
+                    )}
                   </div>
                 ))}
               </div>
@@ -2710,6 +2888,20 @@ const PrimeDataTable = ({
         })) : undefined}
         expandedRows={enableRowExpansion ? localExpandedRows : undefined}
         onRowToggle={enableRowExpansion ? handleRowToggle : undefined}
+        onRowExpand={enableRowExpansion ? (e) => {
+          // Call external callback if provided
+          if (onRowToggle) {
+            onRowToggle({ data: { ...localExpandedRows, [e.data.id || e.data.key || e.data.drCode || e.data.brand || e.data.name]: true } });
+          }
+        } : undefined}
+        onRowCollapse={enableRowExpansion ? (e) => {
+          // Call external callback if provided
+          if (onRowToggle) {
+            const newExpandedRows = { ...localExpandedRows };
+            delete newExpandedRows[e.data.id || e.data.key || e.data.drCode || e.data.brand || e.data.name];
+            onRowToggle({ data: newExpandedRows });
+          }
+        } : undefined}
         frozenColumns={enableFrozenColumns ? 1 : undefined}
         frozenRows={enableFrozenRows ? 1 : undefined}
         showFilterMatchModes={showFilterMatchModes}
@@ -2727,7 +2919,7 @@ const PrimeDataTable = ({
 
         {enableRowExpansion && (
           <Column
-            expander
+            expander={allowExpansion}
             style={{ width: '3rem' }}
             frozen={enableFrozenColumns}
           />

@@ -546,3 +546,112 @@
   box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
 }
 
+/* =================================
+   NESTED EXPANSION TABLE STYLES
+   ================================= */
+
+/* Nested expansion table styling */
+.nested-expansion-table {
+  margin: 1rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.nested-expansion-table .p-datatable {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+
+.nested-expansion-table .p-datatable-thead > tr > th {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 600;
+  color: #374151;
+  padding: 0.75rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.nested-expansion-table .p-datatable-tbody > tr {
+  transition: all 0.2s ease;
+}
+
+.nested-expansion-table .p-datatable-tbody > tr:hover {
+  background: #f8fafc !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nested-expansion-table .p-datatable-tbody > tr > td {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Row expansion content styling */
+.row-expansion-content {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+  margin: 0.5rem 0;
+  padding: 1rem;
+}
+
+.row-expansion-content h5 {
+  color: #1f2937;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  font-size: 1.125rem;
+}
+
+.row-expansion-content h6 {
+  color: #374151;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  font-size: 1rem;
+}
+
+/* Expandable row indicator */
+.p-datatable .p-row-expander {
+  color: #3b82f6;
+  transition: all 0.2s ease;
+}
+
+.p-datatable .p-row-expander:hover {
+  color: #2563eb;
+  transform: scale(1.1);
+}
+
+.p-datatable .p-row-expander.p-row-expander-expanded {
+  color: #dc2626;
+}
+
+.p-datatable .p-row-expander.p-row-expander-expanded:hover {
+  color: #b91c1c;
+}
+
+/* Responsive nested table */
+@media (max-width: 768px) {
+  .nested-expansion-table {
+    margin: 0.5rem 0;
+  }
+  
+  .nested-expansion-table .p-datatable-thead > tr > th,
+  .nested-expansion-table .p-datatable-tbody > tr > td {
+    padding: 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .row-expansion-content {
+    padding: 0.75rem;
+  }
+  
+  .row-expansion-content h5 {
+    font-size: 1rem;
+  }
+  
+  .row-expansion-content h6 {
+    font-size: 0.875rem;
+  }
+}
+
