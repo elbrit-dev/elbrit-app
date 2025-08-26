@@ -313,16 +313,28 @@ const RowExpansionManager = ({
     return rowExpansionTemplate(rowData);
   }, [rowExpansionTemplate]);
   
-  // Generate auto-detected expansion template
-  const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
-    // Safety check for empty or invalid row data
-    if (!rowData || typeof rowData !== 'object') {
-      return (
-        <div className="p-3">
-          <p className="text-muted">Invalid row data.</p>
-        </div>
-      );
-    }
+     // Generate auto-detected expansion template
+   const generateAutoDetectedExpansionTemplate = useCallback((rowData) => {
+     // Safety check for empty or invalid row data
+     if (!rowData || typeof rowData !== 'object') {
+       return (
+         <div className="p-3">
+           <p className="text-muted">Invalid row data.</p>
+         </div>
+       );
+     }
+     
+     // Debug logging
+     console.log('🔍 Row expansion template called with:', {
+       rowData,
+       rowDataKeys: Object.keys(rowData),
+       rowDataTypes: Object.keys(rowData).map(key => ({
+         key,
+         type: typeof rowData[key],
+         value: rowData[key],
+         isArray: Array.isArray(rowData[key])
+       }))
+     });
     
          // Auto-detect nested data patterns - prioritize invoices for your data structure
      const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
@@ -334,6 +346,19 @@ const RowExpansionManager = ({
          </div>
        );
      }
+     
+     // Debug logging for nested data
+     console.log('🔍 Nested data found:', {
+       nestedData,
+       nestedDataLength: nestedData.length,
+       sampleItem: nestedData[0],
+       sampleItemKeys: nestedData[0] ? Object.keys(nestedData[0]) : null,
+       sampleItemTypes: nestedData[0] ? Object.keys(nestedData[0]).map(key => ({
+         key,
+         type: typeof nestedData[0][key],
+         value: nestedData[0][key]
+       })) : null
+     });
      
      // Validate that nested data contains valid objects
      const validNestedData = nestedData.filter(item => 
@@ -464,6 +489,22 @@ const RowExpansionManager = ({
          }
        } else {
          // Handle other types (objects, arrays, etc.) safely
+         body = (row) => {
+           const cellValue = row[key];
+           if (cellValue === null || cellValue === undefined) {
+             return <span className="text-muted">-</span>;
+           } else if (typeof cellValue === 'object') {
+             return <span className="text-muted">[Object]</span>;
+           } else if (Array.isArray(cellValue)) {
+             return <span className="text-muted">[Array]</span>;
+           } else {
+             return <span>{String(cellValue)}</span>;
+           }
+         };
+       }
+       
+       // Ensure every column has a body template
+       if (!body) {
          body = (row) => {
            const cellValue = row[key];
            if (cellValue === null || cellValue === undefined) {
