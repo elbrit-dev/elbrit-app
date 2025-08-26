@@ -2446,6 +2446,15 @@ const PrimeDataTable = ({
   
   // NEW: Automatic row expansion configuration
   const rowExpansion = useMemo(() => {
+    // SSR Safety: Check if we're in a browser environment
+    if (typeof window === 'undefined') {
+      return {
+        expansionColumn: null,
+        expansionButtons: null,
+        rowExpansionTemplate: () => null
+      };
+    }
+    
     if (!enableRowExpansion || !Array.isArray(finalTableData) || finalTableData.length === 0) {
       return {
         expansionColumn: null,
@@ -2482,9 +2491,19 @@ const PrimeDataTable = ({
     // Create automatic expansion column
     const expansionColumn = {
       expander: (rowData) => {
-        // Auto-detect if row has nested data
-        const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-        return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
+        try {
+          // SSR Safety: Don't expand during server-side rendering
+          if (typeof window === 'undefined') {
+            return false;
+          }
+          
+          // Auto-detect if row has nested data
+          const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+          return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
+        } catch (error) {
+          console.warn('Error checking if row can be expanded:', error);
+          return false;
+        }
       },
       style: { ...expansionColumnStyle, width: expansionColumnWidth },
       header: expansionColumnHeader,
@@ -2496,6 +2515,15 @@ const PrimeDataTable = ({
     // Create automatic expansion template
     const autoExpansionTemplate = (rowData) => {
       try {
+        // SSR Safety: Return simple content during server-side rendering
+        if (typeof window === 'undefined') {
+          return (
+            <div className="p-3">
+              <p className="text-muted">Loading expansion content...</p>
+            </div>
+          );
+        }
+        
         // Auto-detect nested data patterns
         const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
         
@@ -2593,16 +2621,20 @@ const PrimeDataTable = ({
           icon="pi pi-plus" 
           label={expandAllLabel} 
           onClick={() => {
-            const newExpandedRows = {};
-            finalTableData.forEach((row) => {
-              const rowKey = row[dataKey];
-              if (rowKey !== undefined && (row.invoices || row.orders || row.children || row.subItems || row.nestedData)) {
-                newExpandedRows[rowKey] = true;
+            try {
+              const newExpandedRows = {};
+              finalTableData.forEach((row) => {
+                const rowKey = row[dataKey];
+                if (rowKey !== undefined && (row.invoices || row.orders || row.children || row.subItems || row.nestedData)) {
+                  newExpandedRows[rowKey] = true;
+                }
+              });
+              setLocalExpandedRows(newExpandedRows);
+              if (onRowToggle) {
+                onRowToggle({ data: newExpandedRows });
               }
-            });
-            setLocalExpandedRows(newExpandedRows);
-            if (onRowToggle) {
-              onRowToggle({ data: newExpandedRows });
+            } catch (error) {
+              console.warn('Error expanding all rows:', error);
             }
           }} 
           text 
@@ -2613,9 +2645,13 @@ const PrimeDataTable = ({
           icon="pi pi-minus" 
           label={collapseAllLabel} 
           onClick={() => {
-            setLocalExpandedRows({});
-            if (onRowToggle) {
-              onRowToggle({ data: {} });
+            try {
+              setLocalExpandedRows({});
+              if (onRowToggle) {
+                onRowToggle({ data: {} });
+              }
+            } catch (error) {
+              console.warn('Error collapsing all rows:', error);
             }
           }} 
           text 
