@@ -2559,28 +2559,11 @@ const PrimeDataTable = ({
 
     // Create automatic expansion column with comprehensive SSR safety
     const expansionColumn = {
-      expander: (rowData) => {
-        try {
-          // Comprehensive SSR Safety: Check multiple conditions
-          if (typeof window === 'undefined' || 
-              !rowData || 
-              typeof rowData !== 'object' ||
-              !rowData.invoices && !rowData.orders && !rowData.children && !rowData.subItems && !rowData.nestedData) {
-            return false;
-          }
-          
-          // Auto-detect if row has nested data
-          const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-          return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
-        } catch (error) {
-          console.warn('Error checking if row can be expanded:', error);
-          return false;
-        }
-      },
+      expander: true, // ✅ boolean — lets PrimeReact handle the toggle
       style: { ...expansionColumnStyle, width: expansionColumnWidth },
       header: expansionColumnHeader,
       body: expansionColumnBody,
-      frozen: expansionColumnPosition === 'left' ? true : 
+      frozen: expansionColumnPosition === 'left' ? true :
               expansionColumnPosition === 'right' ? 'right' : false
     };
 
