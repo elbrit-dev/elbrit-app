@@ -48,6 +48,7 @@ import {
 import { createEventHandlers } from './utils/eventHandlers';
 import { createPivotConfigHandlers } from './utils/pivotConfigUtils';
 import { createColumnGroupingHandlers } from './utils/columnGroupingUtils';
+import { createRowExpansionConfig } from './utils/rowExpansionUtils';
 import CalculatedFieldsManager from './CalculatedFieldsManager';
 
 // Row expansion is now handled automatically within the component
@@ -1171,6 +1172,55 @@ const PrimeDataTable = ({
 
     return data;
   }, [pivotTransformation, tableData]);
+
+  // Build expansion configuration once per data change
+  const expansionConfig = useMemo(() => {
+    if (!enableRowExpansion) return null;
+
+    return createRowExpansionConfig({
+      // data + keys
+      data: finalTableData,
+      dataKey: 'id',
+
+      // column placement / look
+      expansionColumnStyle,
+      expansionColumnWidth,
+      expansionColumnHeader,
+      expansionColumnBody,
+      expansionColumnPosition,
+
+      // expansion content (or it will auto-detect "invoices")
+      rowExpansionTemplate,
+
+      // nested table behavior
+      nestedDataConfig,
+
+      // expand/collapse-all UI
+      showExpandAllButtons,
+      expandAllLabel,
+      collapseAllLabel,
+      expansionButtonClassName,
+      expansionButtonStyle,
+
+      // when user toggles a row, update our local state
+      onRowToggle: (e) => setLocalExpandedRows(e.data)
+    });
+  }, [
+    enableRowExpansion,
+    finalTableData,
+    expansionColumnStyle,
+    expansionColumnWidth,
+    expansionColumnHeader,
+    expansionColumnBody,
+    expansionColumnPosition,
+    rowExpansionTemplate,
+    nestedDataConfig,
+    showExpandAllButtons,
+    expandAllLabel,
+    collapseAllLabel,
+    expansionButtonClassName,
+    expansionButtonStyle
+  ]);
   
   // Initialize filtered data for grand total calculations when finalTableData changes
   useEffect(() => {
@@ -2775,8 +2825,8 @@ const PrimeDataTable = ({
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
       
-      {/* NEW: Row Expansion Header */}
-      {typeof window !== 'undefined' && rowExpansion.expansionButtons && Array.isArray(finalTableData) && finalTableData.length > 0 && rowExpansion.expansionButtons}
+      {/* Row Expansion Buttons */}
+      {enableRowExpansion && expansionConfig?.expansionButtons}
 
 
 
@@ -2843,41 +2893,13 @@ const PrimeDataTable = ({
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
-        dataKey={(() => {
-          // Auto-detect the best unique identifier from your data
-          if (!Array.isArray(finalTableData) || finalTableData.length === 0) return 'id';
-          
-          const sampleRow = finalTableData[0];
-          if (!sampleRow) return 'id';
-          
-          // Priority order for unique identifiers
-          if (sampleRow.id) return 'id';
-          if (sampleRow.EBSCode) return 'EBSCode';
-          if (sampleRow.code) return 'code';
-          if (sampleRow.key) return 'key';
-          if (sampleRow.uid) return 'uid';
-          if (sampleRow._id) return '_id';
-          
-          // Fallback to first field that looks like an ID
-          const possibleIdFields = Object.keys(sampleRow).filter(key => 
-            key.toLowerCase().includes('id') || 
-            key.toLowerCase().includes('code') || 
-            key.toLowerCase().includes('key')
-          );
-          
-          return possibleIdFields[0] || 'id';
-        })()}
+        dataKey={expansionConfig?.dataKey || 'id'}
         
         expandedRows={typeof window !== 'undefined' ? (expandedRows !== undefined ? expandedRows : localExpandedRows) : {}}
-        onRowToggle={typeof window !== 'undefined' ? (event) => {
-          setLocalExpandedRows(event.data);
-          if (onRowToggle) {
-            onRowToggle(event);
-          }
-        } : undefined}
+        onRowToggle={typeof window !== 'undefined' ? (e) => setLocalExpandedRows(e.data) : undefined}
         onRowExpand={typeof window !== 'undefined' ? onRowExpand : undefined}
         onRowCollapse={typeof window !== 'undefined' ? onRowCollapse : undefined}
-        rowExpansionTemplate={typeof window !== 'undefined' ? rowExpansion.rowExpansionTemplate : undefined}
+        rowExpansionTemplate={typeof window !== 'undefined' ? expansionConfig?.rowExpansionTemplate : undefined}
         paginator={enablePagination}
         rows={localPageSize}
         rowsPerPageOptions={pageSizeOptions}
@@ -2933,18 +2955,14 @@ const PrimeDataTable = ({
           />
         )}
         
-        {/* NEW: Row Expansion Column */}
-        {typeof window !== 'undefined' && rowExpansion.expansionColumn && Array.isArray(finalTableData) && finalTableData.length > 0 && (
-          <Column
-            expander={rowExpansion.expansionColumn.expander}
-            style={rowExpansion.expansionColumn.style}
-            header={rowExpansion.expansionColumn.header}
-            body={rowExpansion.expansionColumn.body}
-            frozen={rowExpansion.expansionColumn.frozen}
-          />
+
+
+
+
+        {/* Expansion Column */}
+        {enableRowExpansion && expansionConfig?.expansionColumn && (
+          <Column {...expansionConfig.expansionColumn} />
         )}
-
-
 
         {(() => {
           // Generate columns in the correct order for grouping
