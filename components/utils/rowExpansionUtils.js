@@ -73,13 +73,14 @@ export const generateExpansionColumn = ({
     }
   };
   
+  const alignFrozen = position === 'right' ? 'right' : 'left';
   return {
-    expander: simpleExpander,
+    expander: true,                 // PrimeReact expects boolean, not predicate
     style: { ...style, width },
     header,
     body,
-    frozen: position === 'left' ? true : 
-            position === 'right' ? 'right' : false
+    frozen: position === 'left' || position === 'right',
+    alignFrozen                       // <-- add this key for right-side freezing
   };
 };
 
