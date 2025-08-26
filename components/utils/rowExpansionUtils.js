@@ -9,6 +9,16 @@
  * - Expand/collapse all functionality
  */
 
+import { DataTable } from 'primereact/datatable';
+import { Column } from 'primereact/column';
+
+// Utility: human header from key
+const toHeader = (k) =>
+  String(k)
+    .replace(/_/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .replace(/^\w/, (c) => c.toUpperCase());
+
 /**
  * Check if a row can be expanded based on data structure
  * @param {Object} rowData - The row data to check
@@ -97,88 +107,69 @@ export const getNestedDataLabel = (nestedData) => {
 
 /**
  * Generate auto-detected expansion template
- * @param {Object} rowData - The row data
- * @param {Object} config - Nested data configuration
- * @returns {JSX.Element} - React component for expansion content
+ * @param {Object} options - Configuration options
+ * @returns {Function} - Expansion template function that returns valid JSX
  */
-export const generateAutoDetectedExpansionTemplate = (rowData, config = {}) => {
-  const {
-    enableNestedSorting = true,
-    enableNestedFiltering = true,
-    enableNestedPagination = false,
-    nestedPageSize = 10
-  } = config;
-  
-  try {
-    // Safety check for empty or invalid row data
-    if (!rowData || typeof rowData !== 'object') {
-      return (
-        <div className="p-3">
-          <p className="text-muted">Invalid row data.</p>
-        </div>
-      );
+export const generateAutoDetectedExpansionTemplate = ({
+  nestedKey = 'invoices',     // or detect dynamically
+  enableNestedSorting = true,
+  enableNestedFiltering = false,
+} = {}) => {
+  return (parentRow) => {
+    const nested = parentRow?.[nestedKey];
+
+    // Nothing to show
+    if (!Array.isArray(nested) || nested.length === 0) {
+      return <div className="p-3 text-sm text-gray-500">No data.</div>;
     }
-  
-    // Auto-detect nested data patterns - prioritize invoices for your data structure
-    const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-    
-    if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
-      return (
-        <div className="p-3">
-          <p className="text-muted">No nested data available for this row.</p>
-        </div>
-      );
+
+    // Ensure array of plain objects
+    const rows = nested.filter((x) => x && typeof x === 'object' && !Array.isArray(x));
+    if (rows.length === 0) {
+      return <div className="p-3 text-sm text-gray-500">No items to display.</div>;
     }
-    
-    // Validate that nested data contains valid objects
-    const validNestedData = nestedData.filter(item => 
-      item && typeof item === 'object' && !Array.isArray(item)
-    );
-    
-    if (validNestedData.length === 0) {
-      return (
-        <div className="p-3">
-          <p className="text-muted">Invalid nested data structure.</p>
-        </div>
-      );
-    }
-   
-    // Auto-generate columns based on nested data structure
-    const sampleNestedRow = nestedData[0];
-    if (!sampleNestedRow) return null;
-    
-    // Create a simple column configuration without body functions to avoid React serialization issues
-    const autoColumns = Object.keys(sampleNestedRow).map(key => {
-      return {
-        field: key,
-        header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-        sortable: enableNestedSorting,
-        filter: enableNestedFiltering
-      };
-    });
-   
-    // Auto-detect parent row identifier for better title
-    const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
-    
+
+    // Build columns dynamically from first row
+    const sample = rows[0];
+    const keys = Object.keys(sample);
+
     return (
       <div className="p-3">
-        <h5 className="text-lg font-semibold text-gray-800 mb-3">
-          {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
+        <h5 className="text-base font-semibold mb-2">
+          {rows.length} {nestedKey} for {parentRow?.Customer ?? parentRow?.id ?? 'row'}
         </h5>
-        <div className="nested-data-table">
-          {/* This will be rendered by the parent component with DataTable */}
-          {validNestedData}
-        </div>
+
+        <DataTable
+          value={rows}
+          size="small"
+          stripedRows
+          tableStyle={{ minWidth: '600px' }}
+        >
+          {keys.map((k) => (
+            <Column
+              key={k}
+              field={k}
+              header={toHeader(k)}
+              sortable={enableNestedSorting}
+              filter={enableNestedFiltering}
+              body={(r) => {
+                const v = r?.[k];
+                if (v == null) return '';
+                if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') return String(v);
+                if (Array.isArray(v)) return v.join(', ');
+                try {
+                  const s = JSON.stringify(v);
+                  return s.length > 120 ? s.slice(0, 117) + '...' : s;
+                } catch {
+                  return '[object]';
+                }
+              }}
+            />
+          ))}
+        </DataTable>
       </div>
     );
-  } catch (error) {
-    console.error('Error generating auto-detected expansion template:', error);
-    return (
-      <div className="p-3">
-        <p className="text-red-500">Error generating expansion content</p>
-      </div>
-    );
-  }
+  };
 };
 
 /**
@@ -301,7 +292,7 @@ export const createRowExpansionConfig = ({
   
   // Generate expansion template
   const expansionTemplate = rowExpansionTemplate || 
-    ((rowData) => generateAutoDetectedExpansionTemplate(rowData, nestedDataConfig));
+    generateAutoDetectedExpansionTemplate(nestedDataConfig);
   
   // Generate expansion buttons if enabled
   const expansionButtons = showExpandAllButtons ? 

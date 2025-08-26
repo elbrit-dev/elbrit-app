@@ -60,6 +60,29 @@ const safeConsole = {
   info: process.env.NODE_ENV === 'development' ? console.info : () => {}
 };
 
+// ---- SAFETY: never render raw objects/arrays in a cell ----
+const safeCell = (val) => {
+  if (val == null) return '';
+  if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return String(val);
+
+  // Arrays
+  if (Array.isArray(val)) {
+    // If it's an array of objects (e.g., invoices), show a friendly summary instead of the raw array
+    const first = val[0];
+    const looksLikeObjects = first && typeof first === 'object' && !Array.isArray(first);
+    return looksLikeObjects ? `${val.length} item(s)` : val.join(', ');
+  }
+
+  // Plain objects → short preview (do NOT return the object itself)
+  try {
+    // Keep it short so the grid stays clean
+    const s = JSON.stringify(val);
+    return s.length > 120 ? s.slice(0, 117) + '...' : s;
+  } catch {
+    return '[object]';
+  }
+};
+
 
 import {
   RefreshCw,
@@ -3148,7 +3171,9 @@ const PrimeDataTable = ({
                   columnType === 'roi' || column.isROIColumn ? (rowData) => roiBodyTemplate(rowData, column) :
                   parsedCustomFormatters[column.key] ? (rowData) => parsedCustomFormatters[column.key](rowData[column.key], rowData) :
                   customTemplates[column.key] ? (rowData) => customTemplates[column.key](rowData, column) :
-                  column.render ? (rowData) => column.render(rowData[column.key], rowData) : undefined
+                  column.render ? (rowData) => column.render(rowData[column.key], rowData) : 
+                  // ✅ SAFETY: Use safeCell for any column without a custom template to prevent React #31 crashes
+                  (rowData) => safeCell(rowData[column.key])
                 }
 
                 frozen={enableFrozenColumns && column.key === defaultColumns[0]?.key}
