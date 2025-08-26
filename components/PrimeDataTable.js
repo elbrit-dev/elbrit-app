@@ -2442,11 +2442,34 @@ const PrimeDataTable = ({
     footerTemplate
   });
   
-  // NEW: Row expansion hook
+  // NEW: Row expansion hook with auto-detection
   const rowExpansion = useRowExpansion({
     enabled: enableRowExpansion,
     data: finalTableData,
-    dataKey: 'id',
+    dataKey: (() => {
+      // Auto-detect the best unique identifier from your data
+      if (!Array.isArray(finalTableData) || finalTableData.length === 0) return 'id';
+      
+      const sampleRow = finalTableData[0];
+      if (!sampleRow) return 'id';
+      
+      // Priority order for unique identifiers
+      if (sampleRow.id) return 'id';
+      if (sampleRow.EBSCode) return 'EBSCode';
+      if (sampleRow.code) return 'code';
+      if (sampleRow.key) return 'key';
+      if (sampleRow.uid) return 'uid';
+      if (sampleRow._id) return '_id';
+      
+      // Fallback to first field that looks like an ID
+      const possibleIdFields = Object.keys(sampleRow).filter(key => 
+        key.toLowerCase().includes('id') || 
+        key.toLowerCase().includes('code') || 
+        key.toLowerCase().includes('key')
+      );
+      
+      return possibleIdFields[0] || 'id';
+    })(),
     expandedRows,
     onRowToggle,
     onRowExpand,
@@ -2577,7 +2600,30 @@ const PrimeDataTable = ({
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
-        dataKey="id"
+        dataKey={(() => {
+          // Auto-detect the best unique identifier from your data
+          if (!Array.isArray(finalTableData) || finalTableData.length === 0) return 'id';
+          
+          const sampleRow = finalTableData[0];
+          if (!sampleRow) return 'id';
+          
+          // Priority order for unique identifiers
+          if (sampleRow.id) return 'id';
+          if (sampleRow.EBSCode) return 'EBSCode';
+          if (sampleRow.code) return 'code';
+          if (sampleRow.key) return 'key';
+          if (sampleRow.uid) return 'uid';
+          if (sampleRow._id) return '_id';
+          
+          // Fallback to first field that looks like an ID
+          const possibleIdFields = Object.keys(sampleRow).filter(key => 
+            key.toLowerCase().includes('id') || 
+            key.toLowerCase().includes('code') || 
+            key.toLowerCase().includes('key')
+          );
+          
+          return possibleIdFields[0] || 'id';
+        })()}
         
         expandedRows={rowExpansion.expandedRows}
         onRowToggle={rowExpansion.onRowToggle}

@@ -969,8 +969,8 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     dataKey: {
       type: "string",
-      description: "Unique identifier field for rows (e.g., 'id', 'EBSCode'). Used for row expansion and selection.",
-      defaultValue: "id"
+      description: "Unique identifier field for rows (e.g., 'id', 'EBSCode'). Auto-detected if not specified. Used for row expansion and selection.",
+      defaultValue: null
     },
     rowExpansionTemplate: {
       type: "function",
