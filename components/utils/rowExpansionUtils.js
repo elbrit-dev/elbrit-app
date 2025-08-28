@@ -41,9 +41,21 @@ export const canExpandRow = (rowData, customValidator = null, allowExpansion = n
       return allowExpansion(rowData);
     }
     
-    // Auto-detect nested data patterns - prioritize invoices for your data structure
-    const hasNestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-    return hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
+    // Auto-detect nested data patterns - prioritize items, invoices, orders, etc.
+    const hasNestedData = rowData.items || rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
+    const canExpand = hasNestedData && Array.isArray(hasNestedData) && hasNestedData.length > 0;
+    
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 canExpandRow check:', {
+        rowData: rowData?.Invoice || rowData?.id,
+        hasItems: !!rowData?.items,
+        itemsLength: rowData?.items?.length,
+        canExpand
+      });
+    }
+    
+    return canExpand;
   } catch (error) {
     console.warn('Error checking if row can be expanded:', error);
     return false;
@@ -112,6 +124,16 @@ export const generateAutoDetectedExpansionTemplate = ({
 } = {}) => {
   return (parentRow) => {
     const nested = parentRow?.[nestedKey];
+
+    // Debug logging
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Expansion template:', {
+        parentRow: parentRow?.Invoice || parentRow?.id,
+        nestedKey,
+        nested: nested?.length || 0,
+        hasNested: !!nested
+      });
+    }
 
     // Nothing to show
     if (!Array.isArray(nested) || nested.length === 0) {

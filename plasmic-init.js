@@ -969,7 +969,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     dataKey: {
       type: "string",
-      description: "Unique identifier field for rows (e.g., 'id', 'EBSCode'). Auto-detected if not specified. Used for row expansion and selection.",
+      description: "Unique identifier field for rows (e.g., 'id', 'EBSCode'). HIGHEST PRIORITY - overrides auto-detection. Leave empty to use auto-detected key. Used for row expansion and selection.",
       defaultValue: null
     },
     rowExpansionTemplate: {
@@ -1057,6 +1057,21 @@ PLASMIC.registerComponent(PrimeDataTable, {
       type: "string",
       description: "CSS class name for the expansion buttons",
       defaultValue: ""
+    },
+    nestedDataConfig: {
+      type: "object",
+      description: "Configuration for nested data detection and expansion template generation. Controls how nested arrays (like 'invoices') are handled.",
+      defaultValue: {
+        enableNestedSorting: true,
+        enableNestedFiltering: false,
+        enableNestedPagination: false,
+        nestedPageSize: 10
+      }
+    },
+    nestedKey: {
+      type: "string",
+      description: "Field name for nested data arrays (e.g., 'invoices', 'orders', 'items'). Auto-detected if not specified. Used to generate expansion templates.",
+      defaultValue: null
     },
     expandIcon: {
       type: "string",

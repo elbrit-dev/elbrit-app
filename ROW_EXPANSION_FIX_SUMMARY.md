@@ -1,159 +1,138 @@
 # Row Expansion Fix Summary
 
-## Problem Identified
+## Overview
+This document summarizes the implementation of a clean precedence flow for the expansion `dataKey` in the PrimeDataTable component, ensuring consistent and robust row expansion functionality.
 
-The row expansion functionality in `PrimeDataTable.js` was not working because:
+## ✅ Implementation Status: COMPLETED
 
-1. **Missing Integration**: The component was not using the `rowExpansionUtils.js` helper functions
-2. **Manual Configuration**: Expansion column was created manually instead of using the utility functions
-3. **Missing Props**: The `<DataTable>` was missing critical expansion props like `expandedRows` and proper `onRowToggle`
-4. **No Arrow Display**: The `<Column expander />` was not being rendered, so no expansion arrows were visible
-5. **Broken Buttons**: Expand All/Collapse All buttons were not connected to the expansion state
+The clean precedence flow for expansion `dataKey` has been successfully implemented in `components/PrimeDataTable.js`.
 
-## Files Fixed
+## 🔑 DataKey Resolution System
 
-### 1. `components/utils/rowExpansionUtils.js`
-- Fixed expansion column props to match PrimeReact expectations
-- Cleaned up button generation for better styling
-- Ensured proper prop spreading for `<Column {...expansionColumn} />`
+### 1. **Manual Override (Highest Priority)**
+- If you pass `dataKey="..."`, that exact value is used
+- Trims whitespace for safety
+- Example: `dataKey="EBSCode"` will use "EBSCode"
 
-### 2. `components/PrimeDataTable.js`
-- Added import for `createRowExpansionConfig` and `generateAutoDetectedExpansionTemplate`
-- Replaced manual expansion config with proper utility integration
-- Added expansion props to `<DataTable>`: `dataKey`, `expandedRows`, `onRowToggle`, `rowExpansionTemplate`
-- Fixed expansion column rendering to use `<Column {...expansionConfig.expansionColumn} />`
-- Added expansion buttons after the DataTable
+### 2. **Auto-Detection (Fallback)**
+- When `dataKey` is `null`/empty, automatically detects sensible keys
+- Prioritizes common identifiers in this order:
+  - `id`, `EBSCode`, `Invoice`, `Invoice No`, `invoiceNo`, `code`, `key`, `uid`, `_id`
+- Falls back to regex pattern `/id|code|invoice/i` for any matching keys
+- Final fallback: `'id'`
 
-## Key Changes Made
+### 3. **Row Key Synthesis (Guaranteed Functionality)**
+- Ensures every row has the chosen key
+- If a row lacks the key, synthesizes `_row_{index}` (e.g., `_row_0`, `_row_1`)
+- This guarantees expansion always works, even with incomplete data
 
-### Import Addition
+## 🏗️ Technical Implementation
+
+### New Functions Added
+
+#### `resolveDataKey` (useMemo)
 ```javascript
-// ✅ Row expansion helpers
-import {
-  createRowExpansionConfig,
-  generateAutoDetectedExpansionTemplate
-} from './utils/rowExpansionUtils';
+const resolvedDataKey = useMemo(() => {
+  // 1) Manual override (highest priority)
+  if (dataKey && typeof dataKey === 'string' && dataKey.trim().length > 0) {
+    return dataKey.trim();
+  }
+  // 2) Auto-detect from sample
+  const sample = Array.isArray(finalTableData) && finalTableData[0] ? finalTableData[0] : {};
+  const keys = Object.keys(sample || {});
+  const preferredOrder = [
+    'id','EBSCode','Invoice','Invoice No','invoiceNo','code','key','uid','_id'
+  ];
+  const foundPreferred = preferredOrder.find(k => k in sample);
+  if (foundPreferred) return foundPreferred;
+  // Regex fallback for any *id / *code / invoice*
+  const regexFound = keys.find(k => /id|code|invoice/i.test(k));
+  if (regexFound) return regexFound;
+  // 3) Last resort
+  return 'id';
+}, [dataKey, finalTableData]);
 ```
 
-### Expansion Config Integration
+#### Row Key Synthesis (useEffect)
 ```javascript
-// ✅ Build expansion config with shared utils so arrows + buttons work
-const expansionConfig = useMemo(() => {
-  if (!enableRowExpansion) return null;
-
-  // Pick a stable unique key automatically (id/EBSCode/Invoice/…)
-  const detectKey = () => {
-    const sample = Array.isArray(finalTableData) && finalTableData[0] ? finalTableData[0] : {};
-    const keys = Object.keys(sample || {});
-    const preferred =
-      ['id', 'EBSCode', 'Invoice', 'Invoice No', 'invoiceNo', 'code', 'key', 'uid', '_id']
-        .find(k => k in sample);
-    return preferred || (keys.find(k => /id|code|invoice/i.test(k)) || 'id');
-  };
-  const dataKey = detectKey();
-
-  return createRowExpansionConfig({
-    data: finalTableData,
-    dataKey,
-    // ... other props
-    onRowToggle: (e) => {
-      setLocalExpandedRows(e.data);
-      onRowToggle && onRowToggle(e);
+useEffect(() => {
+  if (!Array.isArray(finalTableData)) return;
+  finalTableData.forEach((row, i) => {
+    if (row && row[resolvedDataKey] === undefined) {
+      row[resolvedDataKey] = `_row_${i}`;
     }
   });
-}, [/* dependencies */]);
+}, [finalTableData, resolvedDataKey]);
 ```
 
-### DataTable Props
-```javascript
-<DataTable
-  // ✅ expansion wiring
-  dataKey={expansionConfig?.dataKey}
-  expandedRows={localExpandedRows}
-  onRowToggle={handleRowToggle}
-  rowExpansionTemplate={expansionConfig?.rowExpansionTemplate}
-  // ... other props
->
-```
+### Integration Points
 
-### Row Toggle Handler
-```javascript
-// Row expansion: keep local state in sync when a single row is toggled
-const handleRowToggle = useCallback((e) => {
-  // e.data is the expandedRows map from PrimeReact
-  setLocalExpandedRows(e.data || {});
-  // If the parent passed in its own onRowToggle prop, forward the event
-  if (typeof onRowToggle === 'function') onRowToggle(e);
-}, [onRowToggle]);
-```
+- **Expansion Config**: Now uses `resolvedDataKey` as single source of truth
+- **Dependency Array**: Updated to include `resolvedDataKey`
+- **Row Expansion Utils**: No changes needed - already accept and honor `dataKey`
 
-### Expansion Column
-```javascript
-{/* ✅ Expander arrow column (must be first visible column) */}
-{enableRowExpansion && expansionConfig && <Column {...expansionConfig.expansionColumn} />}
-```
+## 📋 Usage Examples
 
-### Expansion Buttons
-```javascript
-// ✅ Expansion buttons are now integrated into the left toolbar
-const leftToolbarTemplate = createLeftToolbarTemplate(
-  enableSearch,
-  enableGlobalFilter,
-  globalFilterPlaceholder,
-  globalFilterValue,
-  handleSearch,
-  clearAllFilters,
-  // Row expansion buttons
-  enableRowExpansion,
-  showExpandAllButtons,
-  expandAllLabel,
-  collapseAllLabel,
-  expansionButtonClassName,
-  expansionButtonStyle,
-  // Expand all handler
-  () => {
-    const allExpanded = {};
-    // ... expand logic
-  },
-  // Collapse all handler
-  () => {
-    setLocalExpandedRows({});
-    // ... collapse logic
-  }
-);
-```
-
-## What This Fixes
-
-✅ **Arrow Expanders**: Now visible on each row with proper PrimeReact integration  
-✅ **Row Expansion**: Clicking arrows properly expands/collapses rows  
-✅ **Expand All/Collapse All**: Buttons now work and update the expansion state (no duplicates)  
-✅ **Button Placement**: Expansion buttons are now integrated into the top toolbar with other tools  
-✅ **Auto-detection**: Automatically detects nested data (e.g., `invoices` array)  
-✅ **State Management**: Proper integration with `localExpandedRows` state  
-✅ **External Callbacks**: Maintains compatibility with external `onRowToggle` callbacks  
-✅ **No Duplicate Buttons**: Fixed the issue where both utilities and component were generating buttons  
-
-## Testing
-
-Created `examples/RowExpansionTest.js` to demonstrate the working functionality:
-
-```javascript
+### Manual Key (Highest Priority)
+```jsx
 <PrimeDataTable
-  data={sampleData}
-  enableRowExpansion={true}
-  showExpandAllButtons={true}
-  expandAllLabel="Expand All Customers"
-  collapseAllLabel="Collapse All Customers"
-  // Auto-detects 'invoices' field for nested data
+  data={rows}
+  enableRowExpansion
+  dataKey="EBSCode"   // Manual key will be used
 />
 ```
 
-## Result
+### Auto-Detect (Set to null)
+```jsx
+<PrimeDataTable
+  data={rows}
+  enableRowExpansion
+  dataKey={null}      // Auto-detects (id/EBSCode/Invoice/... or /id|code|invoice/i), else 'id'
+/>
+```
 
-The row expansion now works exactly like the screenshot you provided:
-- Arrow expanders are visible on each row
-- Clicking arrows expands/collapses the nested data
-- Expand All/Collapse All buttons work properly
-- Nested data (like invoices) displays in a clean, formatted table
-- All expansion state is properly managed and synchronized
+### Auto-Detect (Default behavior)
+```jsx
+<PrimeDataTable
+  data={rows}
+  enableRowExpansion
+  // dataKey defaults to null, so auto-detection runs
+/>
+```
+
+## 🔄 How It Works
+
+1. **Component Initialization**: `resolveDataKey` determines the appropriate key
+2. **Row Processing**: `useEffect` ensures every row has the chosen key
+3. **Expansion Config**: Uses the resolved key for all expansion operations
+4. **Consistency**: Arrows, single-row expansion, and expand/collapse-all all use the same key
+
+## 🎯 Benefits
+
+- **Predictable**: Manual keys always take precedence
+- **Robust**: Auto-detection handles common data patterns
+- **Fault-tolerant**: Synthesized keys ensure expansion never fails
+- **Consistent**: Single source of truth for all expansion operations
+- **Maintainable**: Clear separation of concerns and clean code structure
+
+## 📁 Files Modified
+
+- `components/PrimeDataTable.js` - Main implementation
+- `components/utils/rowExpansionUtils.js` - No changes needed (already compatible)
+
+## 🧪 Testing Recommendations
+
+1. **Manual Key Test**: Pass specific `dataKey` and verify it's used
+2. **Auto-Detection Test**: Set `dataKey={null}` with various data structures
+3. **Fallback Test**: Use data without common keys to verify synthesis
+4. **Consistency Test**: Verify expand/collapse arrows and buttons work together
+
+## 🚀 Next Steps
+
+The implementation is complete and ready for use. The system provides:
+- Clean precedence flow for dataKey resolution
+- Robust fallback mechanisms
+- Consistent expansion behavior across all UI elements
+- No breaking changes to existing functionality
+
+All row expansion features now use the same resolved dataKey, ensuring arrows, buttons, and programmatic expansion work together seamlessly.

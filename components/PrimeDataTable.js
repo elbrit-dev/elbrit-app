@@ -304,6 +304,7 @@ const PrimeDataTable = ({
   enableFrozenRows = false,
   // NEW: Row Expansion Props
   enableRowExpansion = false,
+  dataKey = null, // Manual dataKey override (highest priority). If null, we auto-detect.
   expandedRows = null,
   onRowToggle = null,
   onRowExpand = null,
@@ -1177,31 +1178,82 @@ const PrimeDataTable = ({
     return data;
   }, [pivotTransformation, tableData]);
 
+  // 🔑 Resolve the dataKey with clear precedence (manual > auto-detect > fallback)
+  const resolvedDataKey = useMemo(() => {
+    // 1) Manual override (highest priority)
+    if (dataKey && typeof dataKey === 'string' && dataKey.trim().length > 0) {
+      return dataKey.trim();
+    }
+    // 2) Auto-detect from sample
+    const sample = Array.isArray(finalTableData) && finalTableData[0] ? finalTableData[0] : {};
+    const keys = Object.keys(sample || {});
+    const preferredOrder = [
+      'id','EBSCode','Invoice','Invoice No','invoiceNo','code','key','uid','_id'
+    ];
+    const foundPreferred = preferredOrder.find(k => k in sample);
+    if (foundPreferred) return foundPreferred;
+    // Regex fallback for any *id / *code / invoice*
+    const regexFound = keys.find(k => /id|code|invoice/i.test(k));
+    if (regexFound) return regexFound;
+    // 3) Last resort
+    return 'id';
+  }, [dataKey, finalTableData]);
+
+  // 🧷 Ensure every row actually has that key (synthesize if missing)
+  useEffect(() => {
+    if (!Array.isArray(finalTableData)) return;
+    finalTableData.forEach((row, i) => {
+      if (row && row[resolvedDataKey] === undefined) {
+        row[resolvedDataKey] = `_row_${i}`;
+      }
+    });
+  }, [finalTableData, resolvedDataKey]);
+
+  // 🔍 Auto-detect the nested data key (e.g., 'items', 'invoices', 'orders')
+  const detectNestedKey = (data) => {
+    if (!Array.isArray(data) || data.length === 0) return 'items';
+    
+    const sample = data[0];
+    if (!sample) return 'items';
+    
+    // Common nested data keys to check
+    const commonKeys = ['items', 'invoices', 'orders', 'products', 'children', 'subItems', 'nestedData'];
+    
+    // Find the first key that contains an array
+    for (const key of commonKeys) {
+      if (sample[key] && Array.isArray(sample[key]) && sample[key].length > 0) {
+        console.log('🔍 Detected nested key:', key, 'with', sample[key].length, 'items');
+        return key;
+      }
+    }
+    
+    // Fallback: look for any array field
+    for (const [key, value] of Object.entries(sample)) {
+      if (Array.isArray(value) && value.length > 0) {
+        console.log('🔍 Found array field:', key, 'with', value.length, 'items');
+        return key;
+      }
+    }
+    
+    console.log('🔍 No nested data found, using default: items');
+    return 'items'; // Default fallback
+  };
+
   // ✅ Build expansion config with shared utils so arrows + buttons work
   const expansionConfig = useMemo(() => {
     if (!enableRowExpansion) return null;
 
-    // Pick a stable unique key automatically (id/EBSCode/Invoice/…)
-    const detectKey = () => {
-      const sample = Array.isArray(finalTableData) && finalTableData[0] ? finalTableData[0] : {};
-      const keys = Object.keys(sample || {});
-      const preferred =
-        ['id', 'EBSCode', 'Invoice', 'Invoice No', 'invoiceNo', 'code', 'key', 'uid', '_id']
-          .find(k => k in sample);
-      return preferred || (keys.find(k => /id|code|invoice/i.test(k)) || 'id');
-    };
-    const dataKey = detectKey();
-
-    // If rows don't have the key, synthesize one so expansion always works
-    if (Array.isArray(finalTableData) && finalTableData.length) {
-      finalTableData.forEach((r, i) => {
-        if (r[dataKey] === undefined) r[dataKey] = `_row_${i}`;
-      });
-    }
+    const detectedKey = detectNestedKey(finalTableData);
+    console.log('🔍 Building expansion config:', {
+      dataLength: finalTableData?.length,
+      dataKey: resolvedDataKey,
+      nestedKey: detectedKey,
+      sampleRow: finalTableData?.[0]
+    });
 
     return createRowExpansionConfig({
       data: finalTableData,
-      dataKey,
+      dataKey: resolvedDataKey, // ← single source of truth
       expansionColumnStyle,
       expansionColumnWidth,
       expansionColumnHeader,
@@ -1212,10 +1264,13 @@ const PrimeDataTable = ({
       collapseAllLabel,
       expansionButtonStyle,
       expansionButtonClassName,
-      // Use caller template if provided; else auto-detect nested array (e.g., invoices)
+      // Use caller template if provided; else auto-detect nested array
       rowExpansionTemplate:
         rowExpansionTemplate ||
-        generateAutoDetectedExpansionTemplate({ nestedKey: 'invoices', ...nestedDataConfig }),
+        generateAutoDetectedExpansionTemplate({ 
+          nestedKey: detectedKey, 
+          ...nestedDataConfig 
+        }),
       nestedDataConfig,
       // Keep external callbacks working
       onRowToggle: (e) => {
@@ -1226,6 +1281,7 @@ const PrimeDataTable = ({
   }, [
     enableRowExpansion,
     finalTableData,
+    resolvedDataKey,
     expansionColumnStyle,
     expansionColumnWidth,
     expansionColumnHeader,
