@@ -63,14 +63,13 @@ export const generateExpansionColumn = ({
   position = 'left', // 'left' or 'right'
   width = '5rem'
 } = {}) => {
-  const alignFrozen = position === 'right' ? 'right' : 'left';
   return {
     expander: true,                      // ✅ boolean
     style: { ...style, width },          // ✅ fixed spread
     header,
     body,
-    frozen: position === 'left' || position === 'right', // ✅ boolean
-    alignFrozen                           // ✅ right-side freezing
+    frozen: position === 'left' ? true : 
+            position === 'right' ? 'right' : false
   };
 };
 
