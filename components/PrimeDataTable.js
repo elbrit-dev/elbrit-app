@@ -48,10 +48,14 @@ import {
 import { createEventHandlers } from './utils/eventHandlers';
 import { createPivotConfigHandlers } from './utils/pivotConfigUtils';
 import { createColumnGroupingHandlers } from './utils/columnGroupingUtils';
-import { createRowExpansionConfig } from './utils/rowExpansionUtils';
+// Row expansion is now handled automatically within the component
 import CalculatedFieldsManager from './CalculatedFieldsManager';
 
-// Row expansion is now handled automatically within the component
+// ✅ Row expansion helpers
+import {
+  createRowExpansionConfig,
+  generateAutoDetectedExpansionTemplate
+} from './utils/rowExpansionUtils';
 
 // HIBERNATION FIX: Production-safe console wrapper
 const safeConsole = {
@@ -1173,37 +1177,51 @@ const PrimeDataTable = ({
     return data;
   }, [pivotTransformation, tableData]);
 
-  // Build expansion configuration once per data change
+  // ✅ Build expansion config with shared utils so arrows + buttons work
   const expansionConfig = useMemo(() => {
     if (!enableRowExpansion) return null;
 
-    return createRowExpansionConfig({
-      // data + keys
-      data: finalTableData,
-      dataKey: 'id',
+    // Pick a stable unique key automatically (id/EBSCode/Invoice/…)
+    const detectKey = () => {
+      const sample = Array.isArray(finalTableData) && finalTableData[0] ? finalTableData[0] : {};
+      const keys = Object.keys(sample || {});
+      const preferred =
+        ['id', 'EBSCode', 'Invoice', 'Invoice No', 'invoiceNo', 'code', 'key', 'uid', '_id']
+          .find(k => k in sample);
+      return preferred || (keys.find(k => /id|code|invoice/i.test(k)) || 'id');
+    };
+    const dataKey = detectKey();
 
-      // column placement / look
+    // If rows don't have the key, synthesize one so expansion always works
+    if (Array.isArray(finalTableData) && finalTableData.length) {
+      finalTableData.forEach((r, i) => {
+        if (r[dataKey] === undefined) r[dataKey] = `_row_${i}`;
+      });
+    }
+
+    return createRowExpansionConfig({
+      data: finalTableData,
+      dataKey,
       expansionColumnStyle,
       expansionColumnWidth,
       expansionColumnHeader,
       expansionColumnBody,
       expansionColumnPosition,
-
-      // expansion content (or it will auto-detect "invoices")
-      rowExpansionTemplate,
-
-      // nested table behavior
-      nestedDataConfig,
-
-      // expand/collapse-all UI
-      showExpandAllButtons,
+      showExpandAllButtons: false, // prevent duplicate buttons - we'll render our own
       expandAllLabel,
       collapseAllLabel,
-      expansionButtonClassName,
       expansionButtonStyle,
-
-      // when user toggles a row, update our local state
-      onRowToggle: (e) => setLocalExpandedRows(e.data)
+      expansionButtonClassName,
+      // Use caller template if provided; else auto-detect nested array (e.g., invoices)
+      rowExpansionTemplate:
+        rowExpansionTemplate ||
+        generateAutoDetectedExpansionTemplate({ nestedKey: 'invoices', ...nestedDataConfig }),
+      nestedDataConfig,
+      // Keep external callbacks working
+      onRowToggle: (e) => {
+        setLocalExpandedRows(e.data);
+        onRowToggle && onRowToggle(e);
+      }
     });
   }, [
     enableRowExpansion,
@@ -1213,13 +1231,14 @@ const PrimeDataTable = ({
     expansionColumnHeader,
     expansionColumnBody,
     expansionColumnPosition,
-    rowExpansionTemplate,
-    nestedDataConfig,
     showExpandAllButtons,
     expandAllLabel,
     collapseAllLabel,
+    expansionButtonStyle,
     expansionButtonClassName,
-    expansionButtonStyle
+    rowExpansionTemplate,
+    nestedDataConfig,
+    onRowToggle
   ]);
   
   // Initialize filtered data for grand total calculations when finalTableData changes
@@ -2223,6 +2242,14 @@ const PrimeDataTable = ({
   const imageBodyTemplate = createImageBodyTemplate(popupImageFields, setImageModalSrc, setImageModalAlt, setShowImageModal);
   const roiBodyTemplate = createROIBodyTemplate(formatROIValue, getROIColor);
 
+  // Row expansion: keep local state in sync when a single row is toggled
+  const handleRowToggle = useCallback((e) => {
+    // e.data is the expandedRows map from PrimeReact
+    setLocalExpandedRows(e.data || {});
+    // If the parent passed in its own onRowToggle prop, forward the event
+    if (typeof onRowToggle === 'function') onRowToggle(e);
+  }, [onRowToggle]);
+
   // Pivot table and action templates moved to utils/templateUtils.js
   const pivotValueBodyTemplate = createPivotValueBodyTemplate(adjustedPivotConfig, currencyColumns);
   const actionsBodyTemplate = createActionsBodyTemplate(rowActions);
@@ -2285,7 +2312,39 @@ const PrimeDataTable = ({
     globalFilterPlaceholder,
     globalFilterValue,
     handleSearch,
-    clearAllFilters
+    clearAllFilters,
+    // Row expansion buttons
+    enableRowExpansion,
+    showExpandAllButtons,
+    expandAllLabel,
+    collapseAllLabel,
+    expansionButtonClassName,
+    expansionButtonStyle,
+    // Expand all handler
+    () => {
+      const allExpanded = {};
+      if (Array.isArray(finalTableData)) {
+        finalTableData.forEach(row => {
+          const rowKey = row[expansionConfig?.dataKey];
+          if (rowKey !== undefined) {
+            allExpanded[rowKey] = true;
+          }
+        });
+      }
+      setLocalExpandedRows(allExpanded);
+      // Call external callback if provided
+      if (onRowToggle) {
+        onRowToggle({ data: allExpanded });
+      }
+    },
+    // Collapse all handler
+    () => {
+      setLocalExpandedRows({});
+      // Call external callback if provided
+      if (onRowToggle) {
+        onRowToggle({ data: {} });
+      }
+    }
   );
 
   const rightToolbarTemplate = createRightToolbarTemplate(
@@ -2517,257 +2576,7 @@ const PrimeDataTable = ({
     footerTemplate
   });
   
-  // NEW: Automatic row expansion configuration with comprehensive SSR safety
-  const rowExpansion = useMemo(() => {
-    // Comprehensive SSR Safety: Disable row expansion during server-side rendering
-    if (typeof window === 'undefined' || 
-        typeof document === 'undefined' || 
-        !enableRowExpansion || 
-        !Array.isArray(finalTableData) || 
-        finalTableData.length === 0) {
-      return {
-        expansionColumn: null,
-        expansionButtons: null,
-        rowExpansionTemplate: () => null
-      };
-    }
-
-    // Auto-detect the best unique identifier from your data
-    const dataKey = (() => {
-      if (!Array.isArray(finalTableData) || finalTableData.length === 0) return 'id';
-      
-      const sampleRow = finalTableData[0];
-      if (!sampleRow) return 'id';
-      
-      // Priority order for unique identifiers
-      if (sampleRow.id) return 'id';
-      if (sampleRow.EBSCode) return 'EBSCode';
-      if (sampleRow.code) return 'code';
-      if (sampleRow.key) return 'key';
-      if (sampleRow.uid) return 'uid';
-      if (sampleRow._id) return '_id';
-      
-      // Fallback to first field that looks like an ID
-      const possibleIdFields = Object.keys(sampleRow).filter(key => 
-        key.toLowerCase().includes('id') || 
-        key.toLowerCase().includes('code') || 
-        key.toLowerCase().includes('key')
-      );
-      
-      return possibleIdFields[0] || 'id';
-    })();
-
-    // Create automatic expansion column with comprehensive SSR safety
-    const expansionColumn = {
-      expander: true, // ✅ boolean — lets PrimeReact handle the toggle
-      style: { ...expansionColumnStyle, width: expansionColumnWidth },
-      header: expansionColumnHeader,
-      body: expansionColumnBody,
-      frozen: expansionColumnPosition === 'left' ? true :
-              expansionColumnPosition === 'right' ? 'right' : false
-    };
-
-    // Create automatic expansion template with comprehensive SSR safety
-    const autoExpansionTemplate = (rowData) => {
-      try {
-        // Comprehensive SSR Safety: Check multiple conditions
-        if (typeof window === 'undefined' || 
-            typeof DataTable === 'undefined' || 
-            typeof Column === 'undefined' ||
-            !rowData || 
-            typeof rowData !== 'object') {
-          // Server-side rendering or missing components - return simple placeholder
-          return (
-            <div className="p-3">
-              <p className="text-muted">Loading expansion content...</p>
-            </div>
-          );
-        }
-        
-        // Auto-detect nested data patterns
-        const nestedData = rowData.invoices || rowData.orders || rowData.children || rowData.subItems || rowData.nestedData;
-        
-        if (!nestedData || !Array.isArray(nestedData) || nestedData.length === 0) {
-          return (
-            <div className="p-3">
-              <p className="text-muted">No nested data available for this row.</p>
-            </div>
-          );
-        }
-        
-        // Validate nested data
-        const validNestedData = nestedData.filter(item => 
-          item && typeof item === 'object' && !Array.isArray(item)
-        );
-        
-        if (validNestedData.length === 0) {
-          return (
-            <div className="p-3">
-              <p className="text-muted">Invalid nested data structure.</p>
-            </div>
-          );
-        }
-        
-        // Auto-generate columns based on nested data structure
-        const sampleNestedRow = nestedData[0];
-        if (!sampleNestedRow) return null;
-        
-        // Create simple column configuration
-        const autoColumns = Object.keys(sampleNestedRow).map(key => ({
-          field: key,
-          header: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-          sortable: nestedDataConfig.enableNestedSorting,
-          filter: nestedDataConfig.enableNestedFiltering
-        }));
-        
-        // Auto-detect parent row identifier
-        const parentIdentifier = rowData.Customer || rowData.name || rowData.title || rowData.id || 'Row';
-        
-        // Auto-detect nested data label
-        const getNestedDataLabel = (data) => {
-          if (!data || data.length === 0) return 'Items';
-          const sampleRow = data[0];
-          if (!sampleRow) return 'Items';
-          
-          if (sampleRow.Invoice || sampleRow.invoice) return 'Invoices';
-          if (sampleRow.Order || sampleRow.order) return 'Orders';
-          if (sampleRow.Product || sampleRow.product) return 'Products';
-          if (sampleRow.Item || sampleRow.item) return 'Items';
-          if (sampleRow.Transaction || sampleRow.transaction) return 'Transactions';
-          if (sampleRow.Record || sampleRow.record) return 'Records';
-          
-          return 'Items';
-        };
-        
-        // SSR Safety: Only render DataTable in browser environment
-        if (typeof window !== 'undefined') {
-          return (
-            <div className="p-3">
-              <h5 className="text-lg font-semibold text-gray-800 mb-3">
-                {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
-              </h5>
-              <DataTable 
-                value={validNestedData}
-                paginator={nestedDataConfig.enableNestedPagination}
-                rows={nestedDataConfig.nestedPageSize}
-                showGridlines
-                stripedRows
-                className="nested-data-table"
-              >
-                {autoColumns.map((col, index) => (
-                  <Column
-                    key={index}
-                    field={col.field}
-                    header={col.header}
-                    sortable={col.sortable}
-                    filter={col.filter}
-                  />
-                ))}
-              </DataTable>
-            </div>
-          );
-        } else {
-          // Fallback for SSR
-          return (
-            <div className="p-3">
-              <h5 className="text-lg font-semibold text-gray-800 mb-3">
-                {nestedData.length} {getNestedDataLabel(nestedData)} for {parentIdentifier}
-              </h5>
-              <div className="nested-data-placeholder">
-                <p className="text-muted">DataTable will load in browser</p>
-              </div>
-            </div>
-          );
-        }
-      } catch (error) {
-        console.error('Error generating auto-expansion template:', error);
-        return (
-          <div className="p-3">
-            <p className="text-red-500">Error generating expansion content</p>
-          </div>
-        );
-      }
-    };
-
-    // Create expand/collapse all buttons if enabled with SSR safety
-    const expansionButtons = showExpandAllButtons && typeof window !== 'undefined' ? (
-      <div className="flex flex-wrap justify-content-end gap-2 mb-3">
-        <Button 
-          icon="pi pi-plus" 
-          label={expandAllLabel} 
-          onClick={() => {
-            try {
-              const newExpandedRows = {};
-              finalTableData.forEach((row) => {
-                const rowKey = row[dataKey];
-                if (rowKey !== undefined && (row.invoices || row.orders || row.children || row.subItems || row.nestedData)) {
-                  newExpandedRows[rowKey] = true;
-                }
-              });
-              setLocalExpandedRows(newExpandedRows);
-              if (onRowToggle) {
-                onRowToggle({ data: newExpandedRows });
-              }
-            } catch (error) {
-              console.warn('Error expanding all rows:', error);
-            }
-          }} 
-          text 
-          className={expansionButtonClassName}
-          style={expansionButtonStyle}
-        />
-        <Button 
-          icon="pi pi-minus" 
-          label={collapseAllLabel} 
-          onClick={() => {
-            try {
-              setLocalExpandedRows({});
-              if (onRowToggle) {
-                onRowToggle({ data: {} });
-              }
-            } catch (error) {
-              console.warn('Error collapsing all rows:', error);
-            }
-          }} 
-          text 
-          className={expansionButtonClassName}
-          style={expansionButtonStyle}
-        />
-      </div>
-    ) : null;
-
-    return {
-      expansionColumn,
-      expansionButtons,
-      rowExpansionTemplate: (rowData) => {
-        // Final SSR safety check
-        if (typeof window === 'undefined' || typeof document === 'undefined') {
-          return (
-            <div className="p-3">
-              <p className="text-muted">Loading expansion content...</p>
-            </div>
-          );
-        }
-        return (rowExpansionTemplate || autoExpansionTemplate)(rowData);
-      }
-    };
-  }, [
-    enableRowExpansion,
-    finalTableData,
-    expansionColumnStyle,
-    expansionColumnWidth,
-    expansionColumnHeader,
-    expansionColumnBody,
-    expansionColumnPosition,
-    nestedDataConfig,
-    showExpandAllButtons,
-    expandAllLabel,
-    collapseAllLabel,
-    expansionButtonClassName,
-    expansionButtonStyle,
-    rowExpansionTemplate,
-    onRowToggle
-  ]);
+  // Row expansion is now handled by the expansionConfig utility function above
   
   // Loading and error states
   if (isLoading) {
@@ -2808,8 +2617,7 @@ const PrimeDataTable = ({
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
       
-      {/* Row Expansion Buttons */}
-      {enableRowExpansion && expansionConfig?.expansionButtons}
+
 
 
 
@@ -2876,13 +2684,11 @@ const PrimeDataTable = ({
         onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
-        dataKey={expansionConfig?.dataKey || 'id'}
-        
-        expandedRows={typeof window !== 'undefined' ? (expandedRows !== undefined ? expandedRows : localExpandedRows) : {}}
-        onRowToggle={typeof window !== 'undefined' ? (e) => setLocalExpandedRows(e.data) : undefined}
-        onRowExpand={typeof window !== 'undefined' ? onRowExpand : undefined}
-        onRowCollapse={typeof window !== 'undefined' ? onRowCollapse : undefined}
-        rowExpansionTemplate={typeof window !== 'undefined' ? expansionConfig?.rowExpansionTemplate : undefined}
+        // ✅ expansion wiring
+        dataKey={expansionConfig?.dataKey}
+        expandedRows={localExpandedRows}
+        onRowToggle={handleRowToggle}
+        rowExpansionTemplate={expansionConfig?.rowExpansionTemplate}
         paginator={enablePagination}
         rows={localPageSize}
         rowsPerPageOptions={pageSizeOptions}
@@ -2942,10 +2748,8 @@ const PrimeDataTable = ({
 
 
 
-        {/* Expansion Column */}
-        {enableRowExpansion && expansionConfig?.expansionColumn && (
-          <Column {...expansionConfig.expansionColumn} />
-        )}
+        {/* ✅ Expander arrow column (must be first visible column) */}
+        {enableRowExpansion && expansionConfig && <Column {...expansionConfig.expansionColumn} />}
 
         {(() => {
           // Generate columns in the correct order for grouping
@@ -3192,6 +2996,8 @@ const PrimeDataTable = ({
           />
         )}
       </DataTable>
+
+
 
       {/* Image Modal */}
       <Dialog

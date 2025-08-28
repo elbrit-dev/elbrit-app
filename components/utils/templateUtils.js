@@ -344,10 +344,19 @@ export const createLeftToolbarTemplate = (
   globalFilterPlaceholder, 
   globalFilterValue, 
   handleSearch, 
-  clearAllFilters
+  clearAllFilters,
+  // Row expansion buttons
+  enableRowExpansion = false,
+  showExpandAllButtons = false,
+  expandAllLabel = "Expand All",
+  collapseAllLabel = "Collapse All",
+  expansionButtonClassName = "",
+  expansionButtonStyle = {},
+  onExpandAll = null,
+  onCollapseAll = null
 ) => {
   return () => (
-    <div>
+    <div className="flex align-items-center gap-3">
       {(enableSearch || enableGlobalFilter) && (
         <IconField iconPosition="left">
           <InputIcon className="pi pi-search" />
@@ -366,6 +375,26 @@ export const createLeftToolbarTemplate = (
           onClick={clearAllFilters}
           className="p-button-outlined p-button-danger p-button-sm"
         />
+      )}
+
+      {/* Row Expansion Buttons */}
+      {enableRowExpansion && showExpandAllButtons && (
+        <>
+          <Button
+            label={expandAllLabel}
+            icon="pi pi-plus"
+            onClick={onExpandAll}
+            className={`p-button-outlined p-button-sm ${expansionButtonClassName}`}
+            style={expansionButtonStyle}
+          />
+          <Button
+            label={collapseAllLabel}
+            icon="pi pi-minus"
+            onClick={onCollapseAll}
+            className={`p-button-outlined p-button-sm ${expansionButtonClassName}`}
+            style={expansionButtonStyle}
+          />
+        </>
       )}
     </div>
   );

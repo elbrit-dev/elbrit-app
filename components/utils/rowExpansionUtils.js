@@ -64,12 +64,16 @@ export const generateExpansionColumn = ({
   width = '5rem'
 } = {}) => {
   return {
-    expander: true,                      // ✅ boolean
-    style: { ...style, width },          // ✅ fixed spread
+    // PrimeReact expects <Column expander />. These props are
+    // spread into <Column {...expansionColumn} /> in the table.
+    expander: true,
+    style: { ...style, width },
     header,
     body,
-    frozen: position === 'left' ? true : 
-            position === 'right' ? 'right' : false
+    frozen: position === 'left',
+    alignFrozen: position === 'right' ? 'right' : undefined,
+    sortable: false,
+    filter: false
   };
 };
 
@@ -177,22 +181,12 @@ export const generateExpansionButtons = ({
   buttonStyle = {}
 } = {}) => {
   return (
-    <div className="flex flex-wrap justify-content-end gap-2">
-      <button 
-        className={`p-button p-button-text ${buttonClassName}`}
-        onClick={onExpandAll}
-        style={buttonStyle}
-      >
-        <i className="pi pi-plus"></i>
-        <span className="ml-2">{expandAllLabel}</span>
+    <div className="flex flex-wrap justify-end gap-2 my-2">
+      <button className={`p-button p-button-text ${buttonClassName}`} onClick={onExpandAll} style={buttonStyle}>
+        <i className="pi pi-plus" /> <span className="ml-2">{expandAllLabel}</span>
       </button>
-      <button 
-        className={`p-button p-button-text ${buttonClassName}`}
-        onClick={onCollapseAll}
-        style={buttonStyle}
-      >
-        <i className="pi pi-minus"></i>
-        <span className="ml-2">{collapseAllLabel}</span>
+      <button className={`p-button p-button-text ${buttonClassName}`} onClick={onCollapseAll} style={buttonStyle}>
+        <i className="pi pi-minus" /> <span className="ml-2">{collapseAllLabel}</span>
       </button>
     </div>
   );
@@ -282,8 +276,8 @@ export const createRowExpansionConfig = ({
   });
   
   // Generate expansion template
-  const expansionTemplate = rowExpansionTemplate || 
-    generateAutoDetectedExpansionTemplate(nestedDataConfig);
+  const expansionTemplate =
+    rowExpansionTemplate || generateAutoDetectedExpansionTemplate(nestedDataConfig);
   
   // Generate expansion buttons if enabled
   const expansionButtons = showExpandAllButtons ? 
