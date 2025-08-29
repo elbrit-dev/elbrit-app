@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
+import { isDOMReady, waitForDOMReady } from '../utils/domUtils';
 
 /**
  * This component is responsible for exposing user data to Plasmic Studio
@@ -15,15 +16,31 @@ const PlasmicDataContext = React.memo(function PlasmicDataContext() {
   const dataSetRef = useRef(false);
   const retryCountRef = useRef(0);
   const maxRetries = 3;
+  const isHydratedRef = useRef(false);
+  
+  // HYDRATION FIX: Track hydration completion
+  useEffect(() => {
+    isHydratedRef.current = true;
+  }, []);
   
   useEffect(() => {
     // HYDRATION FIX: Additional safeguards to prevent setState during render
-    if (loading || isInitializedRef.current) return;
+    if (loading || isInitializedRef.current || !isHydratedRef.current) return;
     
     // HYDRATION FIX: Multiple delays to ensure complete stability
-    const timer1 = setTimeout(() => {
+    const timer1 = setTimeout(async () => {
       if (typeof window !== 'undefined' && !dataSetRef.current) {
         try {
+          // HYDRATION FIX: Use DOM utility to check if window is fully available
+          if (!isDOMReady()) {
+            console.warn('Document not ready, waiting for DOM...');
+            const domReady = await waitForDOMReady(3000); // Wait up to 3 seconds
+            if (!domReady) {
+              console.warn('DOM ready timeout, deferring Plasmic data context setup');
+              return;
+            }
+          }
+          
           // Set global variables for Plasmic Studio to use in GraphQL queries
           window.PLASMIC_DATA = {
             // User information
@@ -50,6 +67,12 @@ const PlasmicDataContext = React.memo(function PlasmicDataContext() {
           const timer2 = setTimeout(() => {
             if (typeof window !== 'undefined' && window.PLASMIC_DATA) {
               try {
+                // HYDRATION FIX: Additional check for document readiness using utility
+                if (!isDOMReady()) {
+                  console.warn('Document still not ready for event dispatch');
+                  return;
+                }
+                
                 const event = new CustomEvent('plasmic-data-ready', { 
                   detail: { 
                     user: window.PLASMIC_DATA.user,

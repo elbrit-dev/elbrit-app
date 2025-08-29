@@ -10,7 +10,7 @@ import Error from "next/error";
 import { useRouter } from "next/router";
 import { PLASMIC } from "../plasmic-init";
 import { useAuth } from '../components/AuthContext';
-import { useEffect, useState, useMemo, useRef } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
 
@@ -29,6 +29,7 @@ export default function PlasmicLoaderPage(props) {
   const [plasmicAuthToken, setPlasmicAuthToken] = useState(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const [isStable, setIsStable] = useState(false); // HYDRATION FIX: Additional stability check
+  const [renderKey, setRenderKey] = useState(0); // HYDRATION FIX: Force remount on errors
   
   // HOOKS FIX: All useMemo hooks must be called in the same order every time
   const pageMeta = useMemo(() => {
@@ -50,7 +51,7 @@ export default function PlasmicLoaderPage(props) {
 
   const userEmail = useMemo(() => firebaseUser?.email || "", [firebaseUser?.email]);
   
-  // HOOKS FIX: All useEffect hooks must be called in the same order every time
+  // HYDRATION FIX: All useEffect hooks must be called in the same order every time
   // HYDRATION FIX: Track hydration completion
   useEffect(() => {
     isHydratedRef.current = true;
@@ -146,6 +147,12 @@ export default function PlasmicLoaderPage(props) {
     }
   }, [plasmicUser, plasmicAuthToken, userContext, authLoaded, isStable]);
 
+  // HYDRATION FIX: Handle retry from error boundary
+  const handleRetry = useCallback(() => {
+    console.log('🔄 Retrying Plasmic component render...');
+    setRenderKey(prev => prev + 1);
+  }, []);
+
   // HOOKS FIX: All hooks called - now we can do conditional returns
   if (!plasmicData || plasmicData.entryCompMetas.length === 0) {
     console.log("❌ No Plasmic data found, returning 404");
@@ -167,7 +174,7 @@ export default function PlasmicLoaderPage(props) {
       prefetchedQueryData={queryCache}
       // Disable Plasmic's built-in auth by not passing user/token
       // Our custom auth will handle everything
-      key={`plasmic-root-${pageMeta?.displayName || 'unknown'}-${authLoaded}`} // HYDRATION FIX: Force remount on auth changes
+      key={`plasmic-root-${pageMeta?.displayName || 'unknown'}-${authLoaded}-${renderKey}`} // HYDRATION FIX: Force remount on auth changes and retries
     >
       {/* HYDRATION FIX: Wrap in error boundary and stability check */}
       {authLoaded && isStable && pageMeta && (
@@ -176,21 +183,21 @@ export default function PlasmicLoaderPage(props) {
           <DataProvider 
             name="currentUser" 
             data={userContext}
-            key={`user-context-${firebaseUser?.uid || 'anonymous'}`} // HYDRATION FIX: Stable key
+            key={`user-context-${firebaseUser?.uid || 'anonymous'}-${renderKey}`} // HYDRATION FIX: Stable key with retry support
           >
             {/* Make email available as a global variable for Plasmic Studio */}
             <DataProvider 
               name="userEmail" 
               data={userEmail}
-              key={`user-email-${userEmail}`} // HYDRATION FIX: Stable key
+              key={`user-email-${userEmail}-${renderKey}`} // HYDRATION FIX: Stable key with retry support
             >
               {/* Set up global variables for Plasmic Studio GraphQL queries */}
               <PlasmicDataContext />
               {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
-              <PlasmicErrorBoundary>
+              <PlasmicErrorBoundary onRetry={handleRetry}>
                 <PlasmicComponent 
                   component={pageMeta.displayName}
-                  key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}`} // HYDRATION FIX: Stable component key
+                  key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
                 />
               </PlasmicErrorBoundary>
             </DataProvider>
