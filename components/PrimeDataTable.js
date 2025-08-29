@@ -240,6 +240,23 @@ import { useAuth } from './AuthContext';
  *   expandAllLabel="Expand All Products"
  *   collapseAllLabel="Collapse All Products"
  * />
+ *
+ * Mobile Responsive:
+ * <PrimeDataTable
+ *   data={salesData}
+ *   enableMobileResponsive={true}
+ *   mobileBreakpoint={768}
+ *   mobileTableSize="small"
+ *   mobileFontSizes={{
+ *     header: "12px",
+ *     cell: "8px",
+ *     button: "10px",
+ *     smallButton: "8px",
+ *     input: "10px",
+ *     pagination: "10px",
+ *     footer: "10px"
+ *   }}
+ * />
  */
 
 const PrimeDataTable = ({
@@ -344,6 +361,19 @@ const PrimeDataTable = ({
 
   tableSize = "normal", // small, normal, large
 
+  // NEW: Mobile responsive props
+  enableMobileResponsive = true, // Enable mobile responsive styling
+  mobileBreakpoint = 768, // Breakpoint for mobile styles (px)
+  mobileTableSize = "small", // Table size for mobile devices
+  mobileFontSizes = {
+    header: "12px",
+    cell: "8px",
+    button: "10px",
+    smallButton: "8px",
+    input: "10px",
+    pagination: "10px",
+    footer: "10px"
+  },
 
   // Event handlers
   onRowClick,
@@ -643,6 +673,9 @@ const PrimeDataTable = ({
   // NEW: State to store filtered data for grand total calculations
   const [filteredDataForGrandTotal, setFilteredDataForGrandTotal] = useState([]);
 
+  // NEW: Mobile responsive state
+  const [isMobile, setIsMobile] = useState(false);
+
   // Get user from AuthContext
   const { user } = useAuth();
 
@@ -654,7 +687,95 @@ const PrimeDataTable = ({
     user
   );
 
+  // NEW: Mobile responsive effect
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= mobileBreakpoint);
+    };
 
+    // Initial check
+    checkMobile();
+
+    // Add resize listener
+    window.addEventListener('resize', checkMobile);
+
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, [mobileBreakpoint]);
+
+  // NEW: Mobile responsive styles
+  const mobileStyles = useMemo(() => {
+    if (!enableMobileResponsive || !isMobile) {
+      return {};
+    }
+
+    return {
+      // Table container
+      tableContainer: {
+        fontSize: mobileFontSizes.cell,
+        lineHeight: '1.2'
+      },
+      // Headers
+      header: {
+        fontSize: mobileFontSizes.header,
+        fontWeight: 'bold',
+        padding: '6px 4px'
+      },
+      // Cell content
+      cell: {
+        fontSize: mobileFontSizes.cell,
+        padding: '4px 2px',
+        lineHeight: '1.1'
+      },
+      // Buttons
+      button: {
+        fontSize: mobileFontSizes.button,
+        padding: '4px 8px',
+        minHeight: '28px'
+      },
+      // Small buttons
+      smallButton: {
+        fontSize: mobileFontSizes.smallButton,
+        padding: '2px 6px',
+        minHeight: '24px'
+      },
+      // Toolbar
+      toolbar: {
+        padding: '8px',
+        gap: '8px'
+      },
+      // Input fields
+      input: {
+        fontSize: mobileFontSizes.input,
+        padding: '4px 6px',
+        minHeight: '28px'
+      },
+      // Dropdown
+      dropdown: {
+        fontSize: mobileFontSizes.input,
+        minHeight: '28px'
+      },
+      // Pagination
+      pagination: {
+        fontSize: mobileFontSizes.pagination,
+        gap: '4px'
+      },
+      // Footer totals
+      footer: {
+        fontSize: mobileFontSizes.footer,
+        padding: '6px 4px'
+      }
+    };
+  }, [enableMobileResponsive, isMobile, mobileFontSizes]);
+
+  // NEW: Mobile responsive table size
+  const responsiveTableSize = useMemo(() => {
+    if (isMobile && enableMobileResponsive) {
+      return mobileTableSize;
+    }
+    return tableSize;
+  }, [isMobile, enableMobileResponsive, tableSize, mobileTableSize]);
 
   // ROI calculation functions moved to utils/calculationUtils.js
   const { calculateROI, getROIColor, formatROIValue } = useROICalculation(enableROICalculation, roiConfig);
@@ -2570,9 +2691,17 @@ const PrimeDataTable = ({
     };
 
     return (
-      <div className="flex align-items-center gap-3 p-3 border-round surface-50 mb-3">
+      <div 
+        className="flex align-items-center gap-3 p-3 border-round surface-50 mb-3"
+        style={isMobile && enableMobileResponsive ? mobileStyles.toolbar : {}}
+      >
         <i className="pi pi-filter text-primary"></i>
-        <span className="font-semibold text-primary">Common Filter:</span>
+        <span 
+          className="font-semibold text-primary"
+          style={isMobile && enableMobileResponsive ? { fontSize: '10px' } : {}}
+        >
+          Common Filter:
+        </span>
         
         <Dropdown
           value={commonFilterField}
@@ -2581,6 +2710,7 @@ const PrimeDataTable = ({
           placeholder="Select field to filter..."
           className="w-12rem"
           showClear={false}
+          style={isMobile && enableMobileResponsive ? mobileStyles.dropdown : {}}
         />
         
         {commonFilterField && (
@@ -2592,6 +2722,7 @@ const PrimeDataTable = ({
               className="p-button-text p-button-sm p-button-danger"
               tooltip="Clear this filter"
               tooltipOptions={{ position: 'top' }}
+              style={isMobile && enableMobileResponsive ? mobileStyles.smallButton : {}}
             />
           </div>
         )}
@@ -2658,7 +2789,13 @@ const PrimeDataTable = ({
   }
 
   return (
-    <div className={className} style={style}>
+    <div 
+      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`} 
+      style={{
+        ...style,
+        ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
+      }}
+    >
 
       
 
@@ -2668,10 +2805,294 @@ const PrimeDataTable = ({
         left={leftToolbarTemplate}
         right={rightToolbarTemplate}
         className="mb-4"
+        style={isMobile && enableMobileResponsive ? mobileStyles.toolbar : {}}
       />
 
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
+      
+      {/* Mobile Responsive CSS */}
+      {enableMobileResponsive && (
+        <style jsx>{`
+          .mobile-responsive-table {
+            /* Global mobile styles */
+            font-size: ${mobileFontSizes.cell};
+            line-height: 1.2;
+          }
+          
+          .mobile-responsive-table .p-datatable {
+            font-size: ${mobileFontSizes.cell};
+          }
+          
+          .mobile-responsive-table .p-datatable .p-datatable-header {
+            font-size: ${mobileFontSizes.header} !important;
+            font-weight: bold !important;
+            padding: 6px 4px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-column-header {
+            font-size: ${mobileFontSizes.header} !important;
+            font-weight: bold !important;
+            padding: 6px 4px !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+            font-size: ${mobileFontSizes.cell} !important;
+            padding: 4px 2px !important;
+            line-height: 1.1 !important;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-datatable-footer {
+            font-size: ${mobileFontSizes.footer} !important;
+            padding: 6px 4px !important;
+          }
+          
+          .mobile-responsive-table .p-button {
+            font-size: ${mobileFontSizes.button} !important;
+            padding: 4px 8px !important;
+            min-height: 28px !important;
+          }
+          
+          .mobile-responsive-table .p-button.p-button-sm {
+            font-size: ${mobileFontSizes.smallButton} !important;
+            padding: 2px 6px !important;
+            min-height: 24px !important;
+          }
+          
+          .mobile-responsive-table .p-inputtext {
+            font-size: ${mobileFontSizes.input} !important;
+            padding: 4px 6px !important;
+            min-height: 28px !important;
+          }
+          
+          .mobile-responsive-table .p-dropdown {
+            font-size: ${mobileFontSizes.input} !important;
+            min-height: 28px !important;
+          }
+          
+          .mobile-responsive-table .p-paginator {
+            font-size: ${mobileFontSizes.pagination} !important;
+            gap: 4px !important;
+          }
+          
+          .mobile-responsive-table .p-paginator .p-paginator-pages .p-paginator-page {
+            min-width: 28px !important;
+            min-height: 28px !important;
+            font-size: ${mobileFontSizes.pagination} !important;
+          }
+          
+          .mobile-responsive-table .p-toolbar {
+            padding: 8px !important;
+            gap: 8px !important;
+          }
+          
+          .mobile-responsive-table .p-toolbar .p-toolbar-group-left,
+          .mobile-responsive-table .p-toolbar .p-toolbar-group-right {
+            gap: 8px !important;
+          }
+          
+          .mobile-responsive-table .p-dialog .p-dialog-header {
+            font-size: ${mobileFontSizes.header} !important;
+            padding: 8px 12px !important;
+          }
+          
+          .mobile-responsive-table .p-dialog .p-dialog-content {
+            font-size: ${mobileFontSizes.input} !important;
+            padding: 8px 12px !important;
+          }
+          
+          .mobile-responsive-table .p-dialog .p-dialog-footer {
+            padding: 8px 12px !important;
+            gap: 8px !important;
+          }
+          
+          .mobile-responsive-table .p-checkbox {
+            transform: scale(0.8);
+          }
+          
+          /* Pivot configuration specific mobile styles */
+          .mobile-responsive-table .pivot-config-content {
+            font-size: ${mobileFontSizes.input} !important;
+          }
+          
+          .mobile-responsive-table .pivot-section {
+            margin-bottom: 12px !important;
+          }
+          
+          .mobile-responsive-table .pivot-section-header {
+            font-size: ${mobileFontSizes.button} !important;
+            padding: 6px 8px !important;
+          }
+          
+          .mobile-responsive-table .pivot-selected-items {
+            gap: 6px !important;
+          }
+          
+          .mobile-responsive-table .pivot-selected-item {
+            padding: 4px 6px !important;
+            font-size: ${mobileFontSizes.cell} !important;
+          }
+          
+          .mobile-responsive-table .pivot-value-item {
+            margin-bottom: 8px !important;
+          }
+          
+          .mobile-responsive-table .pivot-value-item-header {
+            margin-bottom: 4px !important;
+          }
+          
+          .mobile-responsive-table .pivot-display-options {
+            gap: 8px !important;
+          }
+          
+          .mobile-responsive-table .pivot-display-option {
+            font-size: ${mobileFontSizes.cell} !important;
+          }
+          
+          .mobile-responsive-table .pivot-actions {
+            gap: 8px !important;
+            padding: 12px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-sortable-column-icon {
+            font-size: ${mobileFontSizes.button} !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-trigger {
+            font-size: ${mobileFontSizes.button} !important;
+            padding: 2px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay {
+            font-size: ${mobileFontSizes.input} !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint {
+            margin-bottom: 8px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint input,
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint select {
+            font-size: ${mobileFontSizes.input} !important;
+            padding: 4px 6px !important;
+            min-height: 28px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint .p-button {
+            font-size: ${mobileFontSizes.smallButton} !important;
+            padding: 2px 6px !important;
+            min-height: 24px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-footer {
+            padding: 8px !important;
+            gap: 8px !important;
+          }
+          
+          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-footer .p-button {
+            font-size: ${mobileFontSizes.smallButton} !important;
+            padding: 2px 6px !important;
+            min-height: 24px !important;
+          }
+          
+          /* Responsive column widths for mobile */
+          @media (max-width: 768px) {
+            .mobile-responsive-table .p-datatable .p-datatable-wrapper {
+              overflow-x: auto;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-datatable-table {
+              min-width: 600px;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-column-header,
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              min-width: 80px;
+              max-width: 120px;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-column-header:first-child,
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td:first-child {
+              min-width: 60px;
+              max-width: 100px;
+            }
+            
+            /* Mobile toolbar adjustments */
+            .mobile-responsive-table .p-toolbar {
+              flex-direction: column !important;
+              align-items: stretch !important;
+            }
+            
+            .mobile-responsive-table .p-toolbar .p-toolbar-group-left,
+            .mobile-responsive-table .p-toolbar .p-toolbar-group-right {
+              justify-content: center !important;
+              margin-bottom: 8px !important;
+            }
+            
+            /* Mobile button stacking */
+            .mobile-responsive-table .p-toolbar .p-button {
+              margin: 2px !important;
+              flex: 1 !important;
+              min-width: 80px !important;
+            }
+            
+            /* Mobile search input */
+            .mobile-responsive-table .p-toolbar .p-inputtext {
+              width: 100% !important;
+              margin-bottom: 8px !important;
+            }
+            
+            /* Mobile pagination adjustments */
+            .mobile-responsive-table .p-paginator {
+              flex-wrap: wrap !important;
+              justify-content: center !important;
+            }
+            
+            .mobile-responsive-table .p-paginator .p-paginator-pages {
+              order: 2 !important;
+              margin-top: 8px !important;
+            }
+            
+            .mobile-responsive-table .p-paginator .p-paginator-first,
+            .mobile-responsive-table .p-paginator .p-paginator-prev,
+            .mobile-responsive-table .p-paginator .p-paginator-next,
+            .mobile-responsive-table .p-paginator .p-paginator-last {
+              order: 1 !important;
+            }
+          }
+          
+          /* Extra small mobile devices */
+          @media (max-width: 480px) {
+            .mobile-responsive-table .p-datatable .p-column-header,
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              min-width: 60px;
+              max-width: 80px;
+              font-size: 7px !important;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-column-header {
+              font-size: ${mobileFontSizes.button} !important;
+            }
+            
+            .mobile-responsive-table .p-button {
+              font-size: ${mobileFontSizes.smallButton} !important;
+              padding: 2px 4px !important;
+              min-height: 24px !important;
+            }
+            
+            .mobile-responsive-table .p-toolbar {
+              padding: 4px !important;
+              gap: 4px !important;
+            }
+          }
+        `}</style>
+      )}
       
 
 
@@ -2753,7 +3174,7 @@ const PrimeDataTable = ({
         totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
-        size={tableSize}
+        size={responsiveTableSize}
         showFirstLastIcon={showFirstLastIcon}
         showPageLinks={showPageLinks}
         showCurrentPageReport={showCurrentPageReport}
@@ -2946,8 +3367,8 @@ const PrimeDataTable = ({
                         <div style={{ 
                           fontWeight: 'bold', 
                           color: '#28a745',
-                          fontSize: '14px',
-                          padding: '8px 0'
+                          fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
+                          padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
                         }}>
                           📊 Grand Total ({dataCount} rows)
                         </div>
@@ -2969,9 +3390,9 @@ const PrimeDataTable = ({
                           <div style={{ 
                             fontWeight: 'bold', 
                             color: '#28a745',
-                            fontSize: '14px',
+                            fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
                             textAlign: 'right',
-                            padding: '8px 0'
+                            padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
                           }}>
                             {formattedValue}
                           </div>
@@ -2981,9 +3402,9 @@ const PrimeDataTable = ({
                           <div style={{ 
                             fontWeight: 'bold', 
                             color: '#28a745',
-                            fontSize: '14px',
+                            fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
                             textAlign: 'right',
-                            padding: '8px 0'
+                            padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
                           }}>
                             {grandTotalValue.toLocaleString()}
                           </div>
@@ -3060,9 +3481,13 @@ const PrimeDataTable = ({
         visible={showImageModal}
         onHide={() => setShowImageModal(false)}
         header={imageModalAlt}
-
+        style={isMobile && enableMobileResponsive ? { 
+          width: '95vw', 
+          maxWidth: '95vw',
+          fontSize: '10px'
+        } : {}}
         modal
-        className="p-fluid"
+        className={`p-fluid ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`}
       >
         <Image
           src={imageModalSrc}
@@ -3078,8 +3503,13 @@ const PrimeDataTable = ({
         visible={showColumnManager}
         onHide={() => setShowColumnManager(false)}
         header="Manage Columns"
-
+        style={isMobile && enableMobileResponsive ? { 
+          width: '95vw', 
+          maxWidth: '95vw',
+          fontSize: '10px'
+        } : {}}
         modal
+        className={isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}
       >
         <div>
           {defaultColumns.map(column => (
@@ -3105,12 +3535,16 @@ const PrimeDataTable = ({
         visible={showPivotConfig}
         onHide={() => setShowPivotConfig(false)}
         header="Configure Pivot Table"
-        style={{ width: '90vw', maxWidth: '800px' }}
+        style={{ 
+          width: isMobile && enableMobileResponsive ? '95vw' : '90vw', 
+          maxWidth: isMobile && enableMobileResponsive ? '95vw' : '800px',
+          ...(isMobile && enableMobileResponsive ? { fontSize: '10px' } : {})
+        }}
         modal
         closable
         draggable={false}
         resizable={false}
-        className="pivot-config-dialog"
+        className={`pivot-config-dialog ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`}
       >
         <div className="pivot-config-content">
           {/* Pivot Table Enable/Disable */}
@@ -3482,6 +3916,7 @@ const PrimeDataTable = ({
               className="p-button-outlined p-button-secondary"
               onClick={resetPivotConfig}
               disabled={isSavingPivotConfig}
+              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
             />
             
             {/* Manual Save Button - only show if auto-save is disabled */}
@@ -3492,6 +3927,7 @@ const PrimeDataTable = ({
                 className="p-button-outlined p-button-info"
                 onClick={savePivotConfigManually}
                 disabled={isSavingPivotConfig}
+                style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
               />
             )}
             
@@ -3501,6 +3937,7 @@ const PrimeDataTable = ({
               className="p-button-outlined"
               onClick={() => setShowPivotConfig(false)}
               disabled={isSavingPivotConfig}
+              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
             />
             
             {/* Apply (Temporary UI Only) */}
@@ -3514,6 +3951,7 @@ const PrimeDataTable = ({
               }
               tooltip="Apply temporarily (not saved to CMS)"
               tooltipOptions={{ position: 'top' }}
+              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
             />
             
             {/* Apply & Save (Persistent) */}
@@ -3529,6 +3967,7 @@ const PrimeDataTable = ({
                 }
                 tooltip="Apply and save to CMS for persistence"
                 tooltipOptions={{ position: 'top' }}
+                style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
               />
             )}
           </div>
