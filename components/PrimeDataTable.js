@@ -248,15 +248,18 @@ import { useAuth } from './AuthContext';
  *   mobileBreakpoint={768}
  *   mobileTableSize="small"
  *   mobileFontSizes={{
- *     header: "12px",
- *     cell: "8px",
- *     button: "10px",
- *     smallButton: "8px",
- *     input: "10px",
- *     pagination: "10px",
- *     footer: "10px"
+ *     header: "10px",      // Maximum 10px for headers
+ *     cell: "8px",         // Maximum 8px for table content
+ *     button: "10px",      // Maximum 10px for buttons
+ *     smallButton: "8px",  // Maximum 8px for small buttons
+ *     input: "10px",       // Maximum 10px for inputs
+ *     pagination: "10px",  // Maximum 10px for pagination
+ *     footer: "10px"       // Maximum 10px for footer
  *   }}
  * />
+ * 
+ * Note: All mobile font sizes are strictly limited to maximum 10px
+ * regardless of screen size to ensure optimal mobile readability.
  */
 
 const PrimeDataTable = ({
@@ -366,13 +369,13 @@ const PrimeDataTable = ({
   mobileBreakpoint = 768, // Breakpoint for mobile styles (px)
   mobileTableSize = "small", // Table size for mobile devices
   mobileFontSizes = {
-    header: "12px",
-    cell: "8px",
-    button: "10px",
-    smallButton: "8px",
-    input: "10px",
-    pagination: "10px",
-    footer: "10px"
+    header: "10px",      // Maximum 10px for headers (never larger)
+    cell: "8px",         // Maximum 8px for table content (never larger)
+    button: "10px",      // Maximum 10px for buttons (never larger)
+    smallButton: "8px",  // Maximum 8px for small buttons (never larger)
+    input: "10px",       // Maximum 10px for inputs (never larger)
+    pagination: "10px",  // Maximum 10px for pagination (never larger)
+    footer: "10px"       // Maximum 10px for footer (never larger)
   },
 
   // Event handlers
@@ -2818,6 +2821,13 @@ const PrimeDataTable = ({
             /* Global mobile styles */
             font-size: ${mobileFontSizes.cell};
             line-height: 1.2;
+            /* Enforce maximum font sizes for all mobile content */
+            max-font-size: 10px !important;
+          }
+          
+          /* Global mobile font size enforcement */
+          .mobile-responsive-table * {
+            max-font-size: 10px !important;
           }
           
           .mobile-responsive-table .p-datatable {
@@ -3065,30 +3075,125 @@ const PrimeDataTable = ({
             .mobile-responsive-table .p-paginator .p-paginator-last {
               order: 1 !important;
             }
+            
+            /* Enforce maximum font sizes for all mobile screens */
+            .mobile-responsive-table .p-datatable .p-column-header {
+              font-size: 10px !important;
+              max-font-size: 10px !important;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              font-size: 8px !important;
+              max-font-size: 8px !important;
+            }
+            
+            .mobile-responsive-table .p-button {
+              font-size: 10px !important;
+              max-font-size: 10px !important;
+            }
+            
+            .mobile-responsive-table .p-inputtext {
+              font-size: 10px !important;
+              max-font-size: 10px !important;
+            }
+            
+            .mobile-responsive-table .p-dropdown {
+              font-size: 10px !important;
+              max-font-size: 10px !important;
+            }
+            
+            .mobile-responsive-table .p-paginator {
+              font-size: 10px !important;
+              max-font-size: 10px !important;
+            }
           }
           
-          /* Extra small mobile devices */
+          /* Medium mobile devices */
+          @media (max-width: 600px) {
+            .mobile-responsive-table .p-datatable .p-column-header {
+              font-size: 9px !important;
+              max-font-size: 9px !important;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              font-size: 7px !important;
+              max-font-size: 7px !important;
+            }
+            
+            .mobile-responsive-table .p-button {
+              font-size: 9px !important;
+              max-font-size: 9px !important;
+            }
+            
+            .mobile-responsive-table .p-inputtext {
+              font-size: 9px !important;
+              max-font-size: 9px !important;
+            }
+          }
+          
+          /* Small mobile devices */
           @media (max-width: 480px) {
             .mobile-responsive-table .p-datatable .p-column-header,
             .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
               min-width: 60px;
               max-width: 80px;
-              font-size: 7px !important;
             }
             
             .mobile-responsive-table .p-datatable .p-column-header {
-              font-size: ${mobileFontSizes.button} !important;
+              font-size: 8px !important;
+              max-font-size: 8px !important;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              font-size: 6px !important;
+              max-font-size: 6px !important;
             }
             
             .mobile-responsive-table .p-button {
-              font-size: ${mobileFontSizes.smallButton} !important;
+              font-size: 8px !important;
+              max-font-size: 8px !important;
               padding: 2px 4px !important;
               min-height: 24px !important;
+            }
+            
+            .mobile-responsive-table .p-inputtext {
+              font-size: 8px !important;
+              max-font-size: 8px !important;
             }
             
             .mobile-responsive-table .p-toolbar {
               padding: 4px !important;
               gap: 4px !important;
+            }
+          }
+          
+          /* Extra small mobile devices */
+          @media (max-width: 360px) {
+            .mobile-responsive-table .p-datatable .p-column-header {
+              font-size: 7px !important;
+              max-font-size: 7px !important;
+            }
+            
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
+              font-size: 5px !important;
+              max-font-size: 5px !important;
+            }
+            
+            .mobile-responsive-table .p-button {
+              font-size: 7px !important;
+              max-font-size: 7px !important;
+              padding: 1px 3px !important;
+              min-height: 20px !important;
+            }
+            
+            .mobile-responsive-table .p-inputtext {
+              font-size: 7px !important;
+              max-font-size: 7px !important;
+            }
+            
+            .mobile-responsive-table .p-toolbar {
+              padding: 2px !important;
+              gap: 2px !important;
             }
           }
         `}</style>
