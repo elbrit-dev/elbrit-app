@@ -375,7 +375,7 @@ const PrimeDataTable = ({
     smallButton: "8px",  // Maximum 8px for small buttons (never larger)
     input: "10px",       // Maximum 10px for inputs (never larger)
     pagination: "10px",  // Maximum 10px for pagination (never larger)
-    footer: "10px"       // Maximum 10px for footer (never larger)
+    footer: "11px"       // Maximum 10px for footer (never larger)
   },
 
   // Event handlers
