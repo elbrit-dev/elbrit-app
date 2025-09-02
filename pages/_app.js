@@ -311,6 +311,15 @@ if (typeof window !== 'undefined') {
       // Optionally, you could show a user-friendly message here
       // or trigger a retry mechanism
     }
+
+    // Check if it's a CORS error related to Plasmic analytics
+    if (event.reason && event.reason.message && 
+        (event.reason.message.includes('analytics.plasmic.app') || 
+         event.reason.message.includes('CORS') ||
+         event.reason.message.includes('Access-Control-Allow-Origin'))) {
+      console.warn('Plasmic analytics CORS error suppressed:', event.reason.message);
+      event.preventDefault();
+    }
   });
   
   // Also catch regular errors
@@ -322,7 +331,30 @@ if (typeof window !== 'undefined') {
       console.warn('TypeError detected in global error handler.');
       // You could add specific handling here if needed
     }
+
+    // Check if it's a CORS error related to Plasmic analytics
+    if (event.error && event.error.message && 
+        (event.error.message.includes('analytics.plasmic.app') || 
+         event.error.message.includes('CORS') ||
+         event.error.message.includes('Access-Control-Allow-Origin'))) {
+      console.warn('Plasmic analytics CORS error suppressed:', event.error.message);
+      event.preventDefault();
+    }
   });
+
+  // Additional fetch interceptor to catch analytics requests
+  const originalFetch = window.fetch;
+  window.fetch = function(...args) {
+    const url = args[0];
+    
+    // Block analytics requests to prevent CORS errors
+    if (typeof url === 'string' && url.includes('analytics.plasmic.app')) {
+      console.warn('Blocked Plasmic analytics request to prevent CORS error:', url);
+      return Promise.resolve(new Response('{}', { status: 200, statusText: 'OK' }));
+    }
+    
+    return originalFetch.apply(this, args);
+  };
 }
 
 function MyApp({ Component, pageProps }) {

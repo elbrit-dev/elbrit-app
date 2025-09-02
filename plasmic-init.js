@@ -35,6 +35,12 @@ export const PLASMIC = initPlasmicLoader({
       // Our custom auth will handle everything
       return null;
     }
+  },
+
+  // Disable Plasmic's built-in analytics to prevent CORS errors
+  // This prevents the CORS error when trying to send analytics to analytics.plasmic.app
+  analytics: {
+    enabled: false
   }
 });
 
