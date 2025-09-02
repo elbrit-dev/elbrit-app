@@ -160,7 +160,15 @@ PLASMIC.registerComponent(LinkComponent, {
       type: "string",
       description: "The URL to navigate to",
       required: true,
-      defaultValue: "/"
+      defaultValue: "/",
+      // Add validation to ensure href is always a string
+      validator: (value) => {
+        if (typeof value !== 'string') {
+          console.warn('LinkComponent href must be a string, got:', typeof value, value);
+          return false;
+        }
+        return true;
+      }
     },
     children: {
       type: "slot",

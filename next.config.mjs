@@ -5,17 +5,13 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Add headers to handle CORS issues
+  // Add headers for security (removed X-Frame-Options to allow iframe usage)
   async headers() {
     return [
       {
         // Apply these headers to all routes
         source: '/(.*)',
         headers: [
-          {
-            key: 'X-Frame-Options',
-            value: 'DENY',
-          },
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',

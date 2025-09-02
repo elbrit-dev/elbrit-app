@@ -25,14 +25,28 @@ const LinkComponent = ({
 }) => {
   const router = useRouter();
   
-  // Ensure href is always provided
-  if (!href) {
-    console.warn('LinkComponent: href prop is required');
+  // Handle invalid href values (common issue in Plasmic Studio)
+  let validHref = href;
+  
+  if (typeof href === 'boolean') {
+    console.warn('LinkComponent: href received boolean value, converting to default "/"');
+    validHref = '/';
+  } else if (typeof href === 'number') {
+    console.warn('LinkComponent: href received number value, converting to string');
+    validHref = String(href);
+  } else if (!href || typeof href !== 'string') {
+    console.warn('LinkComponent: href prop is required and must be a string, got:', typeof href, href);
+    validHref = '/'; // Default fallback
+  }
+  
+  // Ensure href is always provided and is a valid string
+  if (!validHref || typeof validHref !== 'string') {
+    console.error('LinkComponent: Unable to resolve valid href, rendering null');
     return null;
   }
 
   // Handle external links (they will refresh, but internal links won't)
-  const isExternal = href.startsWith('http://') || href.startsWith('https://') || href.startsWith('mailto:') || href.startsWith('tel:');
+  const isExternal = validHref.startsWith('http://') || validHref.startsWith('https://') || validHref.startsWith('mailto:') || validHref.startsWith('tel:');
   
   // Enhanced click handler to capture clicks from any child element (including buttons)
   const handleClick = (e) => {
@@ -40,7 +54,7 @@ const LinkComponent = ({
     e.preventDefault();
     e.stopPropagation();
     
-    console.log('LinkComponent clicked!', { href, target: e.target });
+    console.log('LinkComponent clicked!', { href: validHref, target: e.target });
     
     // If there's a custom onClick, call it
     if (onClick) {
@@ -49,18 +63,18 @@ const LinkComponent = ({
     
     // For internal navigation, use Next.js router for instant navigation
     if (!isExternal) {
-      console.log('Navigating to:', href);
+      console.log('Navigating to:', validHref);
       if (replace) {
-        router.replace(href);
+        router.replace(validHref);
       } else {
-        router.push(href);
+        router.push(validHref);
       }
     } else {
       // For external links, open manually
       if (target === '_blank') {
-        window.open(href, '_blank', rel ? `rel=${rel}` : '');
+        window.open(validHref, '_blank', rel ? `rel=${rel}` : '');
       } else {
-        window.location.href = href;
+        window.location.href = validHref;
       }
     }
   };
@@ -104,7 +118,7 @@ const LinkComponent = ({
   // For external links, use regular anchor tag
   return (
     <a 
-      href={href}
+      href={validHref}
       target={target}
       rel={rel}
       onClick={handleClick}
