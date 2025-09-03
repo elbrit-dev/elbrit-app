@@ -293,7 +293,38 @@ const a = {
   ,
 
   // ✅ NEW flatten function for dynamic JSON
-  flatten
+  flatten,
+
+  // ✅ URI encoding/decoding functions
+  encodeURI: (str) => {
+    if (typeof str !== 'string') return str;
+    return encodeURI(str);
+  },
+
+  encodeURIComponent: (str) => {
+    if (typeof str !== 'string') return str;
+    return encodeURIComponent(str);
+  },
+
+  decodeURI: (str) => {
+    if (typeof str !== 'string') return str;
+    try {
+      return decodeURI(str);
+    } catch (e) {
+      console.warn('decodeURI error:', e);
+      return str;
+    }
+  },
+
+  decodeURIComponent: (str) => {
+    if (typeof str !== 'string') return str;
+    try {
+      return decodeURIComponent(str);
+    } catch (e) {
+      console.warn('decodeURIComponent error:', e);
+      return str;
+    }
+  }
 };
 
 // Global error handler to catch unhandled promise rejections
