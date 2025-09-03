@@ -203,6 +203,12 @@ const TruecallerComponent = ({
             attempt: retryCountRef.current + 1,
             status: status || "unknown",
             data,
+            localStorage: {
+              userEmail: localStorage.getItem("userEmail"),
+              userPhone: localStorage.getItem("userPhone"),
+              userDisplayName: localStorage.getItem("userDisplayName"),
+              userAvatar: localStorage.getItem("userAvatar") ? "present" : "not set"
+            }
           });
         }
 
@@ -223,7 +229,7 @@ const TruecallerComponent = ({
                 user.full_name || user.name || tcUser.name || "User";
               const cleanedPhone = cleanPhoneNumber(rawPhone) || "";
               localStorage.setItem("userEmail", email);
-              localStorage.setItem("userPhoneNumber", cleanedPhone);
+              localStorage.setItem("userPhone", cleanedPhone);
               localStorage.setItem("userDisplayName", displayName);
               localStorage.setItem(
                 "userAvatar",
@@ -232,6 +238,20 @@ const TruecallerComponent = ({
             } catch (_) {
               // ignore client storage errors
             }
+            
+            // Update debug payload with localStorage data after successful storage
+            if (showDebug) {
+              setDebugPayload(prev => ({
+                ...prev,
+                localStorage: {
+                  userEmail: localStorage.getItem("userEmail"),
+                  userPhone: localStorage.getItem("userPhone"),
+                  userDisplayName: localStorage.getItem("userDisplayName"),
+                  userAvatar: localStorage.getItem("userAvatar") ? "present" : "not set"
+                }
+              }));
+            }
+            
             if (onSuccess) onSuccess({ response: data });
             if (enableAuthIntegration) {
               await integrateAuthAndStore(data, nonce);
