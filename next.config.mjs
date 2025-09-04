@@ -5,10 +5,8 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Optimize package imports for better performance
-  experimental: {
-    optimizePackageImports: ['antd', 'primereact', 'primeicons'],
-  },
+  // Keep only stable optimizations
+  // Removed experimental package imports that may cause issues
   
   // Optimize bundle size and performance
   compress: true,

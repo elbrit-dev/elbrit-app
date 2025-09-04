@@ -10,7 +10,7 @@ import Error from "next/error";
 import { useRouter } from "next/router";
 import { PLASMIC } from "../plasmic-init";
 import { useAuth } from '../components/AuthContext';
-import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
 import AntSkeletonWrapper from '../components/AntSkeletonWrapper';
@@ -217,25 +217,13 @@ export default function PlasmicLoaderPage(props) {
             >
               {/* Set up global variables for Plasmic Studio GraphQL queries */}
               <PlasmicDataContext />
-              {/* OPTIMIZATION: Wrap in Suspense for better streaming performance */}
-              <Suspense fallback={
-                <div style={{ padding: '20px' }}>
-                  <AntSkeletonWrapper 
-                    active={true}
-                    avatar={true}
-                    paragraph={{ rows: 6 }}
-                    title={{ width: "70%" }}
-                  />
-                </div>
-              }>
-                {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
-                <PlasmicErrorBoundary onRetry={handleRetry}>
-                  <PlasmicComponent 
-                    component={pageMeta.displayName}
-                    key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
-                  />
-                </PlasmicErrorBoundary>
-              </Suspense>
+              {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
+              <PlasmicErrorBoundary onRetry={handleRetry}>
+                <PlasmicComponent 
+                  component={pageMeta.displayName}
+                  key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
+                />
+              </PlasmicErrorBoundary>
             </DataProvider>
           </DataProvider>
         </>
@@ -249,9 +237,9 @@ export const getServerSideProps = async (context) => {
   const plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
   
   try {
-    // OPTIMIZATION: Add timeout to prevent hanging
+    // Simple timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 3000) // Reduced timeout
+      setTimeout(() => reject(new Error('Request timeout')), 5000)
     );
     
     const plasmicDataPromise = PLASMIC.maybeFetchComponentData(plasmicPath);
@@ -261,31 +249,17 @@ export const getServerSideProps = async (context) => {
       // non-Plasmic catch-all
       return { props: {} };
     }
-    
-    const pageMeta = plasmicData.entryCompMetas[0];
 
-    // OPTIMIZATION: Minimize data size - only include essential data
-    // This reduces the large page data warning and improves performance
-    const minimalPlasmicData = {
-      entryCompMetas: plasmicData.entryCompMetas,
-      // Only include essential data, exclude heavy query cache
-      bundle: plasmicData.bundle ? {
-        modules: plasmicData.bundle.modules,
-        // Exclude heavy data that can be loaded client-side
-      } : undefined
-    };
-
-    // Skip query cache entirely in production for better performance
-    let queryCache = {};
-
+    // Return minimal data to prevent server crashes
     return { 
       props: { 
-        plasmicData: minimalPlasmicData, 
-        queryCache
+        plasmicData, 
+        queryCache: {}
       } 
     };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
+    // Return empty props to prevent server crash
     return { 
       props: { 
         plasmicData: null, 
