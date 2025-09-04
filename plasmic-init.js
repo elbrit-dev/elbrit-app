@@ -10,6 +10,7 @@ import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+import UnifiedSkeleton from "./components/UnifiedSkeleton";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -41,7 +42,17 @@ export const PLASMIC = initPlasmicLoader({
   // This prevents the CORS error when trying to send analytics to analytics.plasmic.app
   analytics: {
     enabled: false
-  }
+  },
+  
+  // Enable lazy loading for better performance
+  // This applies to all components globally - no need to configure per component
+  lazy: true,
+  
+  // Enable component preloading for faster initial load
+  preload: true,
+  
+  // Enable caching for better performance
+  cache: true
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {
@@ -2790,6 +2801,140 @@ PLASMIC.registerComponent(TagFilterPrimeReact, {
     }
   },
   importPath: "./components/TagFilterPrimeReact"
+});
+
+// Register Unified Skeleton Component
+PLASMIC.registerComponent(UnifiedSkeleton, {
+  name: "UnifiedSkeleton",
+  displayName: "Skeleton (Ant Design)",
+  description: "Unified Ant Design Skeleton component for all loading states - configurable shape and type via props",
+  props: {
+    // Basic props
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    loading: {
+      type: "boolean",
+      description: "Whether to show skeleton placeholder",
+      defaultValue: true
+    },
+    round: {
+      type: "boolean",
+      description: "Whether to show round avatar and paragraph",
+      defaultValue: false
+    },
+    
+    // Skeleton type/shape
+    type: {
+      type: "choice",
+      options: ["default", "button", "input", "image", "avatar", "title", "paragraph", "card", "list", "table"],
+      description: "Type of skeleton to display",
+      defaultValue: "default"
+    },
+    
+    // Avatar specific props
+    avatar: {
+      type: "boolean",
+      description: "Show avatar placeholder (for default, card, list types)",
+      defaultValue: false
+    },
+    avatarSize: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of avatar skeleton",
+      defaultValue: "default"
+    },
+    avatarShape: {
+      type: "choice",
+      options: ["circle", "square"],
+      description: "Shape of avatar skeleton",
+      defaultValue: "circle"
+    },
+    
+    // Title specific props
+    title: {
+      type: "boolean",
+      description: "Show title placeholder (for default, card types)",
+      defaultValue: false
+    },
+    titleWidth: {
+      type: "string",
+      description: "Width of title placeholder (e.g., '38%', '200px')",
+      defaultValue: "38%"
+    },
+    
+    // Paragraph specific props
+    paragraph: {
+      type: "boolean",
+      description: "Show paragraph placeholder (for default, card types)",
+      defaultValue: false
+    },
+    paragraphRows: {
+      type: "number",
+      description: "Number of paragraph rows",
+      defaultValue: 3
+    },
+    
+    // Button specific props
+    buttonSize: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of button skeleton",
+      defaultValue: "default"
+    },
+    block: {
+      type: "boolean",
+      description: "Whether to show block button skeleton",
+      defaultValue: false
+    },
+    
+    // Input specific props
+    inputSize: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of input skeleton",
+      defaultValue: "default"
+    },
+    
+    // Image specific props
+    imageWidth: {
+      type: "number",
+      description: "Width of image skeleton in pixels",
+      defaultValue: 200
+    },
+    imageHeight: {
+      type: "number",
+      description: "Height of image skeleton in pixels",
+      defaultValue: 200
+    },
+    
+    // Styling
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    size: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "General size of skeleton elements",
+      defaultValue: "default"
+    },
+    
+    // Children (for custom content)
+    children: {
+      type: "slot",
+      description: "Custom content to show when loading is false"
+    }
+  },
+  importPath: "./components/UnifiedSkeleton"
 });
 
 
