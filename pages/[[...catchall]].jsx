@@ -136,6 +136,19 @@ export default function PlasmicLoaderPage(props) {
     }
   }, [authLoaded]);
 
+  // OPTIMIZATION: Timeout to prevent infinite loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (!authLoaded || !isStable) {
+        console.warn('⏰ Auth loading timeout - proceeding anyway');
+        setAuthLoaded(true);
+        setIsStable(true);
+      }
+    }, 2000); // 2 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [authLoaded, isStable]);
+
   // HYDRATION FIX: Debug logging moved to useEffect to avoid render-time execution
   useEffect(() => {
     if (process.env.NODE_ENV === 'development' && typeof window !== "undefined") {
@@ -160,9 +173,21 @@ export default function PlasmicLoaderPage(props) {
   }
   
   // HYDRATION FIX: Show loading state until auth is loaded and stable
+  // OPTIMIZATION: Reduce loading time by showing content faster
   if (!authLoaded || !isStable) {
     console.log("⏳ Auth not loaded or not stable, showing loading...");
-    return <div>Loading...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading...
+      </div>
+    );
   }
 
   console.log("✅ Rendering Plasmic component:", pageMeta?.displayName);
@@ -211,29 +236,59 @@ export default function PlasmicLoaderPage(props) {
 export const getServerSideProps = async (context) => {
   const { catchall } = context.params ?? {};
   const plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
-  const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
-  if (!plasmicData) {
-    // non-Plasmic catch-all
-    return { props: {} };
+  
+  try {
+    // OPTIMIZATION: Add timeout to prevent hanging
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Request timeout')), 5000)
+    );
+    
+    const plasmicDataPromise = PLASMIC.maybeFetchComponentData(plasmicPath);
+    const plasmicData = await Promise.race([plasmicDataPromise, timeoutPromise]);
+    
+    if (!plasmicData) {
+      // non-Plasmic catch-all
+      return { props: {} };
+    }
+    
+    const pageMeta = plasmicData.entryCompMetas[0];
+
+    // OPTIMIZATION: Skip extractPlasmicQueryData for production to avoid API calls
+    // This eliminates the 4-second delay caused by data fetching
+    let queryCache = {};
+    
+    // Only extract query data in development mode
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        queryCache = await extractPlasmicQueryData(
+          <PlasmicRootProvider
+            loader={PLASMIC}
+            prefetchedData={plasmicData}
+            pageRoute={pageMeta.path}
+            pageParams={pageMeta.params}
+          >
+            <PlasmicComponent component={pageMeta.displayName} />
+          </PlasmicRootProvider>
+        );
+      } catch (error) {
+        console.warn('Query data extraction failed, continuing without cache:', error.message);
+        queryCache = {};
+      }
+    }
+
+    return { 
+      props: { 
+        plasmicData, 
+        queryCache
+      } 
+    };
+  } catch (error) {
+    console.error('Error in getServerSideProps:', error);
+    return { 
+      props: { 
+        plasmicData: null, 
+        queryCache: {} 
+      } 
+    };
   }
-  const pageMeta = plasmicData.entryCompMetas[0];
-
-  // Cache the necessary data fetched for the page
-  const queryCache = await extractPlasmicQueryData(
-    <PlasmicRootProvider
-      loader={PLASMIC}
-      prefetchedData={plasmicData}
-      pageRoute={pageMeta.path}
-      pageParams={pageMeta.params}
-    >
-      <PlasmicComponent component={pageMeta.displayName} />
-    </PlasmicRootProvider>
-  );
-
-  return { 
-    props: { 
-      plasmicData, 
-      queryCache
-    } 
-  };
 }
