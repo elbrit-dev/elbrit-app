@@ -5,7 +5,21 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Add headers for security (removed X-Frame-Options to allow iframe usage)
+  // Optimize package imports for better performance
+  experimental: {
+    optimizePackageImports: ['antd', 'primereact', 'primeicons'],
+  },
+  
+  // Optimize bundle size and performance
+  compress: true,
+  
+  // Optimize images
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 31536000,
+  },
+  
+  // Add headers for security and performance
   async headers() {
     return [
       {
@@ -15,6 +29,20 @@ const nextConfig = {
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        // Cache static assets
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },

@@ -56,7 +56,19 @@ export const PLASMIC = initPlasmicLoader({
   preload: true,
   
   // Enable caching for better performance
-  cache: true
+  cache: true,
+  
+  // OPTIMIZATION: Enable static generation for better performance
+  staticGeneration: true,
+  
+  // OPTIMIZATION: Reduce bundle size
+  bundleOptimization: true,
+  
+  // OPTIMIZATION: Enable tree shaking
+  treeShaking: true,
+  
+  // OPTIMIZATION: Enable code splitting
+  codeSplitting: true
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {

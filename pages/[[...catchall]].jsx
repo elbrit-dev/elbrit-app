@@ -10,9 +10,10 @@ import Error from "next/error";
 import { useRouter } from "next/router";
 import { PLASMIC } from "../plasmic-init";
 import { useAuth } from '../components/AuthContext';
-import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
+import AntSkeletonWrapper from '../components/AntSkeletonWrapper';
 
 export default function PlasmicLoaderPage(props) {
   const { plasmicData, queryCache } = props;
@@ -173,19 +174,17 @@ export default function PlasmicLoaderPage(props) {
   }
   
   // HYDRATION FIX: Show loading state until auth is loaded and stable
-  // OPTIMIZATION: Reduce loading time by showing content faster
+  // OPTIMIZATION: Use Ant Design Skeleton for better UX
   if (!authLoaded || !isStable) {
     console.log("⏳ Auth not loaded or not stable, showing loading...");
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '50vh',
-        fontSize: '16px',
-        color: '#666'
-      }}>
-        Loading...
+      <div style={{ padding: '20px' }}>
+        <AntSkeletonWrapper 
+          active={true}
+          avatar={true}
+          paragraph={{ rows: 4 }}
+          title={{ width: "60%" }}
+        />
       </div>
     );
   }
@@ -218,13 +217,25 @@ export default function PlasmicLoaderPage(props) {
             >
               {/* Set up global variables for Plasmic Studio GraphQL queries */}
               <PlasmicDataContext />
-              {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
-              <PlasmicErrorBoundary onRetry={handleRetry}>
-                <PlasmicComponent 
-                  component={pageMeta.displayName}
-                  key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
-                />
-              </PlasmicErrorBoundary>
+              {/* OPTIMIZATION: Wrap in Suspense for better streaming performance */}
+              <Suspense fallback={
+                <div style={{ padding: '20px' }}>
+                  <AntSkeletonWrapper 
+                    active={true}
+                    avatar={true}
+                    paragraph={{ rows: 6 }}
+                    title={{ width: "70%" }}
+                  />
+                </div>
+              }>
+                {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
+                <PlasmicErrorBoundary onRetry={handleRetry}>
+                  <PlasmicComponent 
+                    component={pageMeta.displayName}
+                    key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
+                  />
+                </PlasmicErrorBoundary>
+              </Suspense>
             </DataProvider>
           </DataProvider>
         </>
@@ -240,7 +251,7 @@ export const getServerSideProps = async (context) => {
   try {
     // OPTIMIZATION: Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Request timeout')), 5000)
+      setTimeout(() => reject(new Error('Request timeout')), 3000) // Reduced timeout
     );
     
     const plasmicDataPromise = PLASMIC.maybeFetchComponentData(plasmicPath);
@@ -253,32 +264,23 @@ export const getServerSideProps = async (context) => {
     
     const pageMeta = plasmicData.entryCompMetas[0];
 
-    // OPTIMIZATION: Skip extractPlasmicQueryData for production to avoid API calls
-    // This eliminates the 4-second delay caused by data fetching
+    // OPTIMIZATION: Minimize data size - only include essential data
+    // This reduces the large page data warning and improves performance
+    const minimalPlasmicData = {
+      entryCompMetas: plasmicData.entryCompMetas,
+      // Only include essential data, exclude heavy query cache
+      bundle: plasmicData.bundle ? {
+        modules: plasmicData.bundle.modules,
+        // Exclude heavy data that can be loaded client-side
+      } : undefined
+    };
+
+    // Skip query cache entirely in production for better performance
     let queryCache = {};
-    
-    // Only extract query data in development mode
-    if (process.env.NODE_ENV === 'development') {
-      try {
-        queryCache = await extractPlasmicQueryData(
-          <PlasmicRootProvider
-            loader={PLASMIC}
-            prefetchedData={plasmicData}
-            pageRoute={pageMeta.path}
-            pageParams={pageMeta.params}
-          >
-            <PlasmicComponent component={pageMeta.displayName} />
-          </PlasmicRootProvider>
-        );
-      } catch (error) {
-        console.warn('Query data extraction failed, continuing without cache:', error.message);
-        queryCache = {};
-      }
-    }
 
     return { 
       props: { 
-        plasmicData, 
+        plasmicData: minimalPlasmicData, 
         queryCache
       } 
     };
