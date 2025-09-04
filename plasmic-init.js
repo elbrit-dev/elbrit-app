@@ -10,6 +10,11 @@ import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+import AntSkeletonWrapper from "./components/AntSkeletonWrapper";
+import AntSkeletonButtonWrapper from "./components/AntSkeletonButtonWrapper";
+import AntSkeletonInputWrapper from "./components/AntSkeletonInputWrapper";
+import AntSkeletonImageWrapper from "./components/AntSkeletonImageWrapper";
+import AntSkeletonAvatarWrapper from "./components/AntSkeletonAvatarWrapper";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -2800,6 +2805,202 @@ PLASMIC.registerComponent(TagFilterPrimeReact, {
     }
   },
   importPath: "./components/TagFilterPrimeReact"
+});
+
+// Register Ant Design Skeleton component
+PLASMIC.registerComponent(AntSkeletonWrapper, {
+  name: "AntSkeleton",
+  displayName: "Skeleton (Ant Design)",
+  description: "Ant Design Skeleton component for loading states and placeholders",
+  props: {
+    // Basic props
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    avatar: {
+      type: "object",
+      description: "Show avatar placeholder",
+      defaultValue: false
+    },
+    loading: {
+      type: "boolean",
+      description: "Whether to show skeleton placeholder",
+      defaultValue: true
+    },
+    paragraph: {
+      type: "object",
+      description: "Show paragraph placeholder",
+      defaultValue: { rows: 3 }
+    },
+    title: {
+      type: "object",
+      description: "Show title placeholder",
+      defaultValue: { width: "38%" }
+    },
+    round: {
+      type: "boolean",
+      description: "Whether to show round avatar and paragraph",
+      defaultValue: false
+    },
+    
+    // Styling props
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    
+    // Size props
+    size: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of skeleton",
+      defaultValue: "default"
+    },
+    
+    // Children (for custom skeleton content)
+    children: {
+      type: "slot",
+      description: "Custom skeleton content"
+    }
+  },
+  importPath: "./components/AntSkeletonWrapper"
+});
+
+// Register Skeleton.Button for button skeletons
+PLASMIC.registerComponent(AntSkeletonButtonWrapper, {
+  name: "AntSkeletonButton",
+  displayName: "Skeleton Button (Ant Design)",
+  description: "Ant Design Skeleton Button component for button loading states",
+  props: {
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    size: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of skeleton button",
+      defaultValue: "default"
+    },
+    block: {
+      type: "boolean",
+      description: "Whether to show block button",
+      defaultValue: false
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    }
+  },
+  importPath: "./components/AntSkeletonButtonWrapper"
+});
+
+// Register Skeleton.Input for input skeletons
+PLASMIC.registerComponent(AntSkeletonInputWrapper, {
+  name: "AntSkeletonInput",
+  displayName: "Skeleton Input (Ant Design)",
+  description: "Ant Design Skeleton Input component for input loading states",
+  props: {
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    size: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of skeleton input",
+      defaultValue: "default"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    }
+  },
+  importPath: "./components/AntSkeletonInputWrapper"
+});
+
+// Register Skeleton.Image for image skeletons
+PLASMIC.registerComponent(AntSkeletonImageWrapper, {
+  name: "AntSkeletonImage",
+  displayName: "Skeleton Image (Ant Design)",
+  description: "Ant Design Skeleton Image component for image loading states",
+  props: {
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    }
+  },
+  importPath: "./components/AntSkeletonImageWrapper"
+});
+
+// Register Skeleton.Avatar for avatar skeletons
+PLASMIC.registerComponent(AntSkeletonAvatarWrapper, {
+  name: "AntSkeletonAvatar",
+  displayName: "Skeleton Avatar (Ant Design)",
+  description: "Ant Design Skeleton Avatar component for avatar loading states",
+  props: {
+    active: {
+      type: "boolean",
+      description: "Whether to show animation effect",
+      defaultValue: true
+    },
+    size: {
+      type: "choice",
+      options: ["default", "large", "small"],
+      description: "Size of skeleton avatar",
+      defaultValue: "default"
+    },
+    shape: {
+      type: "choice",
+      options: ["circle", "square"],
+      description: "Shape of skeleton avatar",
+      defaultValue: "circle"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS class name",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    }
+  },
+  importPath: "./components/AntSkeletonAvatarWrapper"
 });
 
 

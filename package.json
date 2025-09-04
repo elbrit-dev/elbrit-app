@@ -9,12 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@ant-design/icons": "^5.2.6",
+    "@ant-design/icons": "^6.0.1",
     "@plasmicapp/auth-api": "^0.0.17",
     "@plasmicapp/loader-nextjs": "^1.0.434",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
-    "antd": "^5.12.8",
+    "antd": "^5.27.2",
     "clsx": "^2.1.1",
     "firebase": "^10.0.0",
     "firebase-admin": "^11.11.0",
@@ -26,6 +26,7 @@
     "next": "14.2.29",
     "primeicons": "^7.0.0",
     "primereact": "^10.9.6",
+    "rc-util": "^5.44.4",
     "react": "^18",
     "react-dom": "^18"
   },
