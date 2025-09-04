@@ -1,49 +1,51 @@
 import React from 'react';
 import { Skeleton } from 'antd';
 
-const UnifiedSkeleton = ({
-  // Basic props
-  active = true,
-  loading = true,
-  round = false,
-  
-  // Skeleton type/shape
-  type = 'default', // 'default', 'button', 'input', 'image', 'avatar', 'title', 'paragraph'
-  
-  // Avatar specific props
-  avatar = false,
-  avatarSize = 'default',
-  avatarShape = 'circle',
-  
-  // Title specific props
-  title = false,
-  titleWidth = '38%',
-  
-  // Paragraph specific props
-  paragraph = false,
-  paragraphRows = 3,
-  
-  // Button specific props
-  buttonSize = 'default',
-  block = false,
-  
-  // Input specific props
-  inputSize = 'default',
-  
-  // Image specific props
-  imageWidth = 200,
-  imageHeight = 200,
-  
-  // Styling
-  className = '',
-  style = {},
-  size = 'default',
-  
-  // Children for custom content
-  children,
-  
-  ...props
-}) => {
+const UnifiedSkeleton = (props) => {
+  const {
+    // Basic props
+    active = true,
+    loading = true,
+    round = false,
+    
+    // Skeleton type/shape
+    type = 'default',
+    
+    // Avatar specific props
+    avatar = false,
+    avatarSize = 'default',
+    avatarShape = 'circle',
+    
+    // Title specific props
+    title = false,
+    titleWidth = '38%',
+    
+    // Paragraph specific props
+    paragraph = false,
+    paragraphRows = 3,
+    
+    // Button specific props
+    buttonSize = 'default',
+    block = false,
+    
+    // Input specific props
+    inputSize = 'default',
+    
+    // Image specific props
+    imageWidth = 200,
+    imageHeight = 200,
+    
+    // Styling
+    className = '',
+    style = {},
+    size = 'default',
+    
+    // Children for custom content
+    children,
+    
+    ...restProps
+  } = props;
+
   // Don't render skeleton if loading is false
   if (!loading) {
     return children || null;
@@ -60,7 +62,7 @@ const UnifiedSkeleton = ({
             block={block}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -71,7 +73,7 @@ const UnifiedSkeleton = ({
             size={inputSize}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -85,7 +87,7 @@ const UnifiedSkeleton = ({
               height: imageHeight,
               ...style
             }}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -97,7 +99,7 @@ const UnifiedSkeleton = ({
             shape={avatarShape}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -110,7 +112,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -123,7 +125,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -137,7 +139,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -151,7 +153,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -164,7 +166,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
         
@@ -178,7 +180,7 @@ const UnifiedSkeleton = ({
             round={round}
             className={className}
             style={style}
-            {...props}
+            {...restProps}
           />
         );
     }

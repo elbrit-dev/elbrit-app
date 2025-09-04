@@ -46,13 +46,7 @@ export const PLASMIC = initPlasmicLoader({
   
   // Enable lazy loading for better performance
   // This applies to all components globally - no need to configure per component
-  lazy: true,
-  
-  // Enable component preloading for faster initial load
-  preload: true,
-  
-  // Enable caching for better performance
-  cache: true
+  lazy: true
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {
