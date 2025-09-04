@@ -22,7 +22,7 @@ export const PLASMIC = initPlasmicLoader({
 
   // Fetches the latest revisions, whether or not they were unpublished!
   // Disable for production to ensure you render only published changes.
-  preview: true,
+  preview: false,
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference
@@ -41,7 +41,17 @@ export const PLASMIC = initPlasmicLoader({
   // This prevents the CORS error when trying to send analytics to analytics.plasmic.app
   analytics: {
     enabled: false
-  }
+  },
+  
+  // Enable lazy loading for better performance
+  // This applies to all components globally - no need to configure per component
+  lazy: true,
+  
+  // Enable component preloading for faster initial load
+  preload: true,
+  
+  // Enable caching for better performance
+  cache: true
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {
