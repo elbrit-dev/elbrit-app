@@ -13,7 +13,6 @@ import { useAuth } from '../components/AuthContext';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
-import AntSkeletonWrapper from '../components/AntSkeletonWrapper';
 
 export default function PlasmicLoaderPage(props) {
   const { plasmicData, queryCache } = props;
@@ -174,17 +173,19 @@ export default function PlasmicLoaderPage(props) {
   }
   
   // HYDRATION FIX: Show loading state until auth is loaded and stable
-  // OPTIMIZATION: Use Ant Design Skeleton for better UX
+  // OPTIMIZATION: Reduce loading time by showing content faster
   if (!authLoaded || !isStable) {
     console.log("⏳ Auth not loaded or not stable, showing loading...");
     return (
-      <div style={{ padding: '20px' }}>
-        <AntSkeletonWrapper 
-          active={true}
-          avatar={true}
-          paragraph={{ rows: 4 }}
-          title={{ width: "60%" }}
-        />
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh',
+        fontSize: '16px',
+        color: '#666'
+      }}>
+        Loading...
       </div>
     );
   }
@@ -237,7 +238,7 @@ export const getServerSideProps = async (context) => {
   const plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
   
   try {
-    // Simple timeout to prevent hanging
+    // OPTIMIZATION: Add timeout to prevent hanging
     const timeoutPromise = new Promise((_, reject) => 
       setTimeout(() => reject(new Error('Request timeout')), 5000)
     );
@@ -249,17 +250,40 @@ export const getServerSideProps = async (context) => {
       // non-Plasmic catch-all
       return { props: {} };
     }
+    
+    const pageMeta = plasmicData.entryCompMetas[0];
 
-    // Return minimal data to prevent server crashes
+    // OPTIMIZATION: Skip extractPlasmicQueryData for production to avoid API calls
+    // This eliminates the 4-second delay caused by data fetching
+    let queryCache = {};
+    
+    // Only extract query data in development mode
+    if (process.env.NODE_ENV === 'development') {
+      try {
+        queryCache = await extractPlasmicQueryData(
+          <PlasmicRootProvider
+            loader={PLASMIC}
+            prefetchedData={plasmicData}
+            pageRoute={pageMeta.path}
+            pageParams={pageMeta.params}
+          >
+            <PlasmicComponent component={pageMeta.displayName} />
+          </PlasmicRootProvider>
+        );
+      } catch (error) {
+        console.warn('Query data extraction failed, continuing without cache:', error.message);
+        queryCache = {};
+      }
+    }
+
     return { 
       props: { 
         plasmicData, 
-        queryCache: {}
+        queryCache
       } 
     };
   } catch (error) {
     console.error('Error in getServerSideProps:', error);
-    // Return empty props to prevent server crash
     return { 
       props: { 
         plasmicData: null, 
