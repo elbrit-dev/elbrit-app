@@ -1,9 +1,3 @@
-import { 
-  trackApiCall, 
-  trackCacheHit, 
-  trackCacheMiss, 
-  deduplicateRequest 
-} from '../../utils/performanceUtils';
 
 // PERFORMANCE: In-memory cache for user data (in production, use Redis)
 const userCache = new Map();
@@ -39,21 +33,17 @@ const setCachedUser = (key, data) => {
 };
 
 export default async function handler(req, res) {
-  const startTime = Date.now();
-  
   // PERFORMANCE: Set response headers early
   res.setHeader('Cache-Control', 'private, max-age=300, s-maxage=60');
   res.setHeader('Content-Type', 'application/json');
   
   if (req.method !== 'POST') {
-    trackApiCall(req.url, startTime, false, 0);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { email, phoneNumber, authProvider } = req.body;
 
   if (!email && !phoneNumber) {
-    trackApiCall(req.url, startTime, false, 0);
     return res.status(400).json({ error: 'Email or phone number is required' });
   }
 
@@ -61,13 +51,9 @@ export default async function handler(req, res) {
   const cacheKey = email || phoneNumber;
   const cachedUser = getCachedUser(cacheKey);
   if (cachedUser) {
-    trackCacheHit();
     console.log('⚡ Cache hit for user:', cacheKey);
-    trackApiCall(req.url, startTime, true, JSON.stringify(cachedUser).length);
     return res.status(200).json(cachedUser);
   }
-  
-  trackCacheMiss();
 
   try {
     // ERPNext API configuration
@@ -266,12 +252,10 @@ export default async function handler(req, res) {
       authProvider: userData.authProvider
     });
 
-    trackApiCall(req.url, startTime, true, JSON.stringify(responseData).length);
     return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('❌ ERPNext Auth Error:', error);
-    trackApiCall(req.url, startTime, false, 0);
     return res.status(500).json({ 
       error: 'ERPNext authentication failed', 
       details: error.message 

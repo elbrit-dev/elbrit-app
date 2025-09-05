@@ -1,8 +1,3 @@
-import { 
-  trackApiCall, 
-  trackCacheHit, 
-  trackCacheMiss 
-} from '../../utils/performanceUtils';
 
 // PERFORMANCE: In-memory cache for CMS data
 const cmsCache = new Map();
@@ -38,14 +33,11 @@ const setCachedData = (key, data) => {
 };
 
 export default async function handler(req, res) {
-  const startTime = Date.now();
-  
   // PERFORMANCE: Set response headers early
   res.setHeader('Cache-Control', 'private, max-age=120, s-maxage=60');
   res.setHeader('Content-Type', 'application/json');
   
   if (req.method !== 'POST') {
-    trackApiCall(req.url, startTime, false, 0);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -332,13 +324,9 @@ export default async function handler(req, res) {
       const cacheKey = `load_${configKey}_${req.body.filterByPage || ''}_${req.body.filterByTable || ''}`;
       const cachedData = getCachedData(cacheKey);
       if (cachedData) {
-        trackCacheHit();
         console.log('⚡ Cache hit for CMS load:', cacheKey);
-        trackApiCall(req.url, startTime, true, JSON.stringify(cachedData).length);
         return res.status(200).json(cachedData);
       }
-      
-      trackCacheMiss();
 
       // Load configuration from CMS using GET method with public token
       let whereClause = { configKey: configKey };
@@ -416,7 +404,6 @@ export default async function handler(req, res) {
       // PERFORMANCE: Cache successful load responses
       setCachedData(cacheKey, responseData);
 
-      trackApiCall(req.url, startTime, true, JSON.stringify(responseData).length);
       return res.status(200).json(responseData);
 
     } else if (action === 'list') {
@@ -500,7 +487,6 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('💥 Plasmic CMS API error:', error);
     console.error('💥 Error stack:', error.stack);
-    trackApiCall(req.url, startTime, false, 0);
     return res.status(500).json({ 
       error: 'CMS operation failed', 
       details: error.message,

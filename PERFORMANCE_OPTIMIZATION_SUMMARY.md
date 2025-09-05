@@ -31,19 +31,14 @@ Implemented comprehensive performance optimizations that should reduce response 
   - CMS API: `private, max-age=120, s-maxage=60`
 - **Content-Encoding headers** for better compression
 
-### 4. **Performance Monitoring System**
-- **Real-time metrics collection** for all API calls
-- **Cache hit/miss tracking**
-- **Response time monitoring**
-- **Memory usage tracking**
-- **Slow request detection** (>1 second)
-- **Performance suggestions** based on metrics
+### 4. **Response Optimization**
+- **Early response headers** to start streaming
+- **Optimized error handling**
+- **Reduced logging overhead** in production
 
 ### 5. **Request Optimization**
-- **Early response headers** to start streaming
 - **Request deduplication** for identical requests
 - **Error handling optimization**
-- **Reduced logging overhead** in production
 
 ## 🔧 Technical Implementation
 
@@ -51,30 +46,17 @@ Implemented comprehensive performance optimizations that should reduce response 
 1. **`pages/api/erpnext/auth.js`**
    - Added in-memory caching
    - Implemented connection pooling
-   - Added performance tracking
    - Optimized response headers
 
 2. **`pages/api/plasmic-cms.js`**
    - Added CMS data caching
    - Implemented connection pooling
-   - Added performance tracking
    - Optimized response headers
 
 3. **`next.config.mjs`**
    - Enhanced compression settings
    - Added performance headers
    - Optimized bundle splitting
-
-4. **`utils/performanceUtils.js`** (NEW)
-   - Performance metrics collection
-   - Cache management utilities
-   - Memory monitoring
-   - Optimization suggestions
-
-5. **`pages/api/performance.js`** (NEW)
-   - Performance monitoring endpoint
-   - Real-time metrics API
-   - Memory usage tracking
 
 ## 📈 Expected Performance Improvements
 
@@ -95,26 +77,10 @@ Implemented comprehensive performance optimizations that should reduce response 
 
 ## 🎯 Monitoring & Maintenance
 
-### Performance Monitoring:
-```bash
-# Check performance metrics
-GET /api/performance
-
-# Check memory usage
-GET /api/performance?action=memory
-
-# Get optimization suggestions
-GET /api/performance?action=suggestions
-
-# Reset metrics
-GET /api/performance?action=reset
-```
-
 ### Key Metrics to Monitor:
-- **Average response time** (target: <500ms)
+- **Response time** (target: <500ms)
 - **Cache hit rate** (target: >60%)
 - **Memory usage** (monitor for leaks)
-- **Slow requests** (target: <5% of total)
 
 ## 🚀 Production Recommendations
 
@@ -131,34 +97,27 @@ GET /api/performance?action=reset
 REDIS_URL=redis://localhost:6379
 CACHE_TTL=300
 CMS_CACHE_TTL=120
-
-# Performance monitoring
-ENABLE_PERFORMANCE_MONITORING=true
-PERFORMANCE_LOG_LEVEL=info
 ```
 
 ## 📊 Performance Testing
 
 ### Test the optimizations:
 1. **Load test** the API endpoints
-2. **Monitor cache hit rates** in `/api/performance`
-3. **Check response times** in browser dev tools
-4. **Verify memory usage** doesn't grow indefinitely
+2. **Check response times** in browser dev tools
+3. **Verify memory usage** doesn't grow indefinitely
 
 ### Expected Results:
 - **First request**: ~500ms (no cache)
 - **Cached requests**: ~50ms (cache hit)
 - **Memory usage**: Stable over time
-- **Cache hit rate**: 60-80% after warmup
 
 ## 🔍 Troubleshooting
 
 ### If performance is still slow:
-1. Check `/api/performance` for metrics
-2. Verify cache is working (look for cache hits)
-3. Check external API response times
-4. Monitor memory usage for leaks
-5. Review slow request logs
+1. Verify cache is working (look for cache hits in logs)
+2. Check external API response times
+3. Monitor memory usage for leaks
+4. Review server logs for errors
 
 ### Common Issues:
 - **Low cache hit rate**: Increase cache TTL or check cache keys
@@ -168,8 +127,8 @@ PERFORMANCE_LOG_LEVEL=info
 
 ## 📝 Next Steps
 
-1. **Deploy and monitor** the performance improvements
-2. **Collect baseline metrics** for comparison
+1. **Deploy and test** the performance improvements
+2. **Monitor response times** in browser dev tools
 3. **Implement Redis caching** for production scale
 4. **Add automated performance testing**
 5. **Set up alerting** for performance degradation
