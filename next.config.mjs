@@ -9,6 +9,15 @@ const nextConfig = {
   // Enable compression
   compress: true,
   
+  // Note: largePageDataBytes is only available in Next.js 15+
+  // For Next.js 14, the 128kB threshold is built-in and cannot be configured
+  
+  // PERFORMANCE: Enable SWC minification for faster builds
+  swcMinify: true,
+  
+  // PERFORMANCE: Enable static optimization
+  trailingSlash: false,
+  
   // Optimize images
   images: {
     formats: ['image/webp', 'image/avif'],
@@ -20,6 +29,17 @@ const nextConfig = {
     // optimizeCss: true, // Disabled - requires critters package
     optimizePackageImports: ['@plasmicapp/loader-nextjs', 'primereact'],
     // ppr: true, // Disabled - requires Next.js canary
+    // PERFORMANCE: Enable modern bundling
+    esmExternals: true,
+    // PERFORMANCE: Enable faster builds
+    turbo: {
+      rules: {
+        '*.svg': {
+          loaders: ['@svgr/webpack'],
+          as: '*.js',
+        },
+      },
+    },
   },
   
   // Webpack optimizations
@@ -64,6 +84,18 @@ const nextConfig = {
             value: 'nosniff',
           },
           {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin',
+          },
+          {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
@@ -75,6 +107,15 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/api/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=60, s-maxage=60',
           },
         ],
       },

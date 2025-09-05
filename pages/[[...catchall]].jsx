@@ -10,9 +10,36 @@ import Error from "next/error";
 import { useRouter } from "next/router";
 import { PLASMIC } from "../plasmic-init";
 import { useAuth } from '../components/AuthContext';
-import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback, Suspense, lazy } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
+
+// PERFORMANCE: Lazy load heavy components
+const AdvancedTable = lazy(() => import('../components/AdvancedTable'));
+const PrimeDataTable = lazy(() => import('../components/PrimeDataTable'));
+
+// PERFORMANCE: Lazy load Plasmic Studio components
+const LazyPlasmicComponent = lazy(() => 
+  import('@plasmicapp/loader-nextjs').then(module => ({
+    default: module.PlasmicComponent
+  }))
+);
+
+// PERFORMANCE: Lazy load other Plasmic components
+const LazyPlasmicRootProvider = lazy(() => 
+  import('@plasmicapp/loader-nextjs').then(module => ({
+    default: module.PlasmicRootProvider
+  }))
+);
+
+const LazyDataProvider = lazy(() => 
+  import('@plasmicapp/loader-nextjs').then(module => ({
+    default: module.DataProvider
+  }))
+);
+
+// PERFORMANCE: Lazy load PlasmicDataContext
+const LazyPlasmicDataContext = lazy(() => import('../components/PlasmicDataContext'));
 
 // PERFORMANCE FIX: PPR disabled - requires Next.js canary version
 // export const experimental_ppr = true;
@@ -41,17 +68,18 @@ export default function PlasmicLoaderPage(props) {
   // Get Firebase user from AuthContext
   const { user: firebaseUser, loading: firebaseLoading } = useAuth();
 
-  // PERFORMANCE FIX: Simplified state management
-  const [plasmicUser, setPlasmicUser] = useState(null);
-  const [plasmicAuthToken, setPlasmicAuthToken] = useState(null);
-  const [authLoaded, setAuthLoaded] = useState(false);
-  const [renderKey, setRenderKey] = useState(0);
+  // PERFORMANCE: Optimized state management with lazy initialization
+  const [plasmicUser, setPlasmicUser] = useState(() => null);
+  const [plasmicAuthToken, setPlasmicAuthToken] = useState(() => null);
+  const [authLoaded, setAuthLoaded] = useState(() => false);
+  const [renderKey, setRenderKey] = useState(() => 0);
   
   // PERFORMANCE FIX: Simplified memoization
   const pageMeta = useMemo(() => {
     return plasmicData?.entryCompMetas?.[0] || null;
   }, [plasmicData]);
 
+  // PERFORMANCE: Memoized user context to prevent unnecessary re-renders
   const userContext = useMemo(() => ({
     email: firebaseUser?.email,
     uid: firebaseUser?.uid,
@@ -137,69 +165,77 @@ export default function PlasmicLoaderPage(props) {
   }
 
   return (
-    <PlasmicRootProvider
-      loader={PLASMIC}
-      prefetchedData={plasmicData}
-      prefetchedQueryData={queryCache}
-      key={`plasmic-root-${pageMeta?.displayName || 'unknown'}-${renderKey}`}
-    >
-      {pageMeta && (
-        <>
-          <DataProvider 
-            name="currentUser" 
-            data={userContext}
-            key={`user-context-${firebaseUser?.uid || 'anonymous'}-${renderKey}`}
-          >
-            <DataProvider 
-              name="userEmail" 
-              data={userEmail}
-              key={`user-email-${userEmail}-${renderKey}`}
-            >
-              <PlasmicDataContext />
-              {/* PERFORMANCE FIX: Wrap in Suspense for PPR */}
-              <Suspense fallback={<PlasmicSkeleton />}>
-                <PlasmicErrorBoundary onRetry={handleRetry}>
-                  <PlasmicComponent 
-                    component={pageMeta.displayName}
-                    key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`}
-                  />
-                </PlasmicErrorBoundary>
-              </Suspense>
-            </DataProvider>
-          </DataProvider>
-        </>
-      )}
-    </PlasmicRootProvider>
+    <Suspense fallback={<PlasmicSkeleton />}>
+      <LazyPlasmicRootProvider
+        loader={PLASMIC}
+        prefetchedData={plasmicData}
+        prefetchedQueryData={queryCache}
+        key={`plasmic-root-${pageMeta?.displayName || 'unknown'}-${renderKey}`}
+      >
+        {pageMeta && (
+          <>
+            <Suspense fallback={<PlasmicSkeleton />}>
+              <LazyDataProvider 
+                name="currentUser" 
+                data={userContext}
+                key={`user-context-${firebaseUser?.uid || 'anonymous'}-${renderKey}`}
+              >
+                <Suspense fallback={<PlasmicSkeleton />}>
+                  <LazyDataProvider 
+                    name="userEmail" 
+                    data={userEmail}
+                    key={`user-email-${userEmail}-${renderKey}`}
+                  >
+                    <Suspense fallback={<PlasmicSkeleton />}>
+                      <LazyPlasmicDataContext />
+                    </Suspense>
+                    {/* PERFORMANCE FIX: Wrap in Suspense for PPR */}
+                    <Suspense fallback={<PlasmicSkeleton />}>
+                      <PlasmicErrorBoundary onRetry={handleRetry}>
+                        <LazyPlasmicComponent 
+                          component={pageMeta.displayName}
+                          key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`}
+                        />
+                      </PlasmicErrorBoundary>
+                    </Suspense>
+                  </LazyDataProvider>
+                </Suspense>
+              </LazyDataProvider>
+            </Suspense>
+          </>
+        )}
+      </LazyPlasmicRootProvider>
+    </Suspense>
   );
 }
 
-export const getServerSideProps = async (context) => {
+// PERFORMANCE: Use getStaticProps for better performance (static generation)
+export const getStaticProps = async (context) => {
   const { catchall } = context.params ?? {};
   const plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
   
   try {
-    // PERFORMANCE FIX: Only fetch essential component data
+    // PERFORMANCE: Only fetch essential component data
     const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
     if (!plasmicData) {
-      return { props: {} };
+      return { 
+        props: {},
+        revalidate: 60 // Revalidate every 60 seconds
+      };
     }
 
-    // PERFORMANCE FIX: Reduce payload size by only including essential data
-    // This prevents the "Large Page Data" warning (>= 128kB)
+    // PERFORMANCE: Minimal data payload - only essential data
     const optimizedPlasmicData = {
       entryCompMetas: plasmicData.entryCompMetas,
       bundle: plasmicData.bundle,
-      // Remove heavy data that can be loaded client-side
-      // queryCache: null, // Load client-side instead
-      // globalVariants: null, // Load client-side instead
     };
 
     return { 
       props: { 
         plasmicData: optimizedPlasmicData,
-        // Remove queryCache to reduce payload size
         queryCache: null
-      } 
+      },
+      revalidate: 60 // Revalidate every 60 seconds for fresh data
     };
   } catch (error) {
     console.error('Plasmic SSR error:', error);
@@ -207,7 +243,16 @@ export const getServerSideProps = async (context) => {
       props: { 
         plasmicData: null,
         queryCache: null
-      } 
+      },
+      revalidate: 60
     };
   }
+}
+
+// PERFORMANCE: Enable static generation for all paths
+export const getStaticPaths = async () => {
+  return {
+    paths: [], // Let Next.js generate paths on-demand
+    fallback: 'blocking' // Generate pages on-demand
+  };
 }
