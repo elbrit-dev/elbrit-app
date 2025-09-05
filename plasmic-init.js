@@ -2,14 +2,16 @@ import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
 import MicrosoftSSOLogin from "./components/MicrosoftSSOLogin";
 import TruecallerSSOLogin from "./components/TruecallerSSOLogin";
 import PlasmicDataContext from "./components/PlasmicDataContext";
-import AdvancedTable from "./components/AdvancedTable";
-import PrimeDataTable from "./components/PrimeDataTable";
-// import PrimeDataTableOptimized from "./components/PrimeDataTableOptimized";
 import FirestoreDebug from "./components/FirestoreDebug";
 import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+
+// PERFORMANCE FIX: Lazy load heavy components
+import { lazy } from "react";
+const AdvancedTable = lazy(() => import("./components/AdvancedTable"));
+const PrimeDataTable = lazy(() => import("./components/PrimeDataTable"));
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -41,7 +43,22 @@ export const PLASMIC = initPlasmicLoader({
   // This prevents the CORS error when trying to send analytics to analytics.plasmic.app
   analytics: {
     enabled: false
-  }
+  },
+
+  // PERFORMANCE OPTIMIZATIONS
+  // Enable lazy loading for better performance
+  lazy: true,
+  
+  // Enable caching for better performance
+  cache: true,
+  
+  // Disable unnecessary features for production
+  i18n: {
+    enabled: false
+  },
+  
+  // Optimize bundle size
+  alwaysFresh: false
 });
 
 PLASMIC.registerComponent(MicrosoftSSOLogin, {

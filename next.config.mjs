@@ -5,16 +5,81 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Add headers for security (removed X-Frame-Options to allow iframe usage)
+  // PERFORMANCE OPTIMIZATIONS
+  // Enable compression
+  compress: true,
+  
+  // Optimize images
+  images: {
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+  },
+  
+  // Enable experimental features for better performance
+  experimental: {
+    optimizeCss: true,
+    optimizePackageImports: ['@plasmicapp/loader-nextjs', 'primereact'],
+    // PERFORMANCE FIX: Enable Partial Prerendering (PPR)
+    ppr: true,
+  },
+
+  // PERFORMANCE FIX: Configure large page data threshold
+  // Default is 128kB, we're optimizing to stay below this
+  largePageDataBytes: 128 * 1024, // 128kB threshold
+  
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Optimize bundle splitting
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          plasmic: {
+            test: /[\\/]node_modules[\\/]@plasmicapp[\\/]/,
+            name: 'plasmic',
+            chunks: 'all',
+            priority: 20,
+          },
+          prime: {
+            test: /[\\/]node_modules[\\/]primereact[\\/]/,
+            name: 'prime',
+            chunks: 'all',
+            priority: 15,
+          },
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+            priority: 10,
+          },
+        },
+      };
+    }
+    return config;
+  },
+  
+  // Add headers for security and performance
   async headers() {
     return [
       {
-        // Apply these headers to all routes
         source: '/(.*)',
         headers: [
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff',
+          },
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
