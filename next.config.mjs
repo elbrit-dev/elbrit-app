@@ -101,15 +101,15 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
-          // Allow iframe embedding for Plasmic apps
+          // Allow iframe embedding for all domains to prevent site crashes
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            value: 'ALLOWALL',
           },
-          // Content Security Policy for iframe embedding
+          // Content Security Policy for iframe embedding - allow all
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app; frame-src 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app;",
+            value: "frame-ancestors *; frame-src *;",
           },
         ],
       },
@@ -176,17 +176,17 @@ const nextConfig = {
           },
         ],
       },
-      // Allow iframe embedding for all catchall routes (Plasmic pages)
+      // Allow iframe embedding for all catchall routes (Plasmic pages) - allow all to prevent crashes
       {
         source: '/((?!api|_next|favicon.ico).*)',
         headers: [
           {
             key: 'X-Frame-Options',
-            value: 'SAMEORIGIN',
+            value: 'ALLOWALL',
           },
           {
             key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app;",
+            value: "frame-ancestors *; frame-src *;",
           },
         ],
       },
