@@ -1,5 +1,51 @@
+import { 
+  trackApiCall, 
+  trackCacheHit, 
+  trackCacheMiss 
+} from '../../utils/performanceUtils';
+
+// PERFORMANCE: In-memory cache for CMS data
+const cmsCache = new Map();
+const CMS_CACHE_TTL = 2 * 60 * 1000; // 2 minutes for CMS data
+
+// PERFORMANCE: Connection pooling for external API calls
+const fetchWithKeepAlive = (url, options = {}) => {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Connection': 'keep-alive',
+      'Keep-Alive': 'timeout=5, max=1000'
+    }
+  });
+};
+
+// PERFORMANCE: Cache helper functions
+const getCachedData = (key) => {
+  const cached = cmsCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CMS_CACHE_TTL) {
+    return cached.data;
+  }
+  cmsCache.delete(key);
+  return null;
+};
+
+const setCachedData = (key, data) => {
+  cmsCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  
+  // PERFORMANCE: Set response headers early
+  res.setHeader('Cache-Control', 'private, max-age=120, s-maxage=60');
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
+    trackApiCall(req.url, startTime, false, 0);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
@@ -282,6 +328,18 @@ export default async function handler(req, res) {
       }
 
     } else if (action === 'load') {
+      // PERFORMANCE: Check cache first for load operations
+      const cacheKey = `load_${configKey}_${req.body.filterByPage || ''}_${req.body.filterByTable || ''}`;
+      const cachedData = getCachedData(cacheKey);
+      if (cachedData) {
+        trackCacheHit();
+        console.log('⚡ Cache hit for CMS load:', cacheKey);
+        trackApiCall(req.url, startTime, true, JSON.stringify(cachedData).length);
+        return res.status(200).json(cachedData);
+      }
+      
+      trackCacheMiss();
+
       // Load configuration from CMS using GET method with public token
       let whereClause = { configKey: configKey };
       
@@ -303,7 +361,7 @@ export default async function handler(req, res) {
       console.log('📥 Loading from CMS at:', loadUrl);
       console.log('🔍 Filter criteria:', whereClause);
       
-      const response = await fetch(loadUrl, {
+      const response = await fetchWithKeepAlive(loadUrl, {
         method: 'GET',
         headers: getUserHeaders(false) // Use public token for read operations
       });
@@ -350,10 +408,16 @@ export default async function handler(req, res) {
         source: record?.data?.pivotConfig ? 'published' : 'draft'
       });
 
-      return res.status(200).json({ 
+      const responseData = { 
         success: true, 
         data: config || null 
-      });
+      };
+
+      // PERFORMANCE: Cache successful load responses
+      setCachedData(cacheKey, responseData);
+
+      trackApiCall(req.url, startTime, true, JSON.stringify(responseData).length);
+      return res.status(200).json(responseData);
 
     } else if (action === 'list') {
       // List configurations filtered by page and/or table
@@ -436,6 +500,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error('💥 Plasmic CMS API error:', error);
     console.error('💥 Error stack:', error.stack);
+    trackApiCall(req.url, startTime, false, 0);
     return res.status(500).json({ 
       error: 'CMS operation failed', 
       details: error.message,

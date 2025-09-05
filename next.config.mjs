@@ -9,6 +9,12 @@ const nextConfig = {
   // Enable compression
   compress: true,
   
+  // PERFORMANCE: Enable experimental features for better performance
+  poweredByHeader: false,
+  
+  // PERFORMANCE: Optimize bundle size
+  generateEtags: true,
+  
   // Note: largePageDataBytes is only available in Next.js 15+
   // For Next.js 14, the 128kB threshold is built-in and cannot be configured
   
@@ -116,6 +122,37 @@ const nextConfig = {
           {
             key: 'Cache-Control',
             value: 'public, max-age=60, s-maxage=60',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+        ],
+      },
+      // PERFORMANCE: Add compression headers
+      {
+        source: '/api/erpnext/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=300, s-maxage=60',
+          },
+          {
+            key: 'Content-Encoding',
+            value: 'gzip',
+          },
+        ],
+      },
+      {
+        source: '/api/plasmic-cms/(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'private, max-age=120, s-maxage=60',
+          },
+          {
+            key: 'Content-Encoding',
+            value: 'gzip',
           },
         ],
       },

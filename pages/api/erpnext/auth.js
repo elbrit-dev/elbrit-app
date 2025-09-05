@@ -1,13 +1,73 @@
+import { 
+  trackApiCall, 
+  trackCacheHit, 
+  trackCacheMiss, 
+  deduplicateRequest 
+} from '../../utils/performanceUtils';
+
+// PERFORMANCE: In-memory cache for user data (in production, use Redis)
+const userCache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// PERFORMANCE: Connection pooling simulation with keep-alive
+const fetchWithKeepAlive = (url, options = {}) => {
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...options.headers,
+      'Connection': 'keep-alive',
+      'Keep-Alive': 'timeout=5, max=1000'
+    }
+  });
+};
+
+// PERFORMANCE: Cache helper functions
+const getCachedUser = (key) => {
+  const cached = userCache.get(key);
+  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    return cached.data;
+  }
+  userCache.delete(key);
+  return null;
+};
+
+const setCachedUser = (key, data) => {
+  userCache.set(key, {
+    data,
+    timestamp: Date.now()
+  });
+};
+
 export default async function handler(req, res) {
+  const startTime = Date.now();
+  
+  // PERFORMANCE: Set response headers early
+  res.setHeader('Cache-Control', 'private, max-age=300, s-maxage=60');
+  res.setHeader('Content-Type', 'application/json');
+  
   if (req.method !== 'POST') {
+    trackApiCall(req.url, startTime, false, 0);
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { email, phoneNumber, authProvider } = req.body;
 
   if (!email && !phoneNumber) {
+    trackApiCall(req.url, startTime, false, 0);
     return res.status(400).json({ error: 'Email or phone number is required' });
   }
+
+  // PERFORMANCE: Check cache first
+  const cacheKey = email || phoneNumber;
+  const cachedUser = getCachedUser(cacheKey);
+  if (cachedUser) {
+    trackCacheHit();
+    console.log('⚡ Cache hit for user:', cacheKey);
+    trackApiCall(req.url, startTime, true, JSON.stringify(cachedUser).length);
+    return res.status(200).json(cachedUser);
+  }
+  
+  trackCacheMiss();
 
   try {
     // ERPNext API configuration
@@ -21,11 +81,6 @@ export default async function handler(req, res) {
     }
 
     console.log('🔐 ERPNext Auth Request:', { email, phoneNumber, authProvider });
-    console.log('🔧 ERPNext Config:', { 
-      url: erpnextUrl, 
-      hasApiKey: !!erpnextApiKey, 
-      hasApiSecret: !!erpnextApiSecret 
-    });
 
     // Always search by company_email for role-based access
     // For Microsoft SSO: use email directly as company_email
@@ -53,7 +108,7 @@ export default async function handler(req, res) {
 
       console.log('🔍 Searching Employee table for phone number:', phoneNumber);
       
-      const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
+      const employeeResponse = await fetchWithKeepAlive(`${employeeSearchUrl}?${employeeSearchParams}`, {
         method: 'GET',
         headers: {
           'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
@@ -121,7 +176,7 @@ export default async function handler(req, res) {
     console.log('🔍 Making ERPNext API call to:', `${employeeSearchUrl}?${employeeSearchParams}`);
     console.log('🔍 Authorization header:', `token ${erpnextApiKey}:${erpnextApiSecret}`);
     
-    const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
+    const employeeResponse = await fetchWithKeepAlive(`${employeeSearchUrl}?${employeeSearchParams}`, {
       method: 'GET',
       headers: {
         'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
@@ -193,6 +248,16 @@ export default async function handler(req, res) {
     // Generate a simple token (you can implement JWT if needed)
     const token = Buffer.from(`${userData.uid}:${Date.now()}`).toString('base64');
 
+    const responseData = {
+      success: true,
+      user: userData,
+      token: token,
+      userSource: userSource
+    };
+
+    // PERFORMANCE: Cache the successful response
+    setCachedUser(cacheKey, responseData);
+
     console.log('✅ ERPNext Auth successful:', {
       userSource,
       companyEmail: searchValue,
@@ -201,15 +266,12 @@ export default async function handler(req, res) {
       authProvider: userData.authProvider
     });
 
-    return res.status(200).json({
-      success: true,
-      user: userData,
-      token: token,
-      userSource: userSource
-    });
+    trackApiCall(req.url, startTime, true, JSON.stringify(responseData).length);
+    return res.status(200).json(responseData);
 
   } catch (error) {
     console.error('❌ ERPNext Auth Error:', error);
+    trackApiCall(req.url, startTime, false, 0);
     return res.status(500).json({ 
       error: 'ERPNext authentication failed', 
       details: error.message 
