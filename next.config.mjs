@@ -101,6 +101,16 @@ const nextConfig = {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable',
           },
+          // Allow iframe embedding for Plasmic apps
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          // Content Security Policy for iframe embedding
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app; frame-src 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app;",
+          },
         ],
       },
       {
@@ -149,6 +159,34 @@ const nextConfig = {
           {
             key: 'Content-Encoding',
             value: 'gzip',
+          },
+        ],
+      },
+      // Special headers for Plasmic host page to allow iframe embedding
+      {
+        source: '/plasmic-host',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'ALLOWALL',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors *; frame-src *;",
+          },
+        ],
+      },
+      // Allow iframe embedding for all catchall routes (Plasmic pages)
+      {
+        source: '/((?!api|_next|favicon.ico).*)',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN',
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://*.netlify.app https://*.plasmic.app https://studio.plasmic.app;",
           },
         ],
       },
