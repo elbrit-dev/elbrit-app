@@ -17,15 +17,10 @@ const nextConfig = {
   
   // Enable experimental features for better performance
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled - requires critters package
     optimizePackageImports: ['@plasmicapp/loader-nextjs', 'primereact'],
-    // PERFORMANCE FIX: Enable Partial Prerendering (PPR)
-    ppr: true,
+    // ppr: true, // Disabled - requires Next.js canary
   },
-
-  // PERFORMANCE FIX: Configure large page data threshold
-  // Default is 128kB, we're optimizing to stay below this
-  largePageDataBytes: 128 * 1024, // 128kB threshold
   
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {

@@ -14,8 +14,8 @@ import { useEffect, useState, useMemo, useRef, useCallback, Suspense } from 'rea
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
 
-// PERFORMANCE FIX: Enable Partial Prerendering for this route
-export const experimental_ppr = true;
+// PERFORMANCE FIX: PPR disabled - requires Next.js canary version
+// export const experimental_ppr = true;
 
 // PERFORMANCE FIX: Add loading skeleton for PPR
 function PlasmicSkeleton() {
