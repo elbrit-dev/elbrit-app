@@ -17,6 +17,14 @@ import { lazy } from "react";
 const AdvancedTable = lazy(() => import("./components/AdvancedTable"));
 const PrimeDataTable = lazy(() => import("./components/PrimeDataTable"));
 
+// Ensure components are available for Plasmic Studio
+// Pre-load the lazy components to make them available in the registry
+if (typeof window !== 'undefined') {
+  // This ensures the components are loaded when Plasmic Studio accesses them
+  import("./components/AdvancedTable");
+  import("./components/PrimeDataTable");
+}
+
 
 export const PLASMIC = initPlasmicLoader({
   projects: [
