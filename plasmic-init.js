@@ -2839,7 +2839,7 @@ PLASMIC.registerComponent(PlasmicSkeleton, {
     borderRadius: {
       type: "string",
       description: "Border radius of the skeleton (CSS value like '0.25rem', '4px', etc.)",
-      defaultValue: "0.25rem"
+      defaultValue: "0.26rem"
     },
     
     // Animation props
