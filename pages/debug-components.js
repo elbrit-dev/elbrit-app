@@ -6,19 +6,19 @@ export default function DebugComponents() {
   }
 
   // Get the component registry from the global scope
-  const registry = window.__PlasmicComponentRegistry || {};
-  const componentNames = Object.keys(registry);
+  const registry = window.__PlasmicComponentRegistry || [];
+  const componentNames = registry.map(item => item.meta?.name).filter(Boolean);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'monospace' }}>
       <h1>Plasmic Component Registry Debug</h1>
-      <h2>Total Components: {componentNames.length}</h2>
+      <h2>Total Components: {registry.length}</h2>
       
       <h3>Registered Components:</h3>
       <ul>
-        {componentNames.map(name => (
-          <li key={name}>
-            <strong>{name}</strong>: {registry[name]?.displayName || 'No display name'}
+        {registry.map((item, index) => (
+          <li key={index}>
+            <strong>{item.meta?.name || 'Unknown'}</strong>: {item.meta?.displayName || 'No display name'}
           </li>
         ))}
       </ul>
