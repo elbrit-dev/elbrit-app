@@ -24,7 +24,7 @@ export const PLASMIC = initPlasmicLoader({
   ],
 
   // PERFORMANCE: Disable preview for production performance
-  preview: false,
+  preview: true,
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference
