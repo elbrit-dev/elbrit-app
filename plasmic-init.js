@@ -23,6 +23,17 @@ if (typeof window !== 'undefined') {
   // This ensures the components are loaded when Plasmic Studio accesses them
   import("./components/AdvancedTable");
   import("./components/PrimeDataTable");
+  
+  // CRITICAL: Ensure component registry is globally available for Plasmic Studio
+  // This is especially important in production mode
+  window.__PlasmicComponentRegistry = window.__PlasmicComponentRegistry || [];
+  
+  // Force component registration to be available immediately
+  setTimeout(() => {
+    if (window.__PlasmicComponentRegistry) {
+      console.log('Plasmic Component Registry available:', window.__PlasmicComponentRegistry.length, 'components');
+    }
+  }, 1000);
 }
 
 

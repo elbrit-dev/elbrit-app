@@ -48,6 +48,7 @@ const nextConfig = {
     },
   },
   
+  
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
     if (!dev && !isServer) {
@@ -76,6 +77,17 @@ const nextConfig = {
         },
       };
     }
+    
+    // CRITICAL: Ensure component registry is available in production
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        os: false,
+      };
+    }
+    
     return config;
   },
   
