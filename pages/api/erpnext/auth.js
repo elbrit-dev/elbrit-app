@@ -9,8 +9,7 @@ const fetchWithKeepAlive = (url, options = {}) => {
     ...options,
     headers: {
       ...options.headers,
-      'Connection': 'keep-alive',
-      'Keep-Alive': 'timeout=5, max=1000'
+      'Connection': 'keep-alive'
     }
   });
 };

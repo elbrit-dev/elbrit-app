@@ -2815,7 +2815,7 @@ PLASMIC.registerComponent(TagFilterPrimeReact, {
 // Register the Plasmic Skeleton component
 PLASMIC.registerComponent(PlasmicSkeleton, {
   name: "PlasmicSkeleton",
-  displayName: "Loading Skeleton",
+  displayName: "Advanced Skeleton",
   description: "A flexible skeleton loading component with multiple patterns and customizable styling for loading states",
   props: {
     // Basic skeleton props
@@ -2953,6 +2953,22 @@ PLASMIC.registerComponent(PlasmicSkeleton, {
     children: {
       type: "slot",
       description: "Custom content to render instead of skeleton (useful for conditional rendering)"
+    },
+    
+    // Conditional rendering props
+    showWhen: {
+      type: "boolean",
+      description: "Whether to show the skeleton (true) or hide it (false). Use this for conditional rendering.",
+      defaultValue: true,
+      displayName: "Show When",
+      helpText: "Set to true to show skeleton, false to hide it. Use with expressions like 'loading === true'"
+    },
+    isVisible: {
+      type: "boolean",
+      description: "Force visibility control - when false, skeleton will not render regardless of other props.",
+      defaultValue: true,
+      displayName: "Is Visible",
+      helpText: "Set to false to completely hide the skeleton. Both showWhen and isVisible must be true for skeleton to appear."
     }
   },
   importPath: "./components/PlasmicSkeleton"

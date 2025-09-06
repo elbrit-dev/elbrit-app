@@ -11,7 +11,7 @@ import { Tooltip } from 'primereact/tooltip';
 import { Toast } from 'primereact/toast';
 import { Chip } from 'primereact/chip';
 import { Panel } from 'primereact/panel';
-import { parseFormula, validateFormula, executeCalculatedField } from '../utils/calculatedFieldsUtils.js';
+import { parseFormula, validateFormula, executeCalculatedField } from './utils/calculatedFieldsUtils.js';
 
 const CalculatedFieldsManager = ({ 
   calculatedFields = [], 

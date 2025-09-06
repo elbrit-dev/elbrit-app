@@ -14,9 +14,7 @@ import { useEffect, useState, useMemo, useRef, useCallback, Suspense, lazy } fro
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
 
-// PERFORMANCE: Lazy load heavy components
-const AdvancedTable = lazy(() => import('../components/AdvancedTable'));
-const PrimeDataTable = lazy(() => import('../components/PrimeDataTable'));
+// PERFORMANCE: Lazy load heavy components (moved to plasmic-init.js)
 
 // PERFORMANCE: Lazy load Plasmic Studio components
 const LazyPlasmicComponent = lazy(() => 
@@ -45,7 +43,7 @@ const LazyPlasmicDataContext = lazy(() => import('../components/PlasmicDataConte
 // export const experimental_ppr = true;
 
 // PERFORMANCE FIX: Add loading skeleton for PPR
-function PlasmicSkeleton() {
+function SimpleLoadingSkeleton() {
   return (
     <div style={{ 
       padding: '20px', 
@@ -147,7 +145,7 @@ export default function PlasmicLoaderPage(props) {
     if (firebaseUser) {
       refreshERPNextAuth();
     }
-  }, [firebaseUser, plasmicUser, plasmicAuthToken]);
+  }, [firebaseUser]); // Removed plasmicUser and plasmicAuthToken to prevent infinite loop
 
   // PERFORMANCE FIX: Simplified retry handler
   const handleRetry = useCallback(() => {
@@ -161,11 +159,11 @@ export default function PlasmicLoaderPage(props) {
   
   // PERFORMANCE FIX: Simplified loading state
   if (!authLoaded) {
-    return <PlasmicSkeleton />;
+    return <SimpleLoadingSkeleton />;
   }
 
   return (
-    <Suspense fallback={<PlasmicSkeleton />}>
+    <Suspense fallback={<SimpleLoadingSkeleton />}>
       <LazyPlasmicRootProvider
         loader={PLASMIC}
         prefetchedData={plasmicData}
@@ -174,23 +172,23 @@ export default function PlasmicLoaderPage(props) {
       >
         {pageMeta && (
           <>
-            <Suspense fallback={<PlasmicSkeleton />}>
+            <Suspense fallback={<SimpleLoadingSkeleton />}>
               <LazyDataProvider 
                 name="currentUser" 
                 data={userContext}
                 key={`user-context-${firebaseUser?.uid || 'anonymous'}-${renderKey}`}
               >
-                <Suspense fallback={<PlasmicSkeleton />}>
+                <Suspense fallback={<SimpleLoadingSkeleton />}>
                   <LazyDataProvider 
                     name="userEmail" 
                     data={userEmail}
                     key={`user-email-${userEmail}-${renderKey}`}
                   >
-                    <Suspense fallback={<PlasmicSkeleton />}>
+                    <Suspense fallback={<SimpleLoadingSkeleton />}>
                       <LazyPlasmicDataContext />
                     </Suspense>
                     {/* PERFORMANCE FIX: Wrap in Suspense for PPR */}
-                    <Suspense fallback={<PlasmicSkeleton />}>
+                    <Suspense fallback={<SimpleLoadingSkeleton />}>
                       <PlasmicErrorBoundary onRetry={handleRetry}>
                         <LazyPlasmicComponent 
                           component={pageMeta.displayName}
