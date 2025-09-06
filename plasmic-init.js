@@ -7,6 +7,7 @@ import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+import PlasmicSkeleton from "./components/PlasmicSkeleton";
 
 // PERFORMANCE FIX: Lazy load heavy components
 import { lazy } from "react";
@@ -2806,6 +2807,152 @@ PLASMIC.registerComponent(TagFilterPrimeReact, {
     }
   },
   importPath: "./components/TagFilterPrimeReact"
+});
+
+// Register the Plasmic Skeleton component
+PLASMIC.registerComponent(PlasmicSkeleton, {
+  name: "PlasmicSkeleton",
+  displayName: "Loading Skeleton",
+  description: "A flexible skeleton loading component with multiple patterns and customizable styling for loading states",
+  props: {
+    // Basic skeleton props
+    count: {
+      type: "number",
+      description: "Number of skeleton lines to render",
+      defaultValue: 1
+    },
+    width: {
+      type: "string",
+      description: "Width of the skeleton (CSS value like '100%', '200px', etc.)",
+      defaultValue: "100%"
+    },
+    height: {
+      type: "string",
+      description: "Height of each skeleton line (CSS value like '1rem', '20px', etc.)",
+      defaultValue: "1rem"
+    },
+    circle: {
+      type: "boolean",
+      description: "Make the skeleton circular",
+      defaultValue: false
+    },
+    borderRadius: {
+      type: "string",
+      description: "Border radius of the skeleton (CSS value like '0.25rem', '4px', etc.)",
+      defaultValue: "0.25rem"
+    },
+    
+    // Animation props
+    duration: {
+      type: "number",
+      description: "Animation duration in seconds",
+      defaultValue: 1.5
+    },
+    direction: {
+      type: "choice",
+      options: ["ltr", "rtl"],
+      description: "Animation direction",
+      defaultValue: "ltr"
+    },
+    enableAnimation: {
+      type: "boolean",
+      description: "Enable skeleton animation",
+      defaultValue: true
+    },
+    
+    // Theme props
+    baseColor: {
+      type: "string",
+      description: "Background color of the skeleton",
+      defaultValue: "#ebebeb"
+    },
+    highlightColor: {
+      type: "string",
+      description: "Highlight color in the skeleton animation",
+      defaultValue: "#f5f5f5"
+    },
+    customHighlightBackground: {
+      type: "string",
+      description: "Custom gradient background for highlight (overrides baseColor and highlightColor)",
+      defaultValue: ""
+    },
+    
+    // Layout props
+    inline: {
+      type: "boolean",
+      description: "Render skeleton inline (no line breaks)",
+      defaultValue: false
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for skeleton elements",
+      defaultValue: ""
+    },
+    containerClassName: {
+      type: "string",
+      description: "CSS classes for the container element",
+      defaultValue: ""
+    },
+    containerTestId: {
+      type: "string",
+      description: "Test ID for the container element",
+      defaultValue: ""
+    },
+    
+    // Style props
+    style: {
+      type: "object",
+      description: "Inline styles for the skeleton",
+      defaultValue: {}
+    },
+    
+    // Preset patterns
+    pattern: {
+      type: "choice",
+      options: ["default", "text", "card", "avatar", "table", "list"],
+      description: "Predefined skeleton pattern",
+      defaultValue: "default"
+    },
+    
+    // Pattern-specific props
+    textLines: {
+      type: "number",
+      description: "Number of text lines for 'text' pattern",
+      defaultValue: 3
+    },
+    cardHeight: {
+      type: "string",
+      description: "Height of card for 'card' pattern",
+      defaultValue: "200px"
+    },
+    avatarSize: {
+      type: "string",
+      description: "Size of avatar for 'avatar', 'card', and 'list' patterns",
+      defaultValue: "40px"
+    },
+    tableRows: {
+      type: "number",
+      description: "Number of table rows for 'table' pattern",
+      defaultValue: 5
+    },
+    tableColumns: {
+      type: "number",
+      description: "Number of table columns for 'table' pattern",
+      defaultValue: 4
+    },
+    listItems: {
+      type: "number",
+      description: "Number of list items for 'list' pattern",
+      defaultValue: 4
+    },
+    
+    // Children for custom content
+    children: {
+      type: "slot",
+      description: "Custom content to render instead of skeleton (useful for conditional rendering)"
+    }
+  },
+  importPath: "./components/PlasmicSkeleton"
 });
 
 
