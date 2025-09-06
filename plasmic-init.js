@@ -8,6 +8,9 @@ import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
 import PlasmicSkeleton from "./components/PlasmicSkeleton";
+import PlasmicSearchBar from "./components/PlasmicSearchBar";
+import PlasmicButton from "./components/PlasmicButton";
+import PlasmicInput from "./components/PlasmicInput";
 
 // PERFORMANCE FIX: Lazy load heavy components
 import { lazy } from "react";
@@ -24,7 +27,7 @@ export const PLASMIC = initPlasmicLoader({
   ],
 
   // PERFORMANCE: Disable preview for production performance
-  preview: true,
+  preview: false,
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference
@@ -2953,6 +2956,480 @@ PLASMIC.registerComponent(PlasmicSkeleton, {
     }
   },
   importPath: "./components/PlasmicSkeleton"
+});
+
+// Register the Plasmic Search Bar component
+PLASMIC.registerComponent(PlasmicSearchBar, {
+  name: "PlasmicSearchBar",
+  displayName: "Search Bar",
+  description: "A flexible search input component with icons, debouncing, and customizable styling",
+  props: {
+    // Basic props
+    placeholder: {
+      type: "string",
+      description: "Placeholder text for the search input",
+      defaultValue: "Search..."
+    },
+    value: {
+      type: "string",
+      description: "Current value of the search input",
+      defaultValue: ""
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the search input",
+      defaultValue: false
+    },
+    readOnly: {
+      type: "boolean",
+      description: "Make the search input read-only",
+      defaultValue: false
+    },
+    
+    // Styling
+    size: {
+      type: "choice",
+      options: ["small", "medium", "large"],
+      description: "Size of the search bar",
+      defaultValue: "medium"
+    },
+    variant: {
+      type: "choice",
+      options: ["outlined", "filled", "underlined"],
+      description: "Visual variant of the search bar",
+      defaultValue: "outlined"
+    },
+    width: {
+      type: "string",
+      description: "Width of the search bar (CSS value)",
+      defaultValue: "100%"
+    },
+    height: {
+      type: "string",
+      description: "Height of the search bar (CSS value)",
+      defaultValue: "40px"
+    },
+    
+    // Colors
+    backgroundColor: {
+      type: "string",
+      description: "Background color of the search bar",
+      defaultValue: "#ffffff"
+    },
+    borderColor: {
+      type: "string",
+      description: "Border color of the search bar",
+      defaultValue: "#d1d5db"
+    },
+    textColor: {
+      type: "string",
+      description: "Text color of the search input",
+      defaultValue: "#374151"
+    },
+    focusBorderColor: {
+      type: "string",
+      description: "Border color when focused",
+      defaultValue: "#3b82f6"
+    },
+    
+    // Icons
+    showSearchIcon: {
+      type: "boolean",
+      description: "Show search icon on the left",
+      defaultValue: true
+    },
+    showClearIcon: {
+      type: "boolean",
+      description: "Show clear icon when there's text",
+      defaultValue: true
+    },
+    searchIcon: {
+      type: "string",
+      description: "Search icon (emoji or text)",
+      defaultValue: "🔍"
+    },
+    clearIcon: {
+      type: "string",
+      description: "Clear icon (emoji or text)",
+      defaultValue: "✕"
+    },
+    
+    // Behavior
+    debounceMs: {
+      type: "number",
+      description: "Debounce delay in milliseconds",
+      defaultValue: 300
+    },
+    minLength: {
+      type: "number",
+      description: "Minimum length before triggering search",
+      defaultValue: 0
+    },
+    maxLength: {
+      type: "number",
+      description: "Maximum length of input",
+      defaultValue: 1000
+    },
+    
+    // Labels
+    label: {
+      type: "string",
+      description: "Label text above the search bar",
+      defaultValue: ""
+    },
+    helperText: {
+      type: "string",
+      description: "Helper text below the search bar",
+      defaultValue: ""
+    },
+    errorText: {
+      type: "string",
+      description: "Error text below the search bar",
+      defaultValue: ""
+    },
+    
+    // Event handlers
+    onSearch: {
+      type: "eventHandler",
+      description: "Called when search is performed",
+      argTypes: [
+        {
+          name: "searchValue",
+          type: "string",
+          description: "The search value"
+        }
+      ]
+    },
+    onInputChange: {
+      type: "eventHandler",
+      description: "Called when input value changes",
+      argTypes: [
+        {
+          name: "value",
+          type: "string",
+          description: "The new input value"
+        }
+      ]
+    },
+    onClear: {
+      type: "eventHandler",
+      description: "Called when clear button is clicked",
+      argTypes: []
+    }
+  },
+  importPath: "./components/PlasmicSearchBar"
+});
+
+// Register the Plasmic Button component
+PLASMIC.registerComponent(PlasmicButton, {
+  name: "PlasmicButton",
+  displayName: "Button",
+  description: "A flexible button component with multiple variants, sizes, and states",
+  props: {
+    // Content
+    children: {
+      type: "slot",
+      description: "Button content (text, icons, etc.)"
+    },
+    text: {
+      type: "string",
+      description: "Button text (alternative to children)",
+      defaultValue: "Button"
+    },
+    
+    // Styling
+    variant: {
+      type: "choice",
+      options: ["primary", "secondary", "outline", "ghost", "danger"],
+      description: "Button variant style",
+      defaultValue: "primary"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "medium", "large"],
+      description: "Button size",
+      defaultValue: "medium"
+    },
+    width: {
+      type: "string",
+      description: "Button width (CSS value)",
+      defaultValue: "auto"
+    },
+    height: {
+      type: "string",
+      description: "Button height (CSS value)",
+      defaultValue: "auto"
+    },
+    
+    // Colors
+    backgroundColor: {
+      type: "string",
+      description: "Custom background color (overrides variant)",
+      defaultValue: ""
+    },
+    textColor: {
+      type: "string",
+      description: "Custom text color (overrides variant)",
+      defaultValue: ""
+    },
+    borderColor: {
+      type: "string",
+      description: "Custom border color (overrides variant)",
+      defaultValue: ""
+    },
+    
+    // State
+    disabled: {
+      type: "boolean",
+      description: "Disable the button",
+      defaultValue: false
+    },
+    loading: {
+      type: "boolean",
+      description: "Show loading state",
+      defaultValue: false
+    },
+    loadingText: {
+      type: "string",
+      description: "Text to show when loading",
+      defaultValue: "Loading..."
+    },
+    
+    // Icons
+    leftIcon: {
+      type: "string",
+      description: "Icon to show on the left (emoji or text)",
+      defaultValue: ""
+    },
+    rightIcon: {
+      type: "string",
+      description: "Icon to show on the right (emoji or text)",
+      defaultValue: ""
+    },
+    iconOnly: {
+      type: "boolean",
+      description: "Show only icon (no text)",
+      defaultValue: false
+    },
+    
+    // Behavior
+    type: {
+      type: "choice",
+      options: ["button", "submit", "reset"],
+      description: "Button type",
+      defaultValue: "button"
+    },
+    fullWidth: {
+      type: "boolean",
+      description: "Make button full width",
+      defaultValue: false
+    },
+    
+    // Styling props
+    borderRadius: {
+      type: "string",
+      description: "Border radius (CSS value)",
+      defaultValue: "6px"
+    },
+    fontSize: {
+      type: "string",
+      description: "Font size (CSS value)",
+      defaultValue: ""
+    },
+    fontWeight: {
+      type: "string",
+      description: "Font weight (CSS value)",
+      defaultValue: "500"
+    },
+    
+    // Event handlers
+    onClick: {
+      type: "eventHandler",
+      description: "Called when button is clicked",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Click event"
+        }
+      ]
+    }
+  },
+  importPath: "./components/PlasmicButton"
+});
+
+// Register the Plasmic Input component
+PLASMIC.registerComponent(PlasmicInput, {
+  name: "PlasmicInput",
+  displayName: "Input",
+  description: "A flexible input component with labels, validation, and customizable styling",
+  props: {
+    // Basic props
+    type: {
+      type: "choice",
+      options: ["text", "email", "password", "number", "tel", "url", "search"],
+      description: "Input type",
+      defaultValue: "text"
+    },
+    placeholder: {
+      type: "string",
+      description: "Placeholder text",
+      defaultValue: ""
+    },
+    value: {
+      type: "string",
+      description: "Input value",
+      defaultValue: ""
+    },
+    defaultValue: {
+      type: "string",
+      description: "Default input value",
+      defaultValue: ""
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the input",
+      defaultValue: false
+    },
+    readOnly: {
+      type: "boolean",
+      description: "Make the input read-only",
+      defaultValue: false
+    },
+    required: {
+      type: "boolean",
+      description: "Make the input required",
+      defaultValue: false
+    },
+    
+    // Styling
+    size: {
+      type: "choice",
+      options: ["small", "medium", "large"],
+      description: "Input size",
+      defaultValue: "medium"
+    },
+    variant: {
+      type: "choice",
+      options: ["outlined", "filled", "underlined"],
+      description: "Input variant style",
+      defaultValue: "outlined"
+    },
+    width: {
+      type: "string",
+      description: "Input width (CSS value)",
+      defaultValue: "100%"
+    },
+    height: {
+      type: "string",
+      description: "Input height (CSS value)",
+      defaultValue: "auto"
+    },
+    
+    // Colors
+    backgroundColor: {
+      type: "string",
+      description: "Background color",
+      defaultValue: ""
+    },
+    textColor: {
+      type: "string",
+      description: "Text color",
+      defaultValue: ""
+    },
+    borderColor: {
+      type: "string",
+      description: "Border color",
+      defaultValue: ""
+    },
+    focusBorderColor: {
+      type: "string",
+      description: "Border color when focused",
+      defaultValue: "#3b82f6"
+    },
+    
+    // Labels and help
+    label: {
+      type: "string",
+      description: "Label text above the input",
+      defaultValue: ""
+    },
+    helperText: {
+      type: "string",
+      description: "Helper text below the input",
+      defaultValue: ""
+    },
+    errorText: {
+      type: "string",
+      description: "Error text below the input",
+      defaultValue: ""
+    },
+    
+    // Icons
+    leftIcon: {
+      type: "string",
+      description: "Icon to show on the left (emoji or text)",
+      defaultValue: ""
+    },
+    rightIcon: {
+      type: "string",
+      description: "Icon to show on the right (emoji or text)",
+      defaultValue: ""
+    },
+    
+    // Validation
+    minLength: {
+      type: "number",
+      description: "Minimum input length",
+      defaultValue: 0
+    },
+    maxLength: {
+      type: "number",
+      description: "Maximum input length",
+      defaultValue: 1000
+    },
+    pattern: {
+      type: "string",
+      description: "Regex pattern for validation",
+      defaultValue: ""
+    },
+    
+    // Event handlers
+    onChange: {
+      type: "eventHandler",
+      description: "Called when input value changes",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Change event"
+        }
+      ]
+    },
+    onFocus: {
+      type: "eventHandler",
+      description: "Called when input is focused",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Focus event"
+        }
+      ]
+    },
+    onBlur: {
+      type: "eventHandler",
+      description: "Called when input loses focus",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Blur event"
+        }
+      ]
+    }
+  },
+  importPath: "./components/PlasmicInput"
 });
 
 
