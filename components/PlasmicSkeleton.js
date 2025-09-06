@@ -53,10 +53,6 @@ const PlasmicSkeleton = ({
   // Children for custom content
   children,
   
-  // Conditional rendering props
-  showWhen = true,
-  isVisible = true,
-  
   ...props
 }) => {
   // Handle different preset patterns
@@ -289,11 +285,6 @@ const PlasmicSkeleton = ({
         );
     }
   };
-
-  // If either showWhen or isVisible is false, don't render anything
-  if (!showWhen || !isVisible) {
-    return null;
-  }
 
   // If children are provided, render them instead of skeleton
   if (children) {
