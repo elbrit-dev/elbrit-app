@@ -2,101 +2,160 @@
 
 A sophisticated skeleton loader component with force rendering capabilities, multiple templates, animations, and advanced customization options. Perfect for creating realistic loading states anywhere in your application.
 
-## Key Features
+## Features
 
-### 🚀 **Force Rendering**
-- **Demo Mode**: Force skeleton to render even when not loading
-- **Configurable Duration**: Set how long force rendering lasts
-- **Update Intervals**: Control how often the skeleton updates
-- **Event Callbacks**: Get notified when force rendering starts/stops
+### 🎯 Core Features
+- **Smart Loading State**: Automatically shows/hides based on loading prop
+- **Force Rendering**: Show skeleton even when not loading (great for demos/testing)
+- **Multiple Templates**: Pre-built templates for common UI patterns
+- **Custom Animations**: Wave, pulse, shimmer, or no animation
+- **Flexible Sizing**: Predefined sizes or completely custom dimensions
 
-### 🎨 **Multiple Templates**
-- **Text**: Multi-line text skeleton
-- **Card**: Complete card layout with header, title, and content
-- **List**: User list with avatars and text
-- **Avatar**: Profile layout with avatar and details
-- **Custom**: Build your own layout
+### ⚡ Advanced Features
+- **Randomized Dimensions**: More realistic skeleton with varying widths
+- **Fade Transitions**: Smooth fade-in when content loads
+- **Performance Throttling**: Throttle updates for better performance
+- **Event Callbacks**: React to loading state changes
+- **Template System**: Text, card, list, and avatar templates
 
-### ✨ **Advanced Animations**
-- **Wave**: Smooth wave animation (default)
-- **Pulse**: Breathing pulse effect
-- **Shimmer**: Shimmering highlight
-- **None**: Static skeleton
-- **Speed Control**: Slow, normal, or fast animations
+### 🎨 Customization
+- **Shape Options**: Rectangle, circle, or square
+- **Color Theming**: Custom background and highlight colors
+- **Animation Speed**: Slow, normal, or fast animations
+- **Border Radius**: Custom corner rounding
+- **Spacing Control**: Adjust spacing between multiple lines
 
-### 🎯 **Smart Features**
-- **Responsive**: Auto-detect content dimensions
-- **Randomization**: Randomize widths for realistic look
-- **Fade Transitions**: Smooth content appearance
-- **Performance**: Throttled updates for large lists
-
-## Usage Examples
+## Usage in Code
 
 ### Basic Usage
 ```jsx
 import AdvancedSkeleton from '../components/AdvancedSkeleton';
 
-// Simple loading state
+// Simple skeleton
 <AdvancedSkeleton loading={isLoading}>
-  <div>Your content here</div>
+  <p>Your content here</p>
+</AdvancedSkeleton>
+
+// Multiple lines
+<AdvancedSkeleton loading={isLoading} lines={3}>
+  <div>
+    <h3>Title</h3>
+    <p>Paragraph 1</p>
+    <p>Paragraph 2</p>
+  </div>
 </AdvancedSkeleton>
 ```
 
 ### Force Rendering (Demo Mode)
 ```jsx
-// Perfect for testing and demos
+// Show skeleton for 5 seconds regardless of loading state
 <AdvancedSkeleton 
   loading={false}
   forceRender={true}
   forceRenderDuration={5000}
-  forceRenderInterval={800}
-  randomize={true}
+  autoStopForceRender={true}
 >
-  <div>Content that will be hidden</div>
+  <p>This content is hidden by force rendering</p>
+</AdvancedSkeleton>
+
+// Infinite force rendering (until manually stopped)
+<AdvancedSkeleton 
+  forceRender={true}
+  forceRenderDuration={0}
+>
+  <p>Content</p>
 </AdvancedSkeleton>
 ```
 
-### Template Usage
+### Templates
 ```jsx
+// Avatar template
+<AdvancedSkeleton loading={isLoading} template="avatar">
+  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+    <img src="/avatar.jpg" alt="User" style={{ borderRadius: '50%' }} />
+    <div>
+      <h4>John Doe</h4>
+      <p>Software Developer</p>
+    </div>
+  </div>
+</AdvancedSkeleton>
+
 // Card template
-<AdvancedSkeleton loading={loading} template="card">
-  <ProductCard />
+<AdvancedSkeleton loading={isLoading} template="card">
+  <div>
+    <img src="/product.jpg" alt="Product" />
+    <h3>Product Name</h3>
+    <p>Product description</p>
+  </div>
 </AdvancedSkeleton>
 
 // List template
-<AdvancedSkeleton loading={loading} template="list" lines={5}>
-  <UserList />
-</AdvancedSkeleton>
-
-// Avatar template
-<AdvancedSkeleton loading={loading} template="avatar">
-  <UserProfile />
+<AdvancedSkeleton loading={isLoading} template="list" lines={3}>
+  <div>
+    {items.map(item => (
+      <div key={item.id}>
+        <img src={item.avatar} />
+        <div>
+          <h4>{item.name}</h4>
+          <p>{item.description}</p>
+        </div>
+      </div>
+    ))}
+  </div>
 </AdvancedSkeleton>
 ```
 
 ### Custom Styling
 ```jsx
+// Custom colors and animations
 <AdvancedSkeleton 
-  loading={loading}
+  loading={isLoading}
   backgroundColor="#e3f2fd"
   highlightColor="#bbdefb"
-  borderRadius="12px"
   animation="pulse"
   animationSpeed="fast"
+  borderRadius="12px"
 >
-  <YourContent />
+  <p>Custom styled content</p>
+</AdvancedSkeleton>
+
+// Circle skeleton for avatars
+<AdvancedSkeleton 
+  loading={isLoading}
+  shape="circle"
+  width="60px"
+  height="60px"
+>
+  <img src="/avatar.jpg" style={{ borderRadius: '50%' }} />
 </AdvancedSkeleton>
 ```
 
-### Multi-line Text
+### Advanced Features
 ```jsx
+// Randomized dimensions for realistic look
 <AdvancedSkeleton 
-  loading={loading}
-  lines={4}
+  loading={isLoading}
   randomize={true}
-  spacing="0.75rem"
+  forceRenderInterval={1000}
+  lines={3}
+  template="text"
 >
-  <Article />
+  <div>
+    <h3>Dynamic Title</h3>
+    <p>Some content here</p>
+    <p>More content</p>
+  </div>
+</AdvancedSkeleton>
+
+// With event callbacks
+<AdvancedSkeleton 
+  loading={isLoading}
+  onLoadingComplete={() => console.log('Content loaded!')}
+  onForceRenderStart={() => console.log('Demo started')}
+  onForceRenderStop={() => console.log('Demo stopped')}
+  fadeIn={true}
+>
+  <p>Content with callbacks</p>
 </AdvancedSkeleton>
 ```
 
@@ -105,153 +164,145 @@ import AdvancedSkeleton from '../components/AdvancedSkeleton';
 ### Core Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `loading` | boolean | `true` | Whether to show skeleton or content |
-| `children` | ReactNode | `null` | Content to show when not loading |
+| `loading` | boolean | true | Whether to show skeleton or content |
+| `children` | ReactNode | null | Content to show when not loading |
 
 ### Force Rendering Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `forceRender` | boolean | `false` | Force skeleton to render (demo mode) |
-| `forceRenderInterval` | number | `1000` | Update interval in milliseconds |
-| `forceRenderDuration` | number | `5000` | Duration for force rendering (0 = infinite) |
-| `autoStopForceRender` | boolean | `true` | Auto-stop after duration |
+| `forceRender` | boolean | false | Force skeleton to render even when not loading |
+| `forceRenderInterval` | number | 1000 | Interval for force render updates (ms) |
+| `forceRenderDuration` | number | 5000 | Duration for force rendering (0 = infinite) |
+| `autoStopForceRender` | boolean | true | Auto stop force rendering after duration |
 
 ### Appearance Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `shape` | string | `'rectangle'` | Shape: rectangle, circle, square |
-| `size` | string | `'normal'` | Size: small, normal, large, custom |
-| `width` | string | `null` | Custom width (e.g., '200px', '100%') |
-| `height` | string | `null` | Custom height (e.g., '30px', '2rem') |
-| `borderRadius` | string | `'4px'` | Border radius |
+| `shape` | "rectangle" \| "circle" \| "square" | "rectangle" | Skeleton shape |
+| `size` | "small" \| "normal" \| "large" \| "custom" | "normal" | Predefined size |
+| `width` | string | null | Custom width (e.g., '200px', '100%') |
+| `height` | string | null | Custom height (e.g., '30px', '2rem') |
+| `borderRadius` | string | "4px" | Border radius (ignored for circles) |
 
 ### Animation Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `animation` | string | `'wave'` | Animation: wave, pulse, shimmer, none |
-| `animationSpeed` | string | `'normal'` | Speed: slow, normal, fast |
+| `animation` | "wave" \| "pulse" \| "shimmer" \| "none" | "wave" | Animation type |
+| `animationSpeed` | "slow" \| "normal" \| "fast" | "normal" | Animation speed |
 
 ### Layout Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `lines` | number | `1` | Number of skeleton lines |
-| `spacing` | string | `'0.5rem'` | Spacing between lines |
-| `template` | string | `null` | Template: text, card, list, avatar |
+| `lines` | number | 1 | Number of skeleton lines |
+| `spacing` | string | "0.5rem" | Spacing between lines |
+| `template` | "text" \| "card" \| "list" \| "avatar" \| null | null | Predefined template |
 
 ### Styling Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `backgroundColor` | string | `'#f0f0f0'` | Skeleton background color |
-| `highlightColor` | string | `'#e0e0e0'` | Animation highlight color |
-| `className` | string | `''` | Additional CSS classes |
-| `style` | object | `{}` | Inline styles |
+| `backgroundColor` | string | "#f0f0f0" | Skeleton background color |
+| `highlightColor` | string | "#e0e0e0" | Animation highlight color |
+| `className` | string | "" | Additional CSS classes |
+| `style` | object | {} | Inline styles |
 
 ### Advanced Props
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `responsive` | boolean | `false` | Auto-detect content dimensions |
-| `fadeIn` | boolean | `true` | Fade in content when loading completes |
-| `randomize` | boolean | `false` | Randomize dimensions for realism |
-| `throttleUpdates` | boolean | `false` | Throttle updates for performance |
-| `updateInterval` | number | `100` | Update interval when throttling |
+| `responsive` | boolean | false | Auto-detect dimensions from content |
+| `fadeIn` | boolean | true | Fade in content when loading completes |
+| `randomize` | boolean | false | Randomize dimensions for realistic look |
+| `throttleUpdates` | boolean | false | Throttle updates for performance |
+| `updateInterval` | number | 100 | Update interval when throttling (ms) |
 
-### Event Handlers
+### Event Props
 | Prop | Type | Description |
 |------|------|-------------|
 | `onForceRenderStart` | function | Called when force rendering starts |
 | `onForceRenderStop` | function | Called when force rendering stops |
-| `onLoadingComplete` | function | Called when loading completes |
+| `onLoadingComplete` | function | Called when loading changes from true to false |
 
 ## Templates
 
 ### Text Template
-Perfect for articles, descriptions, or any text content:
+Perfect for text content with multiple lines:
 ```jsx
-<AdvancedSkeleton template="text" lines={3} randomize={true} />
+<AdvancedSkeleton template="text" lines={3} />
 ```
 
 ### Card Template
-Ideal for product cards, blog posts, or content cards:
+Great for product cards or content cards:
 ```jsx
 <AdvancedSkeleton template="card" />
 ```
+Creates: Image placeholder + title + subtitle + description lines
 
 ### List Template
-Great for user lists, comment sections, or any list layout:
+Ideal for lists with avatars:
 ```jsx
-<AdvancedSkeleton template="list" lines={5} />
+<AdvancedSkeleton template="list" lines={3} />
 ```
+Creates: Multiple rows with circle + text lines
 
 ### Avatar Template
-Perfect for user profiles or contact cards:
+Perfect for user profiles:
 ```jsx
 <AdvancedSkeleton template="avatar" />
 ```
+Creates: Circle avatar + name + subtitle
 
 ## Common Use Cases
 
 ### Loading States
 ```jsx
-// API data loading
-<AdvancedSkeleton loading={!data} template="card">
-  <ProductCard data={data} />
-</AdvancedSkeleton>
+const [loading, setLoading] = useState(true);
 
-// User profile loading
-<AdvancedSkeleton loading={!user} template="avatar">
-  <UserProfile user={user} />
-</AdvancedSkeleton>
+useEffect(() => {
+  fetchData().then(() => setLoading(false));
+}, []);
+
+return (
+  <AdvancedSkeleton loading={loading} template="card">
+    <ProductCard data={data} />
+  </AdvancedSkeleton>
+);
 ```
 
-### Component Development
+### Demo/Storybook
 ```jsx
-// Test how components look while loading
+// Show skeleton for 10 seconds for demo purposes
 <AdvancedSkeleton 
-  forceRender={true} 
-  template="list" 
-  lines={3}
-  randomize={true}
+  forceRender={true}
+  forceRenderDuration={10000}
+  template="list"
+  lines={5}
 >
   <UserList users={users} />
 </AdvancedSkeleton>
 ```
 
-### Performance Optimization
+### Grid Layouts
 ```jsx
-// For large lists
-<AdvancedSkeleton 
-  loading={loading}
-  throttleUpdates={true}
-  updateInterval={200}
-  template="list"
-  lines={10}
->
-  <LargeDataList />
-</AdvancedSkeleton>
+{products.map(product => (
+  <AdvancedSkeleton key={product.id} loading={!product.loaded} template="card">
+    <ProductCard product={product} />
+  </AdvancedSkeleton>
+))}
 ```
 
 ## Usage in Plasmic Studio
 
-This component is registered in Plasmic as "Advanced Skeleton" with all props exposed in the UI. You can:
-
-1. **Drag and drop** the component from the component library
-2. **Configure all properties** through the Plasmic interface
-3. **Add content** using the children slot
-4. **Test force rendering** directly in Plasmic Studio
+This component is registered in Plasmic as "Advanced Skeleton". All props are exposed in the Plasmic interface, including:
+- Visual configuration (shape, size, colors)
+- Template selection
+- Force rendering controls
+- Animation settings
+- Event handlers
 
 ## Demo
 
-Visit `/advanced-skeleton-demo` to see all features and configurations in action, including:
-- Force rendering demonstrations
-- All template variations
+Visit `/skeleton-demo` to see all features and templates in action, including:
+- Interactive loading controls
+- All template examples
 - Animation comparisons
-- Real-world usage examples
-- Interactive controls
-
-## Performance Tips
-
-1. **Use templates** for consistent layouts
-2. **Enable throttling** for large lists
-3. **Set appropriate durations** for force rendering
-4. **Use randomization sparingly** for better performance
-5. **Disable animations** if needed for very large datasets
+- Real-world use cases
+- Force rendering demos
