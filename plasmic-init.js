@@ -10,6 +10,7 @@ import EnvironmentCheck from "./components/EnvironmentCheck";
 import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
+import SimpleButton from "./components/SimpleButton";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -22,7 +23,7 @@ export const PLASMIC = initPlasmicLoader({
 
   // Fetches the latest revisions, whether or not they were unpublished!
   // Disable for production to ensure you render only published changes.
-  preview: true,
+  preview: false,
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference
@@ -2776,6 +2777,111 @@ PLASMIC.registerComponent(TagFilterPrimeReact, {
     }
   },
   importPath: "./components/TagFilterPrimeReact"
+});
+
+// Register the Simple Button component
+PLASMIC.registerComponent(SimpleButton, {
+  name: "SimpleButton",
+  displayName: "Simple Button",
+  description: "A customizable button component with PrimeReact styling and various options",
+  props: {
+    label: {
+      type: "string",
+      description: "Button text",
+      defaultValue: "Click Me"
+    },
+    icon: {
+      type: "string",
+      description: "Icon class name (e.g., 'pi pi-check', 'pi pi-user', 'pi pi-heart')",
+      defaultValue: null
+    },
+    iconPos: {
+      type: "choice",
+      options: ["left", "right"],
+      description: "Icon position relative to label",
+      defaultValue: "left"
+    },
+    severity: {
+      type: "choice",
+      options: ["primary", "secondary", "success", "info", "warning", "danger", "help"],
+      description: "Button color theme",
+      defaultValue: "primary"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Button size",
+      defaultValue: "normal"
+    },
+    outlined: {
+      type: "boolean",
+      description: "Show as outlined button (no fill)",
+      defaultValue: false
+    },
+    rounded: {
+      type: "boolean",
+      description: "Show with rounded corners",
+      defaultValue: false
+    },
+    text: {
+      type: "boolean",
+      description: "Show as text-only button (no background)",
+      defaultValue: false
+    },
+    raised: {
+      type: "boolean",
+      description: "Show with shadow/elevation",
+      defaultValue: false
+    },
+    loading: {
+      type: "boolean",
+      description: "Show loading spinner",
+      defaultValue: false
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the button",
+      defaultValue: false
+    },
+    tooltip: {
+      type: "string",
+      description: "Tooltip text to show on hover",
+      defaultValue: ""
+    },
+    badge: {
+      type: "string",
+      description: "Badge value to display (e.g., '5', 'New')",
+      defaultValue: null
+    },
+    badgeClass: {
+      type: "choice",
+      options: ["p-badge-danger", "p-badge-success", "p-badge-info", "p-badge-warning"],
+      description: "Badge color class",
+      defaultValue: "p-badge-danger"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    onClick: {
+      type: "eventHandler",
+      description: "Click event handler",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "The click event object"
+        }
+      ]
+    }
+  },
+  importPath: "./components/SimpleButton"
 });
 
 
