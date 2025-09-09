@@ -13,6 +13,9 @@ import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
 import SimpleButton from "./components/SimpleButton";
 import SimpleCard from "./components/SimpleCard";
 import AdvancedSkeleton from "./components/AdvancedSkeleton";
+import StaticSkeleton from "./components/StaticSkeleton";
+import RectSkeleton from "./components/RectSkeleton";
+import CircleSkeleton from "./components/CircleSkeleton";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -2999,13 +3002,13 @@ PLASMIC.registerComponent(SimpleCard, {
   importPath: "./components/SimpleCard"
 });
 
-// Register the Advanced Skeleton component
+// Register the Simple Skeleton component
 PLASMIC.registerComponent(AdvancedSkeleton, {
-  name: "AdvancedSkeleton",
-  displayName: "Advanced Skeleton",
-  description: "A sophisticated skeleton loader with force rendering, animations, templates, and advanced customization options",
+  name: "SimpleSkeleton",
+  displayName: "Simple Skeleton",
+  description: "PrimeReact Skeleton with full shape/size controls, presets, and force rendering",
   props: {
-    // Core props
+    // Core
     loading: {
       type: "boolean",
       description: "Whether to show skeleton or content",
@@ -3015,40 +3018,27 @@ PLASMIC.registerComponent(AdvancedSkeleton, {
       type: "slot",
       description: "Content to show when not loading"
     },
-    
-    // Force rendering props
+    // Force rendering
     forceRender: {
       type: "boolean",
-      description: "Force skeleton to render even when not loading (for testing/demo)",
+      description: "Force skeleton to render even when not loading (for demos)",
       defaultValue: false
-    },
-    forceRenderInterval: {
-      type: "number",
-      description: "Interval in milliseconds for force render updates",
-      defaultValue: 1000
     },
     forceRenderDuration: {
       type: "number",
       description: "Duration in milliseconds for force rendering (0 = infinite)",
       defaultValue: 5000
     },
-    autoStopForceRender: {
-      type: "boolean",
-      description: "Automatically stop force rendering after duration",
-      defaultValue: true
-    },
-    
-    // Skeleton appearance
+    // PrimeReact Skeleton API
     shape: {
       type: "choice",
-      options: ["rectangle", "circle", "square"],
+      options: ["rectangle", "rounded", "square", "circle"],
       description: "Skeleton shape",
       defaultValue: "rectangle"
     },
     size: {
-      type: "choice",
-      options: ["small", "normal", "large", "custom"],
-      description: "Predefined size or custom",
+      type: "string",
+      description: "Predefined token (small|normal|large) or CSS size like '2rem' (for square/circle)",
       defaultValue: "normal"
     },
     width: {
@@ -3063,53 +3053,28 @@ PLASMIC.registerComponent(AdvancedSkeleton, {
     },
     borderRadius: {
       type: "string",
-      description: "Border radius (ignored for circles)",
-      defaultValue: "4px"
+      description: "Border radius for rectangle/rounded shapes (e.g., '16px')",
+      defaultValue: "16px"
     },
-    
-    // Animation props
     animation: {
       type: "choice",
-      options: ["wave", "pulse", "shimmer", "none"],
+      options: ["wave", "pulse", "none"],
       description: "Animation type",
       defaultValue: "wave"
     },
-    animationSpeed: {
-      type: "choice",
-      options: ["slow", "normal", "fast"],
-      description: "Animation speed",
-      defaultValue: "normal"
-    },
-    
-    // Layout props
-    lines: {
-      type: "number",
-      description: "Number of skeleton lines (for templates)",
-      defaultValue: 1
-    },
-    spacing: {
-      type: "string",
-      description: "Spacing between lines (e.g., '0.5rem', '10px')",
-      defaultValue: "0.5rem"
-    },
+    // Presets
     template: {
       type: "choice",
-      options: [null, "text", "card", "list", "avatar"],
-      description: "Predefined skeleton template",
-      defaultValue: null
+      options: ["", "paragraph", "text", "card", "list", "datatable", "avatar-text"],
+      description: "Preset layout (leave empty for single skeleton)",
+      defaultValue: ""
     },
-    
+    lines: {
+      type: "number",
+      description: "Number of lines/items for paragraph/list/datatable presets",
+      defaultValue: 3
+    },
     // Styling
-    backgroundColor: {
-      type: "string",
-      description: "Skeleton background color",
-      defaultValue: "#f0f0f0"
-    },
-    highlightColor: {
-      type: "string",
-      description: "Animation highlight color",
-      defaultValue: "#e0e0e0"
-    },
     className: {
       type: "string",
       description: "Additional CSS classes",
@@ -3119,53 +3084,66 @@ PLASMIC.registerComponent(AdvancedSkeleton, {
       type: "object",
       description: "Inline styles",
       defaultValue: {}
-    },
-    
-    // Advanced features
-    responsive: {
-      type: "boolean",
-      description: "Auto-detect dimensions from content",
-      defaultValue: false
-    },
-    fadeIn: {
-      type: "boolean",
-      description: "Fade in content when loading completes",
-      defaultValue: true
-    },
-    randomize: {
-      type: "boolean",
-      description: "Randomize skeleton dimensions for more realistic look",
-      defaultValue: false
-    },
-    throttleUpdates: {
-      type: "boolean",
-      description: "Throttle updates for better performance",
-      defaultValue: false
-    },
-    updateInterval: {
-      type: "number",
-      description: "Update interval in milliseconds when throttling",
-      defaultValue: 100
-    },
-    
-    // Event handlers
-    onForceRenderStart: {
-      type: "eventHandler",
-      description: "Called when force rendering starts",
-      argTypes: []
-    },
-    onForceRenderStop: {
-      type: "eventHandler",
-      description: "Called when force rendering stops",
-      argTypes: []
-    },
-    onLoadingComplete: {
-      type: "eventHandler",
-      description: "Called when loading changes from true to false",
-      argTypes: []
     }
   },
   importPath: "./components/AdvancedSkeleton"
 });
 
+
+// Register the Static Skeleton component (no slots, fixed layout)
+PLASMIC.registerComponent(StaticSkeleton, {
+  name: "StaticSkeleton",
+  displayName: "Static Skeleton",
+  description: "Minimal static skeleton with a header, lines, and block",
+  props: {
+    animation: {
+      type: "choice",
+      options: ["wave", "pulse", "none"],
+      defaultValue: "wave",
+      description: "Animation type"
+    },
+    className: {
+      type: "string",
+      defaultValue: "",
+      description: "Additional CSS classes"
+    },
+    style: {
+      type: "object",
+      defaultValue: {},
+      description: "Inline styles"
+    }
+  },
+  importPath: "./components/StaticSkeleton"
+});
+
+
+// Register minimal Rectangle Skeleton
+PLASMIC.registerComponent(RectSkeleton, {
+  name: "RectSkeleton",
+  displayName: "Rect Skeleton",
+  description: "Minimal rectangle skeleton",
+  props: {
+    width: { type: "string", defaultValue: "100%", description: "Width (e.g., '100%', '200px')" },
+    height: { type: "string", defaultValue: "1rem", description: "Height (e.g., '1rem', '24px')" },
+    borderRadius: { type: "string", defaultValue: "6px", description: "Border radius (e.g., '6px')" },
+    animation: { type: "choice", options: ["wave", "pulse", "none"], defaultValue: "wave" },
+    className: { type: "string", defaultValue: "" },
+    style: { type: "object", defaultValue: {} }
+  },
+  importPath: "./components/RectSkeleton"
+});
+
+// Register minimal Circle Skeleton
+PLASMIC.registerComponent(CircleSkeleton, {
+  name: "CircleSkeleton",
+  displayName: "Circle Skeleton",
+  description: "Minimal circle skeleton",
+  props: {
+    size: { type: "string", defaultValue: "3rem", description: "Diameter (e.g., '3rem', '48px')" },
+    animation: { type: "choice", options: ["wave", "pulse", "none"], defaultValue: "wave" },
+    className: { type: "string", defaultValue: "" },
+    style: { type: "object", defaultValue: {} }
+  },
+  importPath: "./components/CircleSkeleton"
+});
 

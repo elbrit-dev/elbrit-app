@@ -2,363 +2,200 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Skeleton } from 'primereact/skeleton';
 
 /**
- * AdvancedSkeleton - A sophisticated skeleton loader with force rendering, animations, and templates
- * 
- * @param {Object} props - Component props
- * @param {boolean} props.loading - Whether to show skeleton or content
- * @param {ReactNode} props.children - Content to show when not loading
- * @param {boolean} props.forceRender - Force skeleton to render even when not loading
- * @param {number} props.forceRenderInterval - Interval for force render updates
- * @param {number} props.forceRenderDuration - Duration for force rendering (0 = infinite)
- * @param {boolean} props.autoStopForceRender - Auto stop force rendering after duration
- * @param {string} props.shape - Skeleton shape (rectangle, circle, square)
- * @param {string} props.size - Predefined size (small, normal, large, custom)
- * @param {string} props.width - Custom width
- * @param {string} props.height - Custom height
- * @param {string} props.borderRadius - Border radius
- * @param {string} props.animation - Animation type (wave, pulse, shimmer, none)
- * @param {string} props.animationSpeed - Animation speed (slow, normal, fast)
- * @param {number} props.lines - Number of skeleton lines
- * @param {string} props.spacing - Spacing between lines
- * @param {string} props.template - Predefined template (text, card, list, avatar)
- * @param {string} props.backgroundColor - Background color
- * @param {string} props.highlightColor - Highlight color for animations
- * @param {boolean} props.responsive - Auto-detect dimensions from content
- * @param {boolean} props.fadeIn - Fade in content when loading completes
- * @param {boolean} props.randomize - Randomize dimensions for realistic look
- * @param {boolean} props.throttleUpdates - Throttle updates for performance
- * @param {number} props.updateInterval - Update interval when throttling
+ * SimpleSkeleton - Full-featured wrapper around PrimeReact Skeleton
+ * Supports: shape, size, width, height, borderRadius, animation, and simple presets (card, list, datatable, avatar-text, text)
+ * Docs: https://primereact.org/skeleton/
  */
-const AdvancedSkeleton = ({
+const SimpleSkeleton = ({
+  // Core
   loading = true,
   children = null,
-  
-  // Force rendering props
+  // Force render for demos
   forceRender = false,
-  forceRenderInterval = 1000,
   forceRenderDuration = 5000,
-  autoStopForceRender = true,
-  
-  // Skeleton appearance
-  shape = 'rectangle',
-  size = 'normal',
-  width = null,
-  height = null,
-  borderRadius = '4px',
-  
-  // Animation props
-  animation = 'wave',
-  animationSpeed = 'normal',
-  
-  // Layout props
-  lines = 1,
-  spacing = '0.5rem',
-  template = null,
-  
+  // PrimeReact Skeleton API
+  shape = 'rectangle', // 'rectangle' | 'rounded' | 'square' | 'circle'
+  size = null,         // e.g., '2rem' for square/circle; also accepts tokens 'small'|'normal'|'large'
+  width = null,        // e.g., '100%', '10rem', '150px'
+  height = null,       // e.g., '2rem', '4rem', '150px'
+  borderRadius = '6px',
+  animation = 'wave',  // 'wave' | 'pulse' | 'none'
+  // Presets
+  template = null,     // null | 'paragraph' | 'text' | 'card' | 'list' | 'datatable' | 'avatar-text'
+  lines = 1,           // used by text/list/datatable presets
   // Styling
-  backgroundColor = '#f0f0f0',
-  highlightColor = '#e0e0e0',
   className = '',
   style = {},
-  
-  // Advanced features
-  responsive = false,
-  fadeIn = true,
-  randomize = false,
-  throttleUpdates = false,
-  updateInterval = 100,
-  
-  // Event handlers
-  onForceRenderStart = () => {},
-  onForceRenderStop = () => {},
-  onLoadingComplete = () => {},
-  
   ...otherProps
 }) => {
-  const [isForceRendering, setIsForceRendering] = useState(false);
-  const [shouldShowSkeleton, setShouldShowSkeleton] = useState(loading);
-  const [contentOpacity, setContentOpacity] = useState(loading ? 0 : 1);
-  const [randomDimensions, setRandomDimensions] = useState({});
-  
-  const forceRenderTimeoutRef = useRef(null);
-  const updateIntervalRef = useRef(null);
-  const contentRef = useRef(null);
-  const previousLoadingRef = useRef(loading);
+  const [showSkeleton, setShowSkeleton] = useState(loading || forceRender);
+  const timeoutRef = useRef(null);
 
-  // Handle force rendering
+  // Handle force rendering window
   useEffect(() => {
-    if (forceRender && !isForceRendering) {
-      setIsForceRendering(true);
-      setShouldShowSkeleton(true);
-      onForceRenderStart();
-      
-      if (autoStopForceRender && forceRenderDuration > 0) {
-        forceRenderTimeoutRef.current = setTimeout(() => {
-          setIsForceRendering(false);
-          setShouldShowSkeleton(loading);
-          onForceRenderStop();
+    if (forceRender) {
+      setShowSkeleton(true);
+      if (forceRenderDuration > 0) {
+        timeoutRef.current = setTimeout(() => {
+          setShowSkeleton(loading);
         }, forceRenderDuration);
       }
-    } else if (!forceRender && isForceRendering) {
-      setIsForceRendering(false);
-      setShouldShowSkeleton(loading);
-      onForceRenderStop();
+    } else {
+      setShowSkeleton(loading);
     }
 
     return () => {
-      if (forceRenderTimeoutRef.current) {
-        clearTimeout(forceRenderTimeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [forceRender, loading, isForceRendering, autoStopForceRender, forceRenderDuration]);
+  }, [loading, forceRender, forceRenderDuration]);
 
-  // Handle loading state changes
-  useEffect(() => {
-    if (throttleUpdates) {
-      if (updateIntervalRef.current) {
-        clearTimeout(updateIntervalRef.current);
-      }
-      
-      updateIntervalRef.current = setTimeout(() => {
-        if (!isForceRendering) {
-          setShouldShowSkeleton(loading);
-        }
-        
-        // Trigger loading complete callback
-        if (previousLoadingRef.current && !loading) {
-          onLoadingComplete();
-        }
-        previousLoadingRef.current = loading;
-      }, updateInterval);
-    } else {
-      if (!isForceRendering) {
-        setShouldShowSkeleton(loading);
-      }
-      
-      // Trigger loading complete callback
-      if (previousLoadingRef.current && !loading) {
-        onLoadingComplete();
-      }
-      previousLoadingRef.current = loading;
-    }
+  // Resolve dimensions per PrimeReact docs: https://primereact.org/skeleton/
+  // Tokens for convenience; props always take precedence
+  const tokenHeights = { small: '16px', normal: '20px', large: '24px' };
+  const tokenSquares = { small: '2rem', normal: '3rem', large: '4rem' };
+  const isToken = ['small','normal','large'].includes(size);
+  const isCssSize = typeof size === 'string' && /\d/.test(size) && !isToken;
 
-    return () => {
-      if (updateIntervalRef.current) {
-        clearTimeout(updateIntervalRef.current);
-      }
-    };
-  }, [loading, isForceRendering, throttleUpdates, updateInterval]);
+  let finalWidth;
+  let finalHeight;
+  if (shape === 'circle' || shape === 'square') {
+    // Single side length: prefer size, then width/height, then token default, then sensible fallback
+    const side = (
+      isCssSize ? size :
+      (isToken ? tokenSquares[size] : null) ||
+      width || height || '3rem'
+    );
+    finalWidth = side;
+    finalHeight = side;
+  } else {
+    // rectangle or rounded
+    finalWidth = width || '100%';
+    finalHeight = height || (isCssSize ? size : (isToken ? tokenHeights[size] : '20px'));
+  }
 
-  // Handle fade in effect
-  useEffect(() => {
-    if (fadeIn) {
-      if (shouldShowSkeleton) {
-        setContentOpacity(0);
-      } else {
-        const timer = setTimeout(() => setContentOpacity(1), 50);
-        return () => clearTimeout(timer);
-      }
-    } else {
-      setContentOpacity(1);
-    }
-  }, [shouldShowSkeleton, fadeIn]);
+  // Border radius handling
+  const finalRadius = shape === 'circle' ? '50%' : (shape === 'rounded' ? (borderRadius || '16px') : borderRadius);
+  const primeShape = shape === 'circle' ? 'circle' : 'rectangle';
 
-  // Generate random dimensions for realistic look
-  useEffect(() => {
-    if (randomize) {
-      const generateRandomDimensions = () => {
-        const baseWidth = parseInt(width) || 200;
-        const baseHeight = parseInt(height) || 20;
-        
-        return {
-          width: `${baseWidth * (0.7 + Math.random() * 0.6)}px`,
-          height: `${baseHeight * (0.8 + Math.random() * 0.4)}px`
-        };
-      };
-
-      setRandomDimensions(generateRandomDimensions());
-      
-      if (isForceRendering) {
-        const interval = setInterval(() => {
-          setRandomDimensions(generateRandomDimensions());
-        }, forceRenderInterval);
-        
-        return () => clearInterval(interval);
-      }
-    }
-  }, [randomize, isForceRendering, forceRenderInterval, width, height]);
-
-  // Size mappings
-  const sizeMap = {
-    small: { width: '100px', height: '16px' },
-    normal: { width: '200px', height: '20px' },
-    large: { width: '300px', height: '24px' },
-    custom: { width: width || '100%', height: height || '20px' }
+  // Single skeleton renderer
+  const renderSkeleton = (extraProps = {}) => {
+    const widthProp = style && style.width ? undefined : (primeShape === 'circle' ? finalHeight : finalWidth);
+    const heightProp = style && style.height ? undefined : finalHeight;
+    const radiusProp = style && style.borderRadius ? undefined : finalRadius;
+    return (
+      <Skeleton
+        shape={primeShape}
+        width={widthProp}
+        height={heightProp}
+        animation={animation}
+        borderRadius={radiusProp}
+        className={className}
+        style={style}
+        {...otherProps}
+        {...extraProps}
+      />
+    );
   };
 
-  // Animation speed mappings
-  const animationSpeedMap = {
-    slow: '2s',
-    normal: '1.5s',
-    fast: '1s'
-  };
-
-  // Get skeleton dimensions
-  const skeletonDimensions = randomize ? randomDimensions : sizeMap[size] || sizeMap.custom;
-  const finalWidth = width || skeletonDimensions.width;
-  const finalHeight = height || skeletonDimensions.height;
-
-  // Build skeleton style
-  const skeletonStyle = {
-    backgroundColor,
-    borderRadius: shape === 'circle' ? '50%' : borderRadius,
-    width: shape === 'circle' ? finalHeight : finalWidth,
-    height: finalHeight,
-    animationDuration: animationSpeedMap[animationSpeed],
-    ...style
-  };
-
-  // Template configurations
+  // Preset templates based on PrimeReact docs examples
   const renderTemplate = () => {
     switch (template) {
-      case 'text':
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: spacing }}>
-            {Array.from({ length: lines }, (_, i) => (
-              <Skeleton
-                key={i}
-                animation={animation}
-                style={{
-                  ...skeletonStyle,
-                  width: i === lines - 1 ? `${70 + Math.random() * 30}%` : finalWidth
-                }}
-                className={className}
-                {...otherProps}
-              />
-            ))}
-          </div>
-        );
-      
       case 'card':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Skeleton
-              animation={animation}
-              style={{ ...skeletonStyle, width: '100%', height: '200px' }}
-              className={className}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing }}>
-              <Skeleton
-                animation={animation}
-                style={{ ...skeletonStyle, width: '60%', height: '24px' }}
-                className={className}
-              />
-              <Skeleton
-                animation={animation}
-                style={{ ...skeletonStyle, width: '40%', height: '16px' }}
-                className={className}
-              />
-              <Skeleton
-                animation={animation}
-                style={{ ...skeletonStyle, width: '80%', height: '16px' }}
-                className={className}
-              />
+          <div className="border-round border-1 surface-border p-4 surface-card">
+            <div className="flex mb-3">
+              <Skeleton shape="circle" size="4rem" className="mr-2" animation={animation} />
+              <div>
+                <Skeleton width="10rem" className="mb-2" animation={animation} borderRadius={borderRadius} />
+                <Skeleton width="5rem" className="mb-2" animation={animation} borderRadius={borderRadius} />
+                <Skeleton height=".5rem" animation={animation} borderRadius={borderRadius} />
+              </div>
+            </div>
+            <Skeleton width="100%" height="150px" animation={animation} borderRadius={borderRadius} />
+            <div className="flex justify-content-between mt-3">
+              <Skeleton width="4rem" height="2rem" animation={animation} borderRadius={borderRadius} />
+              <Skeleton width="4rem" height="2rem" animation={animation} borderRadius={borderRadius} />
             </div>
           </div>
         );
-      
       case 'list':
         return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {Array.from({ length: lines }, (_, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                <Skeleton
-                  animation={animation}
-                  style={{ ...skeletonStyle, width: '40px', height: '40px', borderRadius: '50%' }}
-                  className={className}
-                />
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <Skeleton
-                    animation={animation}
-                    style={{ ...skeletonStyle, width: '70%', height: '16px' }}
-                    className={className}
-                  />
-                  <Skeleton
-                    animation={animation}
-                    style={{ ...skeletonStyle, width: '50%', height: '14px' }}
-                    className={className}
-                  />
-                </div>
+          <div className="border-round border-1 surface-border p-4">
+            <ul className="m-0 p-0 list-none">
+              {Array.from({ length: lines || 4 }, (_, i) => (
+                <li key={i} className={i < (lines || 4) - 1 ? 'mb-3' : ''}>
+                  <div className="flex">
+                    <Skeleton shape="circle" size="4rem" className="mr-2" animation={animation} />
+                    <div style={{ flex: 1 }}>
+                      <Skeleton width="100%" className="mb-2" animation={animation} borderRadius={borderRadius} />
+                      <Skeleton width="75%" animation={animation} borderRadius={borderRadius} />
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+      case 'datatable':
+        return (
+          <div>
+            {Array.from({ length: lines || 5 }, (_, i) => (
+              <div key={i} className="flex mb-2">
+                <Skeleton width="25%" className="mr-2" animation={animation} borderRadius={borderRadius} />
+                <Skeleton width="25%" className="mr-2" animation={animation} borderRadius={borderRadius} />
+                <Skeleton width="25%" className="mr-2" animation={animation} borderRadius={borderRadius} />
+                <Skeleton width="25%" animation={animation} borderRadius={borderRadius} />
               </div>
             ))}
           </div>
         );
-      
-      case 'avatar':
+      case 'avatar-text':
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <Skeleton
-              animation={animation}
-              style={{ ...skeletonStyle, width: '60px', height: '60px', borderRadius: '50%' }}
-              className={className}
-            />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Skeleton
-                animation={animation}
-                style={{ ...skeletonStyle, width: '120px', height: '18px' }}
-                className={className}
-              />
-              <Skeleton
-                animation={animation}
-                style={{ ...skeletonStyle, width: '80px', height: '14px' }}
-                className={className}
-              />
+          <div className="flex">
+            <Skeleton shape="circle" size="4rem" className="mr-2" animation={animation} />
+            <div style={{ flex: 1 }}>
+              <Skeleton width="100%" className="mb-2" animation={animation} borderRadius={borderRadius} />
+              <Skeleton width="75%" animation={animation} borderRadius={borderRadius} />
             </div>
           </div>
         );
-      
-      default:
-        if (lines > 1) {
-          return (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: spacing }}>
-              {Array.from({ length: lines }, (_, i) => (
-                <Skeleton
-                  key={i}
-                  animation={animation}
-                  style={skeletonStyle}
-                  className={className}
-                  {...otherProps}
-                />
-              ))}
-            </div>
-          );
-        }
+      case 'paragraph':
+      case 'text': {
+        const count = Math.max(Number(lines) || 0, 3);
         return (
-          <Skeleton
-            animation={animation}
-            style={skeletonStyle}
-            className={className}
-            {...otherProps}
-          />
+          <div>
+            {Array.from({ length: count }, (_, i) => (
+              <Skeleton
+                key={i}
+                width={`${90 - i * 10}%`}
+                height={finalHeight}
+                className={i < count - 1 ? 'mb-2' : ''}
+                animation={animation}
+                borderRadius={borderRadius}
+              />
+            ))}
+          </div>
         );
+      }
+      default: {
+        // No preset: render a vertical stack with a minimum of 3 skeletons
+        const count = Math.max(Number(lines) || 0, 3);
+        return (
+          <div>
+            {Array.from({ length: count }, (_, i) => (
+              renderSkeleton({
+                key: i,
+                className: i < count - 1 ? `${className} mb-2` : className
+              })
+            ))}
+          </div>
+        );
+      }
     }
   };
 
-  if (shouldShowSkeleton) {
-    return renderTemplate();
-  }
-
-  return (
-    <div
-      ref={contentRef}
-      style={{
-        opacity: contentOpacity,
-        transition: fadeIn ? 'opacity 0.3s ease-in-out' : 'none'
-      }}
-    >
-      {children}
-    </div>
-  );
+  if (showSkeleton) return renderTemplate();
+  return children;
 };
 
-export default AdvancedSkeleton;
+export default SimpleSkeleton;
