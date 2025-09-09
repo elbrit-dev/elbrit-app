@@ -12,6 +12,7 @@ import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
 import SimpleButton from "./components/SimpleButton";
 import SimpleCard from "./components/SimpleCard";
+import AdvancedSkeleton from "./components/AdvancedSkeleton";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -2996,6 +2997,175 @@ PLASMIC.registerComponent(SimpleCard, {
     }
   },
   importPath: "./components/SimpleCard"
+});
+
+// Register the Advanced Skeleton component
+PLASMIC.registerComponent(AdvancedSkeleton, {
+  name: "AdvancedSkeleton",
+  displayName: "Advanced Skeleton",
+  description: "A sophisticated skeleton loader with force rendering, animations, templates, and advanced customization options",
+  props: {
+    // Core props
+    loading: {
+      type: "boolean",
+      description: "Whether to show skeleton or content",
+      defaultValue: true
+    },
+    children: {
+      type: "slot",
+      description: "Content to show when not loading"
+    },
+    
+    // Force rendering props
+    forceRender: {
+      type: "boolean",
+      description: "Force skeleton to render even when not loading (for testing/demo)",
+      defaultValue: false
+    },
+    forceRenderInterval: {
+      type: "number",
+      description: "Interval in milliseconds for force render updates",
+      defaultValue: 1000
+    },
+    forceRenderDuration: {
+      type: "number",
+      description: "Duration in milliseconds for force rendering (0 = infinite)",
+      defaultValue: 5000
+    },
+    autoStopForceRender: {
+      type: "boolean",
+      description: "Automatically stop force rendering after duration",
+      defaultValue: true
+    },
+    
+    // Skeleton appearance
+    shape: {
+      type: "choice",
+      options: ["rectangle", "circle", "square"],
+      description: "Skeleton shape",
+      defaultValue: "rectangle"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "normal", "large", "custom"],
+      description: "Predefined size or custom",
+      defaultValue: "normal"
+    },
+    width: {
+      type: "string",
+      description: "Custom width (e.g., '200px', '100%')",
+      defaultValue: null
+    },
+    height: {
+      type: "string",
+      description: "Custom height (e.g., '30px', '2rem')",
+      defaultValue: null
+    },
+    borderRadius: {
+      type: "string",
+      description: "Border radius (ignored for circles)",
+      defaultValue: "4px"
+    },
+    
+    // Animation props
+    animation: {
+      type: "choice",
+      options: ["wave", "pulse", "shimmer", "none"],
+      description: "Animation type",
+      defaultValue: "wave"
+    },
+    animationSpeed: {
+      type: "choice",
+      options: ["slow", "normal", "fast"],
+      description: "Animation speed",
+      defaultValue: "normal"
+    },
+    
+    // Layout props
+    lines: {
+      type: "number",
+      description: "Number of skeleton lines (for templates)",
+      defaultValue: 1
+    },
+    spacing: {
+      type: "string",
+      description: "Spacing between lines (e.g., '0.5rem', '10px')",
+      defaultValue: "0.5rem"
+    },
+    template: {
+      type: "choice",
+      options: [null, "text", "card", "list", "avatar"],
+      description: "Predefined skeleton template",
+      defaultValue: null
+    },
+    
+    // Styling
+    backgroundColor: {
+      type: "string",
+      description: "Skeleton background color",
+      defaultValue: "#f0f0f0"
+    },
+    highlightColor: {
+      type: "string",
+      description: "Animation highlight color",
+      defaultValue: "#e0e0e0"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    
+    // Advanced features
+    responsive: {
+      type: "boolean",
+      description: "Auto-detect dimensions from content",
+      defaultValue: false
+    },
+    fadeIn: {
+      type: "boolean",
+      description: "Fade in content when loading completes",
+      defaultValue: true
+    },
+    randomize: {
+      type: "boolean",
+      description: "Randomize skeleton dimensions for more realistic look",
+      defaultValue: false
+    },
+    throttleUpdates: {
+      type: "boolean",
+      description: "Throttle updates for better performance",
+      defaultValue: false
+    },
+    updateInterval: {
+      type: "number",
+      description: "Update interval in milliseconds when throttling",
+      defaultValue: 100
+    },
+    
+    // Event handlers
+    onForceRenderStart: {
+      type: "eventHandler",
+      description: "Called when force rendering starts",
+      argTypes: []
+    },
+    onForceRenderStop: {
+      type: "eventHandler",
+      description: "Called when force rendering stops",
+      argTypes: []
+    },
+    onLoadingComplete: {
+      type: "eventHandler",
+      description: "Called when loading changes from true to false",
+      argTypes: []
+    }
+  },
+  importPath: "./components/AdvancedSkeleton"
 });
 
 
