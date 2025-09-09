@@ -11,6 +11,7 @@ import PrimeDataTab from "./components/pimereact";
 import LinkComponent from "./components/LinkComponent";
 import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
 import SimpleButton from "./components/SimpleButton";
+import SimpleCard from "./components/SimpleCard";
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -2882,6 +2883,119 @@ PLASMIC.registerComponent(SimpleButton, {
     }
   },
   importPath: "./components/SimpleButton"
+});
+
+// Register the Simple Card component
+PLASMIC.registerComponent(SimpleCard, {
+  name: "SimpleCard",
+  displayName: "Simple Card",
+  description: "A flexible card component for displaying content with customizable header, body, and footer",
+  props: {
+    title: {
+      type: "string",
+      description: "Card header title",
+      defaultValue: ""
+    },
+    subtitle: {
+      type: "string",
+      description: "Card header subtitle",
+      defaultValue: ""
+    },
+    header: {
+      type: "slot",
+      description: "Custom header content (overrides title/subtitle)"
+    },
+    footer: {
+      type: "slot",
+      description: "Footer content"
+    },
+    children: {
+      type: "slot",
+      description: "Card body content"
+    },
+    headerImage: {
+      type: "string",
+      description: "URL for header image",
+      defaultValue: null
+    },
+    headerImageAlt: {
+      type: "string",
+      description: "Alt text for header image",
+      defaultValue: ""
+    },
+    headerImageHeight: {
+      type: "string",
+      description: "Height of header image (e.g., '200px', '150px')",
+      defaultValue: "200px"
+    },
+    shadow: {
+      type: "boolean",
+      description: "Show shadow/elevation",
+      defaultValue: true
+    },
+    bordered: {
+      type: "boolean",
+      description: "Show border around card",
+      defaultValue: true
+    },
+    hoverable: {
+      type: "boolean",
+      description: "Enable hover effects (lift and shadow)",
+      defaultValue: false
+    },
+    width: {
+      type: "string",
+      description: "Card width (e.g., '300px', '100%', 'auto')",
+      defaultValue: "auto"
+    },
+    height: {
+      type: "string",
+      description: "Card height (e.g., '400px', 'auto')",
+      defaultValue: "auto"
+    },
+    padding: {
+      type: "string",
+      description: "Card body padding (e.g., '1rem', '20px')",
+      defaultValue: "1rem"
+    },
+    backgroundColor: {
+      type: "string",
+      description: "Background color",
+      defaultValue: "#ffffff"
+    },
+    borderColor: {
+      type: "string",
+      description: "Border color",
+      defaultValue: "#dee2e6"
+    },
+    borderRadius: {
+      type: "string",
+      description: "Border radius (e.g., '6px', '12px', '0')",
+      defaultValue: "6px"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    onClick: {
+      type: "eventHandler",
+      description: "Click event handler for the entire card",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "The click event object"
+        }
+      ]
+    }
+  },
+  importPath: "./components/SimpleCard"
 });
 
 
