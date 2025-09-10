@@ -1,21 +1,25 @@
 import { initPlasmicLoader } from "@plasmicapp/loader-nextjs";
-import MicrosoftSSOLogin from "./components/MicrosoftSSOLogin";
-import TruecallerSSOLogin from "./components/TruecallerSSOLogin";
-import PlasmicDataContext from "./components/PlasmicDataContext";
-import AdvancedTable from "./components/AdvancedTable";
-import PrimeDataTable from "./components/PrimeDataTable";
-// import PrimeDataTableOptimized from "./components/PrimeDataTableOptimized";
-import FirestoreDebug from "./components/FirestoreDebug";
-import EnvironmentCheck from "./components/EnvironmentCheck";
-import PrimeDataTab from "./components/pimereact";
-import LinkComponent from "./components/LinkComponent";
-import TagFilterPrimeReact from "./components/TagFilterPrimeReact";
-import SimpleButton from "./components/SimpleButton";
-import SimpleCard from "./components/SimpleCard";
-import AdvancedSkeleton from "./components/AdvancedSkeleton";
-import StaticSkeleton from "./components/StaticSkeleton";
-import RectSkeleton from "./components/RectSkeleton";
-import CircleSkeleton from "./components/CircleSkeleton";
+import dynamic from "next/dynamic";
+
+// Use Next dynamic imports to lazy-load all heavy/optional components.
+// Disable SSR for client-only widgets to avoid server work.
+const MicrosoftSSOLogin = dynamic(() => import("./components/MicrosoftSSOLogin"), { ssr: false, loading: () => null });
+const TruecallerSSOLogin = dynamic(() => import("./components/TruecallerSSOLogin"), { ssr: false, loading: () => null });
+const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext"), { ssr: false, loading: () => null });
+const AdvancedTable = dynamic(() => import("./components/AdvancedTable"), { ssr: false, loading: () => null });
+const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
+// const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
+const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
+const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), { ssr: false, loading: () => null });
+const PrimeDataTab = dynamic(() => import("./components/pimereact"), { ssr: false, loading: () => null });
+const LinkComponent = dynamic(() => import("./components/LinkComponent"), { ssr: false, loading: () => null });
+const TagFilterPrimeReact = dynamic(() => import("./components/TagFilterPrimeReact"), { ssr: false, loading: () => null });
+const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
+const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
+const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), { ssr: false, loading: () => null });
+const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
+const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
+const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -26,9 +30,8 @@ export const PLASMIC = initPlasmicLoader({
     }
   ],
 
-  // Fetches the latest revisions, whether or not they were unpublished!
-  // Disable for production to ensure you render only published changes.
-  preview: true,
+  // Fetches latest revisions. Disable in production to render only published changes.
+  preview: process.env.NODE_ENV !== 'production',
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference

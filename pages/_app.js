@@ -1,6 +1,8 @@
 import '../styles/globals.css';
 import { AuthProvider } from '../components/AuthContext';
-import '../plasmic-init'; 
+// Lazy-load Plasmic init so it doesn't block app bootstrap
+import dynamic from 'next/dynamic';
+const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
 
 // PrimeReact CSS imports
