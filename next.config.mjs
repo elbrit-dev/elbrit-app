@@ -4,6 +4,16 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  // Production optimizations
+  compress: true,
+  generateEtags: true,
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+  
+  // Optimize output
+  output: 'standalone',
+  
   // Speed up image responses by skipping Next.js optimizer and using remote CDNs directly
   images: {
     unoptimized: true,
@@ -16,24 +26,92 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     formats: ['image/avif', 'image/webp']
   },
+  
+  // Performance optimizations
+  swcMinify: true,
   poweredByHeader: false,
+  
+  // Webpack optimizations
+  webpack: (config, { dev, isServer }) => {
+    if (!dev && !isServer) {
+      // Production client-side optimizations
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Framework chunk for React/Next.js core
+            framework: {
+              chunks: 'all',
+              name: 'framework',
+              test: /(?<!node_modules.*)[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            // Library chunk for other npm packages
+            lib: {
+              test(module) {
+                return module.size() > 160000 && /node_modules[/\\]/.test(module.identifier());
+              },
+              name: 'lib',
+              priority: 30,
+              minChunks: 1,
+              reuseExistingChunk: true,
+            },
+            // Commons chunk for shared code
+            commons: {
+              name: 'commons',
+              minChunks: 2,
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      };
+    }
+    return config;
+  },
+  
   async headers() {
     return [
+      // Static assets caching
+      {
+        source: '/_next/static/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      },
       {
         source: '/_next/image',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=31536000, stale-while-revalidate=600' }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
         ]
       },
       {
         source: '/img',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=31536000, stale-while-revalidate=600' }
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      },
+      // API routes caching
+      {
+        source: '/api/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=10, stale-while-revalidate=59' }
+        ]
+      },
+      // General page caching
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, s-maxage=10, stale-while-revalidate=59' }
         ]
       }
     ];
-  }
-  ,
+  },
+  
   async redirects() {
     return [
       {
