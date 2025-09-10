@@ -56,6 +56,36 @@ export default function PlasmicLoaderPage(props) {
   useEffect(() => {
     isHydratedRef.current = true;
   }, []);
+
+  // QUIET ANALYTICS: Suppress Plasmic analytics fetch to avoid CORS console noise
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isHydratedRef.current || window.__PLASMIC_ANALYTICS_PATCHED__) return;
+    const originalFetch = window.fetch;
+    try {
+      window.fetch = async (...args) => {
+        try {
+          const input = args[0];
+          const url = typeof input === 'string' ? input : (input?.url || '');
+          if (typeof url === 'string' && url.includes('https://analytics.plasmic.app/capture')) {
+            // Return empty 204 to silence errors
+            return new Response(null, { status: 204, statusText: 'No Content' });
+          }
+        } catch (e) {
+          // fall through to original fetch
+        }
+        return originalFetch.apply(window, args);
+      };
+      window.__PLASMIC_ANALYTICS_PATCHED__ = true;
+    } catch (e) {
+      // If patching fails, do nothing
+    }
+    return () => {
+      try {
+        window.fetch = originalFetch;
+        delete window.__PLASMIC_ANALYTICS_PATCHED__;
+      } catch (e) {}
+    };
+  }, []);
   
   // HYDRATION FIX: Load ERPNext auth data from localStorage with hydration safety
   useEffect(() => {
