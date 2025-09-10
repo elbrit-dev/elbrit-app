@@ -1,3 +1,18 @@
+// Simple in-memory cache for small read responses (valid for warm instances)
+const __memoryCache = new Map();
+const getFromCache = (key, ttlMs) => {
+  const entry = __memoryCache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > ttlMs) {
+    __memoryCache.delete(key);
+    return null;
+  }
+  return entry.value;
+};
+const setInCache = (key, value) => {
+  __memoryCache.set(key, { ts: Date.now(), value });
+};
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
@@ -282,6 +297,13 @@ export default async function handler(req, res) {
       }
 
     } else if (action === 'load') {
+      // Try in-memory cache first (60s TTL)
+      const cacheKey = `load:${configKey}:${req.body.filterByPage || ''}:${req.body.filterByTable || ''}`;
+      const cached = getFromCache(cacheKey, 60 * 1000);
+      if (cached) {
+        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+        return res.status(200).json({ success: true, data: cached, cached: true });
+      }
       // Load configuration from CMS using GET method with public token
       let whereClause = { configKey: configKey };
       
@@ -350,12 +372,22 @@ export default async function handler(req, res) {
         source: record?.data?.pivotConfig ? 'published' : 'draft'
       });
 
+      // Store to cache and send cacheable response
+      setInCache(cacheKey, config || null);
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
       return res.status(200).json({ 
         success: true, 
         data: config || null 
       });
 
     } else if (action === 'list') {
+      // Try in-memory cache first (60s TTL)
+      const cacheKey = `list:${req.body.filterByPage || ''}:${req.body.filterByTable || ''}:${req.body.listBy || ''}`;
+      const cached = getFromCache(cacheKey, 60 * 1000);
+      if (cached) {
+        res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
+        return res.status(200).json({ success: true, data: cached, count: cached.length, cached: true });
+      }
       // List configurations filtered by page and/or table
       let whereClause = {};
       
@@ -422,6 +454,9 @@ export default async function handler(req, res) {
 
       console.log('📊 List result:', { found: configs.length, configs: configs.slice(0, 3) }); // Log first 3 for brevity
 
+      // Store to cache and send cacheable response
+      setInCache(cacheKey, configs);
+      res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=300');
       return res.status(200).json({ 
         success: true, 
         data: configs,

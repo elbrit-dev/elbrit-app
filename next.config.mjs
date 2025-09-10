@@ -16,6 +16,7 @@ const nextConfig = {
     dangerouslyAllowSVG: true,
     formats: ['image/avif', 'image/webp']
   },
+  poweredByHeader: false,
   async headers() {
     return [
       {
@@ -29,6 +30,16 @@ const nextConfig = {
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=31536000, stale-while-revalidate=600' }
         ]
+      }
+    ];
+  }
+  ,
+  async redirects() {
+    return [
+      {
+        source: '/img',
+        destination: 'https://img.plasmic.app',
+        permanent: false
       }
     ];
   }
