@@ -204,17 +204,26 @@ export default function PlasmicLoaderPage(props) {
   );
 }
 
-export const getServerSideProps = async (context) => {
+export async function getStaticPaths() {
+  // Pre-generate currently active Plasmic pages; serve others on-demand
+  const pages = await PLASMIC.getActivePages?.();
+  const paths = (pages || []).map((p) => ({
+    params: {
+      catchall: p.path === "/" ? [] : p.path.substring(1).split("/")
+    }
+  }));
+  return { paths, fallback: 'blocking' };
+}
+
+export const getStaticProps = async (context) => {
   const { catchall } = context.params ?? {};
   const plasmicPath = typeof catchall === 'string' ? catchall : Array.isArray(catchall) ? `/${catchall.join('/')}` : '/';
   const plasmicData = await PLASMIC.maybeFetchComponentData(plasmicPath);
   if (!plasmicData) {
-    // non-Plasmic catch-all
-    return { props: {} };
+    return { notFound: true, revalidate: 60 };
   }
   const pageMeta = plasmicData.entryCompMetas[0];
 
-  // Cache the necessary data fetched for the page
   const queryCache = await extractPlasmicQueryData(
     <PlasmicRootProvider
       loader={PLASMIC}
@@ -226,10 +235,12 @@ export const getServerSideProps = async (context) => {
     </PlasmicRootProvider>
   );
 
-  return { 
-    props: { 
-      plasmicData, 
+  return {
+    props: {
+      plasmicData,
       queryCache
-    } 
+    },
+    // Revalidate periodically to pick up published CMS/Plasmic changes
+    revalidate: 60
   };
 }
