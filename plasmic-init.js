@@ -28,7 +28,7 @@ export const PLASMIC = initPlasmicLoader({
 
   // Fetches the latest revisions, whether or not they were unpublished!
   // Disable for production to ensure you render only published changes.
-  preview: false,
+  preview: true,
   
   // Disable Plasmic's built-in authentication system
   // This allows our custom authentication to work without interference
