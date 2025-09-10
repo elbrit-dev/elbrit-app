@@ -292,6 +292,24 @@ const a = {
   }
   ,
 
+  // URL encoding/decoding helpers (names as requested)
+  enocdeui: (value) => {
+    const text = value == null ? '' : String(value);
+    try { return encodeURI(text); } catch (e) { return text; }
+  },
+  encodeuicompeont: (value) => {
+    const text = value == null ? '' : String(value);
+    try { return encodeURIComponent(text); } catch (e) { return text; }
+  },
+  decodeui: (value) => {
+    const text = value == null ? '' : String(value);
+    try { return decodeURI(text); } catch (e) { return text; }
+  },
+  decodeuicompoent: (value) => {
+    const text = value == null ? '' : String(value);
+    try { return decodeURIComponent(text); } catch (e) { return text; }
+  },
+
   // ✅ NEW flatten function for dynamic JSON
   flatten
 };
