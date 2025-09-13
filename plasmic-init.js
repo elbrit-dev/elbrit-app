@@ -1442,6 +1442,16 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable PDF export functionality",
       defaultValue: false
     },
+    exportExpandedData: {
+      type: "boolean",
+      description: "Include full nested object/array details in export (detailed view)",
+      defaultValue: false
+    },
+    exportNestedAsColumns: {
+      type: "boolean", 
+      description: "Flatten nested objects as separate columns (creates Invoices[0].id, Invoices[0].amount, etc.)",
+      defaultValue: false
+    },
     
     // Advanced selection
     selectionMode: {

@@ -30,6 +30,8 @@ export const createEventHandlers = ({
   enableExcelExport,
   enablePdfExport,
   exportFilename,
+  exportExpandedData,
+  exportNestedAsColumns,
   enableRefresh,
   onRefresh,
   setIsRefreshing,
@@ -182,6 +184,73 @@ export const createEventHandlers = ({
     }
   }, [onRowSelect]);
 
+  // Helper function to safely format cell values for export
+  const formatCellForExport = useCallback((value, expandedMode = false) => {
+    if (value == null) return '';
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+      return String(value);
+    }
+    
+    // Handle arrays
+    if (Array.isArray(value)) {
+      // If it's an array of objects, create a detailed or summary view
+      if (value.length > 0 && typeof value[0] === 'object' && !Array.isArray(value[0])) {
+        if (expandedMode && exportExpandedData) {
+          // Detailed export: show full object details
+          return value.map((item, index) => {
+            const keys = Object.keys(item);
+            const details = keys.map(key => `${key}: ${formatCellForExport(item[key], false)}`).join('; ');
+            return `[${index + 1}] ${details}`;
+          }).join(' | ');
+        } else {
+          // Summary export: show condensed info
+          return `${value.length} items: ${value.map((item, index) => {
+            const keys = Object.keys(item);
+            const summary = keys.slice(0, 3).map(key => `${key}: ${item[key]}`).join('; ');
+            return `[${index + 1}] ${summary}${keys.length > 3 ? '...' : ''}`;
+          }).join(' | ')}`;
+        }
+      }
+      // If it's an array of primitives, join them
+      return value.join('; ');
+    }
+    
+    // Handle objects
+    if (typeof value === 'object') {
+      try {
+        const keys = Object.keys(value);
+        if (keys.length === 0) return '[empty object]';
+        
+        if (expandedMode && exportExpandedData) {
+          // Detailed export: show all object properties
+          const summary = keys.map(key => {
+            const val = value[key];
+            if (val == null) return `${key}: null`;
+            if (Array.isArray(val)) return `${key}: [${val.length} items: ${formatCellForExport(val, false)}]`;
+            if (typeof val === 'object') return `${key}: ${formatCellForExport(val, false)}`;
+            return `${key}: ${String(val)}`;
+          }).join('; ');
+          return summary;
+        } else {
+          // Summary export: show limited properties
+          const summary = keys.slice(0, 5).map(key => {
+            const val = value[key];
+            if (val == null) return `${key}: null`;
+            if (Array.isArray(val)) return `${key}: [${val.length} items]`;
+            if (typeof val === 'object') return `${key}: [object]`;
+            return `${key}: ${String(val)}`;
+          }).join('; ');
+          
+          return keys.length > 5 ? `${summary}; ...` : summary;
+        }
+      } catch {
+        return '[object]';
+      }
+    }
+    
+    return String(value);
+  }, [exportExpandedData]);
+
   const handleExport = useCallback(() => {
     if (!enableExport) return;
     
@@ -200,19 +269,75 @@ export const createEventHandlers = ({
     if (onExport) {
       onExport(dataToExport);
     } else {
-      // Enhanced export with multiple formats
+      // Enhanced export with multiple formats and proper nested data handling
+      const generateCSVContent = () => {
+        if (exportNestedAsColumns) {
+          // Flatten nested objects as separate columns
+          const allColumns = new Set();
+          const flattenedData = [];
+          
+          // First pass: identify all possible columns including nested ones
+          dataToExport.forEach(row => {
+            const flatRow = {};
+            
+            defaultColumns.forEach(col => {
+              const value = row[col.key];
+              
+              if (value && typeof value === 'object' && !Array.isArray(value)) {
+                // Flatten object properties as separate columns
+                Object.keys(value).forEach(nestedKey => {
+                  const flatColumnKey = `${col.title}.${nestedKey}`;
+                  allColumns.add(flatColumnKey);
+                  flatRow[flatColumnKey] = formatCellForExport(value[nestedKey], false);
+                });
+              } else if (Array.isArray(value) && value.length > 0 && typeof value[0] === 'object') {
+                // For arrays of objects, create indexed columns
+                value.forEach((item, index) => {
+                  Object.keys(item).forEach(nestedKey => {
+                    const flatColumnKey = `${col.title}[${index}].${nestedKey}`;
+                    allColumns.add(flatColumnKey);
+                    flatRow[flatColumnKey] = formatCellForExport(item[nestedKey], false);
+                  });
+                });
+              } else {
+                // Regular column
+                allColumns.add(col.title);
+                flatRow[col.title] = formatCellForExport(value, exportExpandedData);
+              }
+            });
+            
+            flattenedData.push(flatRow);
+          });
+          
+          const headers = Array.from(allColumns);
+          const rows = flattenedData.map(row => 
+            headers.map(header => {
+              const value = row[header] || '';
+              return `"${String(value).replace(/"/g, '""')}"`;
+            })
+          );
+          
+          return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        } else {
+          // Standard export with enhanced nested data formatting
+          const headers = defaultColumns.map(col => col.title);
+          const rows = dataToExport.map(row => 
+            defaultColumns.map(col => {
+              const cellValue = row[col.key];
+              const formattedValue = formatCellForExport(cellValue, exportExpandedData);
+              // Escape quotes and wrap in quotes for CSV
+              return `"${formattedValue.replace(/"/g, '""')}"`;
+            })
+          );
+          return [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+        }
+      };
+
       switch (exportFileType) {
         case 'excel':
           if (enableExcelExport) {
-            // Excel export using jspdf-autotable
-            const csvContent = [
-              defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
-                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-              )
-            ].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv' });
+            const csvContent = generateCSVContent();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -223,15 +348,9 @@ export const createEventHandlers = ({
           break;
         case 'pdf':
           if (enablePdfExport) {
-            // PDF export using jspdf-autotable
-            const csvContent = [
-              defaultColumns.map(col => col.title).join(','),
-              ...dataToExport.map(row => 
-                defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-              )
-            ].join('\n');
-            
-            const blob = new Blob([csvContent], { type: 'text/csv' });
+            // For PDF, we'll use CSV format for now (you can enhance this with actual PDF generation)
+            const csvContent = generateCSVContent();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
@@ -241,15 +360,9 @@ export const createEventHandlers = ({
           }
           break;
         default:
-          // Default CSV export
-          const csvContent = [
-            defaultColumns.map(col => col.title).join(','),
-            ...dataToExport.map(row => 
-              defaultColumns.map(col => `"${row[col.key] || ''}"`).join(',')
-            )
-          ].join('\n');
-          
-          const blob = new Blob([csvContent], { type: 'text/csv' });
+          // Enhanced CSV export with proper nested data handling
+          const csvContent = generateCSVContent();
+          const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -259,7 +372,7 @@ export const createEventHandlers = ({
           break;
       }
     }
-  }, [enableExport, finalTableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns]);
+  }, [enableExport, finalTableData, onExport, exportFileType, enableExcelExport, enablePdfExport, exportFilename, defaultColumns, formatCellForExport, exportExpandedData, exportNestedAsColumns]);
 
   const handleRefresh = useCallback(async () => {
     if (!enableRefresh) return;

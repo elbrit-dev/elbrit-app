@@ -429,6 +429,8 @@ const PrimeDataTable = ({
   exportFileType = "csv", // csv, excel, pdf
   enableExcelExport = false,
   enablePdfExport = false,
+  exportExpandedData = false, // Include expanded nested data in export
+  exportNestedAsColumns = false, // Flatten nested objects as separate columns
   
   // Advanced selection
   selectionMode = "multiple", // single, multiple, checkbox
@@ -2400,6 +2402,8 @@ const PrimeDataTable = ({
     enableExcelExport,
     enablePdfExport,
     exportFilename,
+    exportExpandedData,
+    exportNestedAsColumns,
     enableRefresh,
     onRefresh,
     setIsRefreshing,
