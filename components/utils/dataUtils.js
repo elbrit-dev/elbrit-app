@@ -8,16 +8,27 @@ const safeConsole = {
 // Merge function for combining data from multiple arrays
 export const mergeData = (by = [], preserve = []) => (tables = {}) => {
   // CRITICAL: Ensure tables is valid
-  if (!tables || typeof tables !== 'object') {
+  if (!tables || typeof tables !== 'object' || tables === null) {
     console.error('mergeData: invalid tables parameter, returning empty array');
     return [];
+  }
+  
+  // CRITICAL: If tables is already an array, return it (no merging needed)
+  if (Array.isArray(tables)) {
+    console.warn('mergeData: tables parameter is already an array, returning as-is');
+    return tables.filter(row => row && typeof row === 'object');
   }
   
   // CRITICAL: Ensure by array is valid
   if (!Array.isArray(by) || by.length === 0) {
     console.warn('mergeData: invalid or empty by array, returning flattened data');
-    const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
-    return flattened;
+    try {
+      const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
+      return Array.isArray(flattened) ? flattened : [];
+    } catch (error) {
+      console.error('mergeData: error flattening data:', error);
+      return [];
+    }
   }
   
   const getKey = row => by.map(k => row?.[k] ?? "").join("||");
@@ -139,6 +150,12 @@ export const processData = (
   // CRITICAL: If data is an object but null, return empty array
   if (data === null) {
     console.warn('processData: Null data provided, returning empty array');
+    return [];
+  }
+  
+  // CRITICAL: Additional safety check for primitive values wrapped as objects
+  if (typeof data !== 'object' || Array.isArray(data) === false && Object.prototype.toString.call(data) !== '[object Object]') {
+    console.warn('processData: Data is not a proper object or array, returning empty array');
     return [];
   }
   
@@ -311,52 +328,49 @@ export const processData = (
     }
   }
   
-  // CRITICAL: Final validation and sanitization
+  // CRITICAL: Final validation and safety measures
   if (!Array.isArray(finalData)) {
-    console.error('processData: Final data is not an array, returning empty array');
+    console.error('processData: Final data is not an array, returning empty array. Type:', typeof finalData, 'Value:', finalData);
     return [];
   }
   
-  // CRITICAL: Ensure each row is a valid object with proper structure
-  const validData = finalData.filter(row => {
-    if (!row || typeof row !== 'object' || Array.isArray(row)) {
-      return false;
-    }
-    return true;
-  }).map(row => {
-    // Ensure all values are serializable and safe for PrimeReact
-    const sanitizedRow = {};
-    Object.keys(row).forEach(key => {
-      const value = row[key];
-      // Skip functions, undefined, and complex objects that might cause issues
-      if (value !== undefined && value !== null && typeof value !== 'function') {
-        if (Array.isArray(value)) {
-          // Convert arrays to string representation for display
-          sanitizedRow[key] = value.length > 0 ? `${value.length} item(s)` : '';
-        } else if (typeof value === 'object') {
-          // Convert objects to string representation
-          try {
-            const str = JSON.stringify(value);
-            sanitizedRow[key] = str.length > 100 ? str.slice(0, 97) + '...' : str;
-          } catch {
-            sanitizedRow[key] = '[object]';
-          }
-        } else {
-          sanitizedRow[key] = value;
-        }
-      } else {
-        sanitizedRow[key] = '';
+  // CRITICAL: Ensure each item in the array is a valid object
+  let validData;
+  try {
+    validData = finalData.filter(row => {
+      // Filter out null, undefined, and non-object values
+      if (!row || typeof row !== 'object' || Array.isArray(row)) {
+        return false;
       }
+      // Ensure it's a plain object and not a function or other object type
+      return Object.prototype.toString.call(row) === '[object Object]';
     });
-    return sanitizedRow;
-  });
-  
-  // CRITICAL: Ensure we always return a valid array
-  if (!Array.isArray(validData)) {
-    console.error('processData: Sanitization failed, returning empty array');
+  } catch (error) {
+    console.error('processData: Error filtering data:', error);
     return [];
   }
   
-  console.log(`✅ processData: Returning ${validData.length} valid records`);
-  return validData;
+  // CRITICAL: Final safety check - ensure we're returning an actual array
+  if (!Array.isArray(validData)) {
+    console.error('processData: validData is not an array after filtering, returning empty array');
+    return [];
+  }
+  
+  // CRITICAL: Deep clone the data to prevent any reference issues that might cause findIndex problems
+  try {
+    const safeData = validData.map(row => {
+      try {
+        // Create a shallow copy to avoid any prototype chain issues
+        return { ...row };
+      } catch (error) {
+        console.warn('processData: Error cloning row, skipping:', error);
+        return null;
+      }
+    }).filter(row => row !== null);
+    
+    return Array.isArray(safeData) ? safeData : [];
+  } catch (error) {
+    console.error('processData: Error creating safe data copy:', error);
+    return [];
+  }
 };

@@ -1197,60 +1197,20 @@ const PrimeDataTable = ({
   // Data processing moved to utils/dataUtils.js
   const processedData = useMemo(() => {
     const rawData = graphqlQuery ? graphqlData : data;
-    
-    // CRITICAL: Ensure mergeConfig is properly structured to prevent errors
-    const safeMergeConfig = {
-      by: Array.isArray(mergeConfig?.by) ? mergeConfig.by : [],
-      preserve: Array.isArray(mergeConfig?.preserve) ? mergeConfig.preserve : [],
-      autoDetectMergeFields: mergeConfig?.autoDetectMergeFields !== false, // Default to true
-      mergeStrategy: mergeConfig?.mergeStrategy || 'combine'
-    };
-    
-    try {
-      return processData(
-        rawData, 
-        graphqlQuery, 
-        graphqlData, 
-        enableAutoMerge, 
-        safeMergeConfig, 
-        enableROICalculation, 
-        calculateROI, 
-        roiConfig
-      );
-    } catch (error) {
-      console.error('PrimDataTable: Error during data processing:', error);
-      // Return safe fallback data
-      if (Array.isArray(rawData)) {
-        return rawData;
-      } else if (rawData && typeof rawData === 'object') {
-        // If it's an object with arrays, try to flatten safely
-        const arrays = Object.values(rawData).filter(val => Array.isArray(val));
-        return arrays.length > 0 ? arrays[0] : [];
-      }
-      return [];
-    }
+    return processData(
+      rawData, 
+      graphqlQuery, 
+      graphqlData, 
+      enableAutoMerge, 
+      mergeConfig, 
+      enableROICalculation, 
+      calculateROI, 
+      roiConfig
+    );
   }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig, enableROICalculation, calculateROI, roiConfig]);
 
-  // Use processed data with additional safety validation
-  const tableData = useMemo(() => {
-    // CRITICAL: Extra safety check to prevent findIndex errors
-    if (!processedData || !Array.isArray(processedData)) {
-      console.warn('PrimDataTable: processedData is not a valid array, using empty array');
-      return [];
-    }
-    
-    // Ensure all rows are valid objects
-    const safeData = processedData.filter(row => {
-      return row && typeof row === 'object' && !Array.isArray(row);
-    });
-    
-    if (safeData.length !== processedData.length) {
-      console.warn(`PrimDataTable: Filtered out ${processedData.length - safeData.length} invalid rows`);
-    }
-    
-    return safeData;
-  }, [processedData]);
-  
+  // Use processed data
+  const tableData = processedData;
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 
@@ -1337,11 +1297,27 @@ const PrimeDataTable = ({
       return [];
     }
 
-    // Don't modify data - we'll use PrimeReact's footer functionality instead
-
-
-
-    return data;
+    // CRITICAL: Extra validation to ensure each row is a proper object
+    try {
+      const validatedData = data.filter(row => {
+        if (!row || typeof row !== 'object' || Array.isArray(row)) {
+          return false;
+        }
+        // Ensure it's a plain object
+        return Object.prototype.toString.call(row) === '[object Object]';
+      });
+      
+      // CRITICAL: Ensure the result is still an array
+      if (!Array.isArray(validatedData)) {
+        console.error('PrimeDataTable: validatedData is not an array after filtering');
+        return [];
+      }
+      
+      return validatedData;
+    } catch (error) {
+      console.error('PrimeDataTable: Error validating final table data:', error);
+      return [];
+    }
   }, [pivotTransformation, tableData]);
 
   // 🔑 Resolve the dataKey with clear precedence (manual > auto-detect > fallback)
@@ -3250,7 +3226,28 @@ const PrimeDataTable = ({
       {/* DataTable */}
       <DataTable
         key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
-        value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
+        value={(() => {
+          // CRITICAL: Multiple layers of safety for DataTable value prop
+          try {
+            if (!Array.isArray(finalTableData)) {
+              console.error('DataTable value: finalTableData is not an array, using empty array');
+              return [];
+            }
+            
+            // Ensure each item is a proper object
+            const safeData = finalTableData.filter(item => {
+              return item && 
+                     typeof item === 'object' && 
+                     !Array.isArray(item) && 
+                     Object.prototype.toString.call(item) === '[object Object]';
+            });
+            
+            return Array.isArray(safeData) ? safeData : [];
+          } catch (error) {
+            console.error('DataTable value: Error processing finalTableData:', error);
+            return [];
+          }
+        })()} // CRITICAL: Ultimate safety check before DataTable
         loading={isLoading}
         filters={filters}
         filterDisplay={
