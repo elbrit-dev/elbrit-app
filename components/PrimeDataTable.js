@@ -3420,7 +3420,20 @@ const PrimeDataTable = ({
 
           // Helper function to generate filter options for columns
           const generateFilterOptions = (column) => {
-            return getFilterOptions(finalTableData, column.key, customFilterOptions);
+            try {
+              const options = getFilterOptions(finalTableData, column.key, customFilterOptions);
+              
+              // CRITICAL: Double-check that options is a proper array
+              if (!Array.isArray(options)) {
+                console.error('generateFilterOptions: getFilterOptions did not return an array for column', column.key);
+                return [];
+              }
+              
+              return options;
+            } catch (error) {
+              console.error('generateFilterOptions: Error generating filter options for column', column.key, error);
+              return [];
+            }
           };
 
           return finalColumnsToRender.map(column => {

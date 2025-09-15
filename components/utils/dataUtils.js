@@ -101,10 +101,30 @@ export const needsMerging = (data) => {
 
 // Helper to get unique values for a column
 export const getUniqueValues = (data, key) => {
-  return [...new Set(data
-    .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
-    .map(row => row[key])
-    .filter(val => val !== null && val !== undefined))];
+  try {
+    // CRITICAL: Ensure data is an array
+    if (!Array.isArray(data)) {
+      console.warn('getUniqueValues: data is not an array, returning empty array');
+      return [];
+    }
+    
+    const uniqueValues = [...new Set(data
+      .filter(row => row && typeof row === 'object' && !Array.isArray(row)) // Filter out null/undefined rows and ensure proper objects
+      .map(row => {
+        try {
+          return row[key];
+        } catch (error) {
+          console.warn('getUniqueValues: Error accessing key', key, 'in row:', row);
+          return null;
+        }
+      })
+      .filter(val => val !== null && val !== undefined))];
+    
+    return Array.isArray(uniqueValues) ? uniqueValues : [];
+  } catch (error) {
+    console.error('getUniqueValues: Error processing data:', error);
+    return [];
+  }
 };
 
 // HIBERNATION FIX: Large dataset warning and processing limit

@@ -202,24 +202,67 @@ export const validateFilterValue = (value, columnType) => {
 
 // Get filter options for dropdown columns
 export const getFilterOptions = (data, columnKey, customFilterOptions) => {
-  // Check if custom options are provided
-  if (customFilterOptions && customFilterOptions[columnKey]) {
-    return customFilterOptions[columnKey];
-  }
-  
-  // Generate options from data
-  if (!Array.isArray(data) || data.length === 0) {
+  try {
+    // Check if custom options are provided
+    if (customFilterOptions && customFilterOptions[columnKey]) {
+      const customOptions = customFilterOptions[columnKey];
+      
+      // CRITICAL: Ensure custom options is a proper array
+      if (!Array.isArray(customOptions)) {
+        console.error('getFilterOptions: customFilterOptions[' + columnKey + '] is not an array:', customOptions);
+        return [];
+      }
+      
+      // CRITICAL: Validate each option object structure
+      const validOptions = customOptions.filter(option => {
+        return option && 
+               typeof option === 'object' && 
+               !Array.isArray(option) &&
+               ('label' in option || 'value' in option);
+      });
+      
+      return validOptions;
+    }
+    
+    // Generate options from data
+    if (!Array.isArray(data) || data.length === 0) {
+      return [];
+    }
+    
+    // CRITICAL: Ensure data is actually an array of objects
+    const validData = data.filter(row => row && typeof row === 'object' && !Array.isArray(row));
+    
+    if (validData.length === 0) {
+      return [];
+    }
+    
+    const uniqueValues = [...new Set(
+      validData
+        .map(row => {
+          try {
+            return row[columnKey];
+          } catch (error) {
+            console.warn('getFilterOptions: Error accessing columnKey', columnKey, 'in row:', row);
+            return null;
+          }
+        })
+        .filter(val => val !== null && val !== undefined && val !== '')
+    )];
+    
+    const options = [
+      { label: 'All', value: null },
+      ...uniqueValues.map(val => ({ label: String(val), value: val }))
+    ];
+    
+    // CRITICAL: Final validation that we're returning a proper array
+    if (!Array.isArray(options)) {
+      console.error('getFilterOptions: Generated options is not an array');
+      return [];
+    }
+    
+    return options;
+  } catch (error) {
+    console.error('getFilterOptions: Error generating filter options:', error);
     return [];
   }
-  
-  const uniqueValues = [...new Set(
-    data
-      .map(row => row[columnKey])
-      .filter(val => val !== null && val !== undefined && val !== '')
-  )];
-  
-  return [
-    { label: 'All', value: null },
-    ...uniqueValues.map(val => ({ label: String(val), value: val }))
-  ];
 };
