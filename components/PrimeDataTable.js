@@ -1197,20 +1197,60 @@ const PrimeDataTable = ({
   // Data processing moved to utils/dataUtils.js
   const processedData = useMemo(() => {
     const rawData = graphqlQuery ? graphqlData : data;
-    return processData(
-      rawData, 
-      graphqlQuery, 
-      graphqlData, 
-      enableAutoMerge, 
-      mergeConfig, 
-      enableROICalculation, 
-      calculateROI, 
-      roiConfig
-    );
+    
+    // CRITICAL: Ensure mergeConfig is properly structured to prevent errors
+    const safeMergeConfig = {
+      by: Array.isArray(mergeConfig?.by) ? mergeConfig.by : [],
+      preserve: Array.isArray(mergeConfig?.preserve) ? mergeConfig.preserve : [],
+      autoDetectMergeFields: mergeConfig?.autoDetectMergeFields !== false, // Default to true
+      mergeStrategy: mergeConfig?.mergeStrategy || 'combine'
+    };
+    
+    try {
+      return processData(
+        rawData, 
+        graphqlQuery, 
+        graphqlData, 
+        enableAutoMerge, 
+        safeMergeConfig, 
+        enableROICalculation, 
+        calculateROI, 
+        roiConfig
+      );
+    } catch (error) {
+      console.error('PrimDataTable: Error during data processing:', error);
+      // Return safe fallback data
+      if (Array.isArray(rawData)) {
+        return rawData;
+      } else if (rawData && typeof rawData === 'object') {
+        // If it's an object with arrays, try to flatten safely
+        const arrays = Object.values(rawData).filter(val => Array.isArray(val));
+        return arrays.length > 0 ? arrays[0] : [];
+      }
+      return [];
+    }
   }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig, enableROICalculation, calculateROI, roiConfig]);
 
-  // Use processed data
-  const tableData = processedData;
+  // Use processed data with additional safety validation
+  const tableData = useMemo(() => {
+    // CRITICAL: Extra safety check to prevent findIndex errors
+    if (!processedData || !Array.isArray(processedData)) {
+      console.warn('PrimDataTable: processedData is not a valid array, using empty array');
+      return [];
+    }
+    
+    // Ensure all rows are valid objects
+    const safeData = processedData.filter(row => {
+      return row && typeof row === 'object' && !Array.isArray(row);
+    });
+    
+    if (safeData.length !== processedData.length) {
+      console.warn(`PrimDataTable: Filtered out ${processedData.length - safeData.length} invalid rows`);
+    }
+    
+    return safeData;
+  }, [processedData]);
+  
   const isLoading = graphqlQuery ? graphqlLoading : loading;
   const tableError = graphqlQuery ? graphqlError : error;
 

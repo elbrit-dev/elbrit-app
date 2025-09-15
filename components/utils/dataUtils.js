@@ -311,14 +311,52 @@ export const processData = (
     }
   }
   
-  // CRITICAL: Final validation
+  // CRITICAL: Final validation and sanitization
   if (!Array.isArray(finalData)) {
     console.error('processData: Final data is not an array, returning empty array');
     return [];
   }
   
-  // Filter out invalid rows
-  const validData = finalData.filter(row => row && typeof row === 'object');
+  // CRITICAL: Ensure each row is a valid object with proper structure
+  const validData = finalData.filter(row => {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) {
+      return false;
+    }
+    return true;
+  }).map(row => {
+    // Ensure all values are serializable and safe for PrimeReact
+    const sanitizedRow = {};
+    Object.keys(row).forEach(key => {
+      const value = row[key];
+      // Skip functions, undefined, and complex objects that might cause issues
+      if (value !== undefined && value !== null && typeof value !== 'function') {
+        if (Array.isArray(value)) {
+          // Convert arrays to string representation for display
+          sanitizedRow[key] = value.length > 0 ? `${value.length} item(s)` : '';
+        } else if (typeof value === 'object') {
+          // Convert objects to string representation
+          try {
+            const str = JSON.stringify(value);
+            sanitizedRow[key] = str.length > 100 ? str.slice(0, 97) + '...' : str;
+          } catch {
+            sanitizedRow[key] = '[object]';
+          }
+        } else {
+          sanitizedRow[key] = value;
+        }
+      } else {
+        sanitizedRow[key] = '';
+      }
+    });
+    return sanitizedRow;
+  });
   
+  // CRITICAL: Ensure we always return a valid array
+  if (!Array.isArray(validData)) {
+    console.error('processData: Sanitization failed, returning empty array');
+    return [];
+  }
+  
+  console.log(`✅ processData: Returning ${validData.length} valid records`);
   return validData;
 };
