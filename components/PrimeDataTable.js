@@ -291,24 +291,24 @@ const PrimeDataTable = ({
   refetchInterval = 0,
   
   // Table configuration - All features are now toggleable
-  enableSearch = true,
-  enableColumnFilter = true,
-  enableSorting = true,
-  enablePagination = true,
+  enableSearch = false,
+  enableColumnFilter = false,
+  enableSorting = false,
+  enablePagination = false,
   enableRowSelection = false,
-  enableExport = true,
+  enableExport = false,
   enableRefresh = false,
-  enableColumnManagement = true,
+  enableColumnManagement = false,
   enableBulkActions = false,
-  enableGlobalFilter = true,
-  enableFilterMenu = true,
-  enableFilterMatchModes = true,
-  enableFilterClear = true,
-  enableFilterApply = true,
-  enableFilterFooter = true,
-  enableGridLines = true,
-  enableStripedRows = true,
-  enableHoverEffect = true,
+  enableGlobalFilter = false,
+  enableFilterMenu = false,
+  enableFilterMatchModes = false,
+  enableFilterClear = false,
+  enableFilterApply = false,
+  enableFilterFooter = false,
+  enableGridLines = false,
+  enableStripedRows = false,
+  enableHoverEffect = false,
   enableResizableColumns = false,
   enableReorderableColumns = false,
   enableVirtualScrolling = false,
@@ -359,7 +359,7 @@ const PrimeDataTable = ({
   tableSize = "normal", // small, normal, large
 
   // NEW: Mobile responsive props
-  enableMobileResponsive = true, // Enable mobile responsive styling
+  enableMobileResponsive = false, // Enable mobile responsive styling
   mobileBreakpoint = 768, // Breakpoint for mobile styles (px)
   mobileTableSize = "small", // Table size for mobile devices
   mobileFontSizes = {
@@ -507,17 +507,17 @@ const PrimeDataTable = ({
   },
   
   // NEW: Total display preference - controls which type of totals to show
-  totalDisplayMode = "auto", // "auto" (smart), "pivot" (only pivot), "footer" (only footer), "both" (show both), "none" (no totals)
+  totalDisplayMode = "none", // minimal default: no totals
   
   // Pivot Table Props - Excel-like pivot functionality  
   enablePivotTable = false,
   
   // NEW: Pivot UI Configuration Props
-  enablePivotUI = true, // Enable pivot configuration UI panel
+  enablePivotUI = false, // minimal default: off
   pivotUIPosition = "toolbar", // "toolbar", "panel", "sidebar"
   
   // NEW: CMS Persistence Props
-  enablePivotPersistence = true, // Enable saving pivot config to CMS
+  enablePivotPersistence = false, // minimal default: off
   pivotConfigKey = "pivotConfig", // Key for storing in CMS (e.g., "dashboardPage_salesTable_pivotConfig")
   onSavePivotConfig = null, // Callback to save config to CMS (deprecated - use direct integration)
   onLoadPivotConfig = null, // Callback to load config from CMS (deprecated - use direct integration)
