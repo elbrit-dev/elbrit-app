@@ -110,14 +110,14 @@ const deepMergeObjects = (aObj, bObj) => {
   return result;
 };
 
-const flattenObjectOfArrays = (tables) => {
+const flattenObjectOfArrays = (tables, includeGroupMarker = false) => {
   const rows = [];
   try {
     Object.entries(tables).forEach(([groupKey, arr]) => {
       if (Array.isArray(arr)) {
         arr.forEach(row => {
           if (isPlainObject(row)) {
-            rows.push({ ...row, __group: groupKey });
+            rows.push(includeGroupMarker ? { ...row, __group: groupKey } : { ...row });
           }
         });
       }
@@ -134,7 +134,8 @@ const collectRecords = (data) => {
   }
   if (isPlainObject(data)) {
     if (Object.values(data).some(v => Array.isArray(v))) {
-      return flattenObjectOfArrays(data);
+      // Default: do NOT add __group marker when collecting records for merge
+      return flattenObjectOfArrays(data, false);
     }
     return Object.values(data).filter(isPlainObject);
   }
