@@ -3269,14 +3269,23 @@ const PrimeDataTable = ({
           // but for row expansion with dataKey it expects an OBJECT map. Passing the wrong shape causes
           // `(e || []).findIndex is not a function`. Guard based on grouping state.
           const isRowGroupingActive = !!enableRowGrouping;
-          return isRowGroupingActive
-            ? { expandedRows: [] }
-            : {
-                dataKey: expansionConfig?.dataKey,
-                expandedRows: localExpandedRows || {},
-                onRowToggle: handleRowToggle,
-                rowExpansionTemplate: expansionConfig?.rowExpansionTemplate
-              };
+          if (isRowGroupingActive) {
+            // Row grouping expansion uses an ARRAY of group keys
+            return { expandedRows: [] };
+          }
+
+          // Only wire row expansion props when explicitly enabled
+          if (enableRowExpansion && expansionConfig) {
+            return {
+              dataKey: expansionConfig?.dataKey,
+              expandedRows: localExpandedRows || {},
+              onRowToggle: handleRowToggle,
+              rowExpansionTemplate: expansionConfig?.rowExpansionTemplate
+            };
+          }
+
+          // Neither grouping nor expansion is active; don't pass expansion props
+          return {};
         })()}
         paginator={enablePagination}
         rows={localPageSize}
