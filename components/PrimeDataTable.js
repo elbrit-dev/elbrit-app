@@ -273,14 +273,8 @@ const PrimeDataTable = ({
   popupImageFields = [],
   currencyColumns = [], // Array of column keys that should be formatted as currency in footer totals
   
-  // Auto-merge configuration
-  enableAutoMerge = false, // Enable automatic data merging for object with arrays
-  mergeConfig = {
-    by: [], // Fields to merge by (e.g., ['drCode', 'date'])
-    preserve: [], // Fields to preserve across merges (e.g., ['drName', 'salesTeam'])
-    autoDetectMergeFields: true, // Auto-detect common fields for merging
-    mergeStrategy: 'combine' // 'combine' or 'replace'
-  },
+  // Merge configuration (auto-merge only)
+  enableMerge = false, // Enable automatic data merging for objects with arrays
   
   // Filter configuration props
   dropdownFilterColumns = [], // Array of column keys that should use dropdown filters
@@ -1201,13 +1195,12 @@ const PrimeDataTable = ({
       rawData, 
       graphqlQuery, 
       graphqlData, 
-      enableAutoMerge, 
-      mergeConfig, 
+      enableMerge,
       enableROICalculation, 
       calculateROI, 
       roiConfig
     );
-  }, [data, graphqlData, graphqlQuery, enableAutoMerge, mergeConfig, enableROICalculation, calculateROI, roiConfig]);
+  }, [data, graphqlData, graphqlQuery, enableMerge, enableROICalculation, calculateROI, roiConfig]);
 
   // Use processed data
   const tableData = processedData;
@@ -1297,27 +1290,11 @@ const PrimeDataTable = ({
       return [];
     }
 
-    // CRITICAL: Extra validation to ensure each row is a proper object
-    try {
-      const validatedData = data.filter(row => {
-        if (!row || typeof row !== 'object' || Array.isArray(row)) {
-          return false;
-        }
-        // Ensure it's a plain object
-        return Object.prototype.toString.call(row) === '[object Object]';
-      });
-      
-      // CRITICAL: Ensure the result is still an array
-      if (!Array.isArray(validatedData)) {
-        console.error('PrimeDataTable: validatedData is not an array after filtering');
-        return [];
-      }
-      
-      return validatedData;
-    } catch (error) {
-      console.error('PrimeDataTable: Error validating final table data:', error);
-      return [];
-    }
+    // Don't modify data - we'll use PrimeReact's footer functionality instead
+
+
+
+    return data;
   }, [pivotTransformation, tableData]);
 
   // 🔑 Resolve the dataKey with clear precedence (manual > auto-detect > fallback)
@@ -3226,28 +3203,7 @@ const PrimeDataTable = ({
       {/* DataTable */}
       <DataTable
         key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
-        value={(() => {
-          // CRITICAL: Multiple layers of safety for DataTable value prop
-          try {
-            if (!Array.isArray(finalTableData)) {
-              console.error('DataTable value: finalTableData is not an array, using empty array');
-              return [];
-            }
-            
-            // Ensure each item is a proper object
-            const safeData = finalTableData.filter(item => {
-              return item && 
-                     typeof item === 'object' && 
-                     !Array.isArray(item) && 
-                     Object.prototype.toString.call(item) === '[object Object]';
-            });
-            
-            return Array.isArray(safeData) ? safeData : [];
-          } catch (error) {
-            console.error('DataTable value: Error processing finalTableData:', error);
-            return [];
-          }
-        })()} // CRITICAL: Ultimate safety check before DataTable
+        value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
         loading={isLoading}
         filters={filters}
         filterDisplay={
@@ -3308,10 +3264,20 @@ const PrimeDataTable = ({
         selection={enableRowSelection ? selectedRows : null}
         onSelectionChange={enableRowSelection ? handleRowSelect : undefined}
         // ✅ expansion wiring
-        dataKey={expansionConfig?.dataKey}
-        expandedRows={localExpandedRows}
-        onRowToggle={handleRowToggle}
-        rowExpansionTemplate={expansionConfig?.rowExpansionTemplate}
+        {...(() => {
+          // When row grouping is enabled, PrimeReact expects expandedRows to be an ARRAY (group keys),
+          // but for row expansion with dataKey it expects an OBJECT map. Passing the wrong shape causes
+          // `(e || []).findIndex is not a function`. Guard based on grouping state.
+          const isRowGroupingActive = !!enableRowGrouping;
+          return isRowGroupingActive
+            ? { expandedRows: [] }
+            : {
+                dataKey: expansionConfig?.dataKey,
+                expandedRows: localExpandedRows || {},
+                onRowToggle: handleRowToggle,
+                rowExpansionTemplate: expansionConfig?.rowExpansionTemplate
+              };
+        })()}
         paginator={enablePagination}
         rows={localPageSize}
         rowsPerPageOptions={pageSizeOptions}
@@ -3420,20 +3386,7 @@ const PrimeDataTable = ({
 
           // Helper function to generate filter options for columns
           const generateFilterOptions = (column) => {
-            try {
-              const options = getFilterOptions(finalTableData, column.key, customFilterOptions);
-              
-              // CRITICAL: Double-check that options is a proper array
-              if (!Array.isArray(options)) {
-                console.error('generateFilterOptions: getFilterOptions did not return an array for column', column.key);
-                return [];
-              }
-              
-              return options;
-            } catch (error) {
-              console.error('generateFilterOptions: Error generating filter options for column', column.key, error);
-              return [];
-            }
+            return getFilterOptions(finalTableData, column.key, customFilterOptions);
           };
 
           return finalColumnsToRender.map(column => {

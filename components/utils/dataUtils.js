@@ -5,30 +5,268 @@ const safeConsole = {
   error: console.error // Always show errors
 };
 
+// ---------- Generic helpers ----------
+const isPlainObject = (val) => val !== null && typeof val === 'object' && !Array.isArray(val);
+const isNonEmptyValue = (val) => val !== undefined && val !== null && val !== '';
+const isEmptyValue = (val) => !isNonEmptyValue(val) || (typeof val === 'number' && Number.isNaN(val));
+
+const choosePreferNonEmpty = (a, b) => {
+  if (isEmptyValue(a) && isNonEmptyValue(b)) return b;
+  return a;
+};
+
+const normalizeForKey = (val) => {
+  if (val === undefined || val === null) return '';
+  if (typeof val === 'string') return val.trim().toLowerCase();
+  if (val instanceof Date) return String(val.getTime());
+  if (typeof val === 'number') return String(val);
+  if (typeof val === 'boolean') return val ? '1' : '0';
+  return JSON.stringify(val);
+};
+
+const findLikelyIdKey = (obj) => {
+  if (!isPlainObject(obj)) return null;
+  const keys = Object.keys(obj);
+  const lower = keys.map(k => k.toLowerCase());
+  const candidates = ['id', 'uuid', 'code', 'key', 'pk', 'ekey'];
+  for (const cand of candidates) {
+    const idx = lower.indexOf(cand);
+    if (idx !== -1) return keys[idx];
+  }
+  // Also check for compound like somethingId
+  const idx2 = lower.findIndex(k => k.endsWith('id') || k.endsWith('code'));
+  return idx2 !== -1 ? keys[idx2] : null;
+};
+
+const computeCompositeKey = (row, mergeBy) => {
+  if (!isPlainObject(row)) return '';
+  return mergeBy.map(k => normalizeForKey(row?.[k])).join('||');
+};
+
+const deepMergeArrays = (aArr, bArr) => {
+  const a = Array.isArray(aArr) ? aArr : [];
+  const b = Array.isArray(bArr) ? bArr : [];
+  if (a.length === 0) return [...b];
+  if (b.length === 0) return [...a];
+  // If elements are primitives, return unique set by normalized value
+  const all = [...a, ...b];
+  if (!all.some(isPlainObject)) {
+    const seen = new Set();
+    const out = [];
+    for (const v of all) {
+      const key = normalizeForKey(v);
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(v);
+      }
+    }
+    return out;
+  }
+  // Elements are objects; dedupe by likely id key if present
+  const sampleObj = all.find(isPlainObject) || {};
+  const idKey = findLikelyIdKey(sampleObj);
+  if (!idKey) {
+    // Fallback: dedupe by JSON stringification
+    const seen = new Set();
+    const out = [];
+    for (const v of all) {
+      const key = JSON.stringify(v ?? null);
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(v);
+      }
+    }
+    return out;
+  }
+  const map = new Map();
+  for (const item of all) {
+    if (!isPlainObject(item)) continue;
+    const key = normalizeForKey(item[idKey]);
+    if (!map.has(key)) {
+      map.set(key, item);
+    } else {
+      map.set(key, deepMergeObjects(map.get(key), item));
+    }
+  }
+  return Array.from(map.values());
+};
+
+const deepMergeObjects = (aObj, bObj) => {
+  const a = isPlainObject(aObj) ? aObj : {};
+  const b = isPlainObject(bObj) ? bObj : {};
+  const result = { ...a };
+  for (const key of Object.keys(b)) {
+    const aVal = result[key];
+    const bVal = b[key];
+    if (Array.isArray(aVal) || Array.isArray(bVal)) {
+      result[key] = deepMergeArrays(aVal, bVal);
+    } else if (isPlainObject(aVal) && isPlainObject(bVal)) {
+      result[key] = deepMergeObjects(aVal, bVal);
+    } else {
+      // Prefer non-empty; otherwise b overrides
+      result[key] = choosePreferNonEmpty(aVal, bVal);
+    }
+  }
+  return result;
+};
+
+const flattenObjectOfArrays = (tables) => {
+  const rows = [];
+  try {
+    Object.entries(tables).forEach(([groupKey, arr]) => {
+      if (Array.isArray(arr)) {
+        arr.forEach(row => {
+          if (isPlainObject(row)) {
+            rows.push({ ...row, __group: groupKey });
+          }
+        });
+      }
+    });
+  } catch (e) {
+    safeConsole.error('flattenObjectOfArrays error:', e);
+  }
+  return rows;
+};
+
+const collectRecords = (data) => {
+  if (Array.isArray(data)) {
+    return data.filter(isPlainObject);
+  }
+  if (isPlainObject(data)) {
+    if (Object.values(data).some(v => Array.isArray(v))) {
+      return flattenObjectOfArrays(data);
+    }
+    return Object.values(data).filter(isPlainObject);
+  }
+  return [];
+};
+
+const detectMergeFields = (records) => {
+  const sample = Array.isArray(records) ? records.slice(0, 500) : [];
+  const keyFrequency = new Map();
+  const allKeys = new Set();
+  sample.forEach(row => {
+    Object.keys(row || {}).forEach(k => {
+      allKeys.add(k);
+      keyFrequency.set(k, (keyFrequency.get(k) || 0) + (isNonEmptyValue(row[k]) ? 1 : 0));
+    });
+  });
+  const keys = Array.from(allKeys);
+  // Heuristic score: prefer id/code/key/date and higher presence
+  const scoreKey = (k) => {
+    const kl = k.toLowerCase();
+    let score = keyFrequency.get(k) || 0;
+    if (kl === 'id' || kl.endsWith('id')) score += 1000;
+    if (kl.includes('code')) score += 800;
+    if (kl.includes('key')) score += 700;
+    if (kl.includes('uuid')) score += 900;
+    if (kl.includes('date')) score += 300;
+    return score;
+  };
+  const sorted = keys.sort((a, b) => scoreKey(b) - scoreKey(a));
+
+  const uniqueness = (fields) => {
+    const seen = new Set();
+    let total = 0;
+    for (const row of sample) {
+      if (!isPlainObject(row)) continue;
+      const key = fields.map(f => normalizeForKey(row?.[f])).join('||');
+      if (key) {
+        seen.add(key);
+        total += 1;
+      }
+    }
+    if (total === 0) return 0;
+    return seen.size / total;
+  };
+
+  // Try single-field keys first
+  for (const k of sorted.slice(0, 10)) {
+    if (uniqueness([k]) >= 0.5) {
+      return {
+        mergeBy: [k],
+        preserve: sorted.filter(name => name !== k && /name|team|hq|location|title|label/i.test(name)).slice(0, 6)
+      };
+    }
+  }
+  // Try pair combinations from top candidates
+  for (let i = 0; i < Math.min(6, sorted.length); i++) {
+    for (let j = i + 1; j < Math.min(8, sorted.length); j++) {
+      const fields = [sorted[i], sorted[j]];
+      if (uniqueness(fields) >= 0.75) {
+        return {
+          mergeBy: fields,
+          preserve: sorted.filter(name => !fields.includes(name) && /name|team|hq|location|title|label/i.test(name)).slice(0, 6)
+        };
+      }
+    }
+  }
+  // Fallback: any key that exists broadly
+  if (sorted.length > 0) {
+    return {
+      mergeBy: [sorted[0]],
+      preserve: sorted.filter(name => name !== sorted[0] && /name|team|hq|location|title|label/i.test(name)).slice(0, 6)
+    };
+  }
+  return { mergeBy: [], preserve: [] };
+};
+
+const mergeRecordsByKeys = (records, mergeBy, preserve) => {
+  if (!Array.isArray(records) || records.length === 0) return [];
+  if (!Array.isArray(mergeBy) || mergeBy.length === 0) return records.filter(isPlainObject);
+  const map = new Map();
+  const preserveSet = new Set(preserve || []);
+  // Cache non-empty preserve values by synthetic id if available
+  const preserveCache = new Map();
+  for (const row of records) {
+    if (!isPlainObject(row)) continue;
+    const key = computeCompositeKey(row, mergeBy);
+    const idKey = mergeBy.find(k => preserveSet.has(k));
+    const idVal = idKey ? normalizeForKey(row[idKey]) : key;
+    if (!preserveCache.has(idVal)) preserveCache.set(idVal, {});
+    const cacheObj = preserveCache.get(idVal);
+    for (const f of preserveSet) {
+      const v = row[f];
+      if (isNonEmptyValue(v) && !isNonEmptyValue(cacheObj[f])) {
+        cacheObj[f] = v;
+      }
+    }
+  }
+  for (const row of records) {
+    if (!isPlainObject(row)) continue;
+    const key = computeCompositeKey(row, mergeBy);
+    const existing = map.get(key);
+    if (!existing) {
+      map.set(key, { ...row });
+    } else {
+      map.set(key, deepMergeObjects(existing, row));
+    }
+  }
+  // Apply preserve backfill
+  for (const [key, obj] of map.entries()) {
+    const idKey = mergeBy.find(k => preserveSet.has(k));
+    const idVal = idKey ? normalizeForKey(obj[idKey]) : key;
+    const cacheObj = preserveCache.get(idVal) || {};
+    for (const f of preserveSet) {
+      obj[f] = choosePreferNonEmpty(obj[f], cacheObj[f]);
+    }
+  }
+  return Array.from(map.values());
+};
+
 // Merge function for combining data from multiple arrays
 export const mergeData = (by = [], preserve = []) => (tables = {}) => {
   // CRITICAL: Ensure tables is valid
-  if (!tables || typeof tables !== 'object' || tables === null) {
+  if (!tables || typeof tables !== 'object') {
     console.error('mergeData: invalid tables parameter, returning empty array');
     return [];
-  }
-  
-  // CRITICAL: If tables is already an array, return it (no merging needed)
-  if (Array.isArray(tables)) {
-    console.warn('mergeData: tables parameter is already an array, returning as-is');
-    return tables.filter(row => row && typeof row === 'object');
   }
   
   // CRITICAL: Ensure by array is valid
   if (!Array.isArray(by) || by.length === 0) {
     console.warn('mergeData: invalid or empty by array, returning flattened data');
-    try {
-      const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
-      return Array.isArray(flattened) ? flattened : [];
-    } catch (error) {
-      console.error('mergeData: error flattening data:', error);
-      return [];
-    }
+    const flattened = Object.values(tables).flat().filter(row => row && typeof row === 'object');
+    return flattened;
   }
   
   const getKey = row => by.map(k => row?.[k] ?? "").join("||");
@@ -101,30 +339,10 @@ export const needsMerging = (data) => {
 
 // Helper to get unique values for a column
 export const getUniqueValues = (data, key) => {
-  try {
-    // CRITICAL: Ensure data is an array
-    if (!Array.isArray(data)) {
-      console.warn('getUniqueValues: data is not an array, returning empty array');
-      return [];
-    }
-    
-    const uniqueValues = [...new Set(data
-      .filter(row => row && typeof row === 'object' && !Array.isArray(row)) // Filter out null/undefined rows and ensure proper objects
-      .map(row => {
-        try {
-          return row[key];
-        } catch (error) {
-          console.warn('getUniqueValues: Error accessing key', key, 'in row:', row);
-          return null;
-        }
-      })
-      .filter(val => val !== null && val !== undefined))];
-    
-    return Array.isArray(uniqueValues) ? uniqueValues : [];
-  } catch (error) {
-    console.error('getUniqueValues: Error processing data:', error);
-    return [];
-  }
+  return [...new Set(data
+    .filter(row => row && typeof row === 'object') // Filter out null/undefined rows
+    .map(row => row[key])
+    .filter(val => val !== null && val !== undefined))];
 };
 
 // HIBERNATION FIX: Large dataset warning and processing limit
@@ -139,13 +357,12 @@ export const getDataSize = (data) => {
 
 // Process data with auto-merge, ROI calculation and validation
 export const processData = (
-  rawData, 
-  graphqlQuery, 
-  graphqlData, 
-  enableAutoMerge, 
-  mergeConfig, 
-  enableROICalculation, 
-  calculateROI, 
+  rawData,
+  graphqlQuery,
+  graphqlData,
+  enableMerge,
+  enableROICalculation,
+  calculateROI,
   roiConfig
 ) => {
   let data = graphqlQuery ? graphqlData : rawData;
@@ -173,123 +390,38 @@ export const processData = (
     return [];
   }
   
-  // CRITICAL: Additional safety check for primitive values wrapped as objects
-  if (typeof data !== 'object' || Array.isArray(data) === false && Object.prototype.toString.call(data) !== '[object Object]') {
-    console.warn('processData: Data is not a proper object or array, returning empty array');
-    return [];
-  }
-  
   // HIBERNATION FIX: Large dataset warning and processing limit
   const dataSize = getDataSize(data);
   if (dataSize > 10000) {
     console.warn(`⚠️ HIBERNATION WARNING: Processing ${dataSize} records. This may cause performance issues.`);
   }
   
-  // Check if data needs merging (object with arrays)
-  if (enableAutoMerge && needsMerging(data)) {
-    
-    const { by, preserve, autoDetectMergeFields, mergeStrategy } = mergeConfig;
-    
-    // Auto-detect merge fields if enabled
-    let mergeBy = by;
-    let mergePreserve = preserve;
-    
-    if (autoDetectMergeFields) {
-      // HIBERNATION FIX: Limit sampling for large datasets
-      const sampleArrays = Object.values(data).map(array => {
-        if (Array.isArray(array)) {
-          // For large datasets, sample only first 100 records for field detection
-          return array.length > 100 ? array.slice(0, 100) : array;
+  // Advanced merge pipeline (applies to arrays and object-of-arrays)
+  if (enableMerge) {
+    try {
+      const records = collectRecords(data);
+      if (records.length > 0) {
+        const { mergeBy, preserve } = detectMergeFields(records);
+        safeConsole.log('Advanced merge config:', { mergeBy, preserve });
+        if (Array.isArray(mergeBy) && mergeBy.length > 0) {
+          data = mergeRecordsByKeys(records, mergeBy, preserve);
+        } else {
+          // No reliable key found; keep flattened records for safety
+          data = records;
         }
-        return array;
-      });
-      
-      // Get all unique keys from sampled arrays
-      const allKeys = new Set();
-      sampleArrays.forEach(array => {
-        if (Array.isArray(array)) {
-          array.forEach(row => {
-            if (row && typeof row === 'object') {
-              Object.keys(row).forEach(key => allKeys.add(key));
-            }
-          });
-        }
-      });
-      
-      // Find common fields across all arrays (potential merge keys)
-      const commonFields = Array.from(allKeys).filter(key => {
-        return sampleArrays.every(array => 
-          Array.isArray(array) && array.some(row => row && key in row)
-        );
-      });
-      
-      // Auto-detect merge fields (common fields that look like IDs or dates)
-      if (mergeBy.length === 0) {
-        mergeBy = commonFields.filter(field => 
-          field.toLowerCase().includes('id') || 
-          field.toLowerCase().includes('code') || 
-          field.toLowerCase().includes('date') ||
-          field.toLowerCase().includes('key')
-        );
-        
-        // If no obvious merge fields, use first common field
-        if (mergeBy.length === 0 && commonFields.length > 0) {
-          mergeBy = [commonFields[0]];
-        }
+      } else {
+        data = [];
       }
-      
-      // Auto-detect preserve fields (common fields that should be preserved)
-      if (mergePreserve.length === 0) {
-        mergePreserve = commonFields.filter(field => 
-          field.toLowerCase().includes('name') || 
-          field.toLowerCase().includes('team') || 
-          field.toLowerCase().includes('hq') ||
-          field.toLowerCase().includes('location')
-        );
+    } catch (mergeError) {
+      console.error('processData: Advanced merge failed, falling back to safe array conversion:', mergeError);
+      // Safe fallback: convert to array of objects if possible
+      if (Array.isArray(data)) {
+        data = data.filter(isPlainObject);
+      } else if (isPlainObject(data)) {
+        data = Object.values(data).filter(isPlainObject);
+      } else {
+        data = [];
       }
-    }
-    
-    safeConsole.log('Merge configuration:', { mergeBy, mergePreserve });
-    
-    // Perform the merge
-    if (mergeBy.length > 0) {
-      try {
-        const mergeFunction = mergeData(mergeBy, mergePreserve);
-        const mergedData = mergeFunction(data);
-        
-        // CRITICAL: Ensure merged data is an array
-        if (!Array.isArray(mergedData)) {
-          console.warn('processData: Merge function did not return an array, converting to array');
-          return [];
-        }
-        
-        data = mergedData;
-      } catch (error) {
-        console.error('processData: Error during data merge:', error);
-        return [];
-      }
-    } else {
-      // If no merge fields detected, flatten the data with group markers
-      const flattenedData = [];
-      try {
-        Object.entries(data).forEach(([groupKey, array]) => {
-          if (Array.isArray(array)) {
-            array.forEach(row => {
-              if (row && typeof row === 'object') {
-                flattenedData.push({
-                  ...row,
-                  __group: groupKey // Add group marker for column grouping
-                });
-              }
-            });
-          }
-        });
-      } catch (error) {
-        console.error('processData: Error during data flattening:', error);
-        return [];
-      }
-      
-      data = flattenedData;
     }
   }
   
@@ -348,49 +480,14 @@ export const processData = (
     }
   }
   
-  // CRITICAL: Final validation and safety measures
+  // CRITICAL: Final validation
   if (!Array.isArray(finalData)) {
-    console.error('processData: Final data is not an array, returning empty array. Type:', typeof finalData, 'Value:', finalData);
+    console.error('processData: Final data is not an array, returning empty array');
     return [];
   }
   
-  // CRITICAL: Ensure each item in the array is a valid object
-  let validData;
-  try {
-    validData = finalData.filter(row => {
-      // Filter out null, undefined, and non-object values
-      if (!row || typeof row !== 'object' || Array.isArray(row)) {
-        return false;
-      }
-      // Ensure it's a plain object and not a function or other object type
-      return Object.prototype.toString.call(row) === '[object Object]';
-    });
-  } catch (error) {
-    console.error('processData: Error filtering data:', error);
-    return [];
-  }
+  // Filter out invalid rows
+  const validData = finalData.filter(row => row && typeof row === 'object');
   
-  // CRITICAL: Final safety check - ensure we're returning an actual array
-  if (!Array.isArray(validData)) {
-    console.error('processData: validData is not an array after filtering, returning empty array');
-    return [];
-  }
-  
-  // CRITICAL: Deep clone the data to prevent any reference issues that might cause findIndex problems
-  try {
-    const safeData = validData.map(row => {
-      try {
-        // Create a shallow copy to avoid any prototype chain issues
-        return { ...row };
-      } catch (error) {
-        console.warn('processData: Error cloning row, skipping:', error);
-        return null;
-      }
-    }).filter(row => row !== null);
-    
-    return Array.isArray(safeData) ? safeData : [];
-  } catch (error) {
-    console.error('processData: Error creating safe data copy:', error);
-    return [];
-  }
+  return validData;
 };
