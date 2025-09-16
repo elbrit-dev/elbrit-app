@@ -491,3 +491,21 @@ export const processData = (
   
   return validData;
 };
+
+// Public helper: perform advanced merge on any input shape and return array of plain objects
+export const advancedMerge = (input) => {
+  try {
+    const records = collectRecords(input);
+    if (records.length === 0) return [];
+    const { mergeBy, preserve } = detectMergeFields(records);
+    if (Array.isArray(mergeBy) && mergeBy.length > 0) {
+      return mergeRecordsByKeys(records, mergeBy, preserve);
+    }
+    return records;
+  } catch (err) {
+    console.error('advancedMerge: failed, using safe fallback', err);
+    if (Array.isArray(input)) return input.filter(isPlainObject);
+    if (isPlainObject(input)) return Object.values(input).filter(isPlainObject);
+    return [];
+  }
+};

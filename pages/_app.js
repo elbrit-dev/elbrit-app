@@ -13,6 +13,8 @@ import 'primeicons/primeicons.css';
 // Ant Design CSS import
 import 'antd/dist/reset.css';
 
+import { advancedMerge } from '../components/utils/dataUtils';
+
 // ✅ Advanced universal deep flattener with renaming and dynamic prefix mapping
 const flatten = (renameMapOrData, maybeData, options = {}) => {
   // 🔧 Helper to flatten any nested object or array into underscore-joined keys
@@ -204,39 +206,8 @@ const a = {
     })).sort((a, b) => String(a[by[0]]).localeCompare(String(b[by[0]])))
   },
 
-  merge: (by = [], preserve = []) => (tables = {}) => {
-    const getKey = row => by.map(k => row?.[k] ?? "").join("||");
-    const preserveKey = preserve.find(k => by.includes(k));
-    const preserveCache = {};
-    Object.values(tables).flat().forEach(row => {
-      const id = row?.[preserveKey];
-      if (!id) return;
-      preserveCache[id] ??= {};
-      preserve.forEach(field => {
-        const value = row?.[field];
-        if (value !== undefined && value !== null && value !== "" && value !== 0 && !preserveCache[id][field]) {
-          preserveCache[id][field] = value
-        }
-      })
-    });
-    const mergedMap = Object.values(tables).flat().reduce((acc, row) => {
-      const key = getKey(row);
-      const existing = acc[key] || {};
-      const id = row?.[preserveKey];
-      acc[key] = {
-        ...existing,
-        ...row
-      };
-      preserve.forEach(field => {
-        const current = acc[key][field];
-        if ((current === undefined || current === null || current === "" || current === 0) && id && preserveCache[id]?.[field]) {
-          acc[key][field] = preserveCache[id][field]
-        }
-      });
-      return acc
-    }, {});
-    return Object.values(mergedMap)
-  },
+  // Advanced merge usable directly from Plasmic via fn.merge(data)
+  merge: (input) => advancedMerge(input),
 
   explodeWithParent: (data = [], options = {}) => {
     const {
