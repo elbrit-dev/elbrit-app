@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 const MicrosoftSSOLogin = dynamic(() => import("./components/MicrosoftSSOLogin"), { ssr: false, loading: () => null });
 const TruecallerSSOLogin = dynamic(() => import("./components/TruecallerSSOLogin"), { ssr: false, loading: () => null });
 const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext"), { ssr: false, loading: () => null });
-const AdvancedTable = dynamic(() => import("./components/AdvancedTable"), { ssr: false, loading: () => null });
 const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
 // const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
 const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
@@ -14,12 +13,15 @@ const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), 
 const PrimeDataTab = dynamic(() => import("./components/pimereact"), { ssr: false, loading: () => null });
 const LinkComponent = dynamic(() => import("./components/LinkComponent"), { ssr: false, loading: () => null });
 const TagFilterPrimeReact = dynamic(() => import("./components/TagFilterPrimeReact"), { ssr: false, loading: () => null });
+const PrimeTimeline = dynamic(() => import("./components/PrimeTimeline"), { ssr: false, loading: () => null });
 const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
 const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
 const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), { ssr: false, loading: () => null });
 const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
 const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
+const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
+const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
 
 export const PLASMIC = initPlasmicLoader({
@@ -153,6 +155,34 @@ PLASMIC.registerComponent(EnvironmentCheck, {
   importPath: "./components/EnvironmentCheck"
 });
 
+// Performance helper wrappers for Studio
+PLASMIC.registerComponent(ClientOnly, {
+  name: "ClientOnly",
+  displayName: "Client Only",
+  description: "Render children only on the client (after optional delay)",
+  props: {
+    children: { type: "slot" },
+    fallback: { type: "slot", defaultValue: "" },
+    delayMs: { type: "number", defaultValue: 0 }
+  },
+  importPath: "./components/PlasmicPerformance"
+});
+
+PLASMIC.registerComponent(VisibilityGate, {
+  name: "VisibilityGate",
+  displayName: "Visibility Gate",
+  description: "Defer rendering until the element is near the viewport.",
+  props: {
+    children: { type: "slot" },
+    rootMargin: { type: "string", defaultValue: "200px 0px" },
+    minHeight: { type: "string", defaultValue: "240px" },
+    delayMs: { type: "number", defaultValue: 0 },
+    placeholderClassName: { type: "string", defaultValue: "" },
+    placeholderStyle: { type: "object", defaultValue: {} }
+  },
+  importPath: "./components/PlasmicPerformance"
+});
+
 // Register the Link Component
 PLASMIC.registerComponent(LinkComponent, {
   name: "LinkComponent",
@@ -213,8 +243,8 @@ PLASMIC.registerComponent(LinkComponent, {
   importPath: "./components/LinkComponent"
 })
 
-// Register the Advanced Table component
-PLASMIC.registerComponent(AdvancedTable, {
+// Removed AdvancedTable (unused)
+/* PLASMIC.registerComponent(AdvancedTable, {
   name: "AdvancedTable",
   displayName: "Advanced Data Table",
   description: "A comprehensive data table component with advanced features including search, filtering, sorting, pagination, row selection, and export capabilities",
@@ -264,6 +294,23 @@ PLASMIC.registerComponent(AdvancedTable, {
       type: "boolean",
       description: "Enable global search functionality",
       defaultValue: true
+    },
+
+    // Performance: defer heavy table until visible
+    deferRenderUntilVisible: {
+      type: "boolean",
+      description: "Do not render the table until it scrolls into view",
+      defaultValue: true
+    },
+    deferHydrationMs: {
+      type: "number",
+      description: "Additional delay (ms) after visibility before mounting",
+      defaultValue: 0
+    },
+    minPlaceholderHeight: {
+      type: "string",
+      description: "Min height for the placeholder before table mounts",
+      defaultValue: "320px"
     },
     enableColumnFilter: {
       type: "boolean",
@@ -588,7 +635,7 @@ PLASMIC.registerComponent(AdvancedTable, {
   },
   
   importPath: "./components/AdvancedTable"
-});
+}); */
 
 // Register the PrimeReact Data Table component
 PLASMIC.registerComponent(PrimeDataTable, {
@@ -3148,5 +3195,88 @@ PLASMIC.registerComponent(CircleSkeleton, {
     style: { type: "object", defaultValue: {} }
   },
   importPath: "./components/CircleSkeleton"
+});
+
+// Register PrimeReact Timeline component
+PLASMIC.registerComponent(PrimeTimeline, {
+  name: "PrimeTimeline",
+  displayName: "PrimeReact Timeline",
+  description: "PrimeReact Timeline with customizable marker/content template and optional Read more action",
+  props: {
+    // Data
+    events: {
+      type: "object",
+      description: "Array of event objects to render in the timeline",
+      defaultValue: []
+    },
+
+    // Field mappings
+    titleField: { type: "string", defaultValue: "status", description: "Field name for the title/status" },
+    dateField: { type: "string", defaultValue: "date", description: "Field name for the date" },
+    descriptionField: { type: "string", defaultValue: "description", description: "Field name for the description" },
+    iconField: { type: "string", defaultValue: "icon", description: "Field name for the PrimeIcons class (e.g., 'pi pi-check')" },
+    markerColorField: { type: "string", defaultValue: "color", description: "Field name for marker background color" },
+    linkField: { type: "string", defaultValue: "link", description: "Field name for optional link/href" },
+    oppositeField: { type: "string", defaultValue: "date", description: "Field name for opposite-side content (vertical only)" },
+    imageField: { type: "string", defaultValue: "", description: "Field name for image URL (optional)" },
+    imageAltField: { type: "string", defaultValue: "", description: "Field name for image alt text (optional)" },
+
+    // Layout
+    align: { type: "choice", options: ["left", "right", "alternate"], defaultValue: "alternate", description: "Content alignment relative to the line" },
+    layout: { type: "choice", options: ["vertical", "horizontal"], defaultValue: "vertical", description: "Timeline orientation" },
+
+    // UI
+    showOpposite: { type: "boolean", defaultValue: true, description: "Show date on opposite side (vertical only)" },
+    showReadMore: { type: "boolean", defaultValue: true, description: "Show the Read more action button" },
+    readMoreLabel: { type: "string", defaultValue: "Read more", description: "Label for the Read more button" },
+
+    // Styling
+    className: { type: "string", defaultValue: "" },
+    style: { type: "object", defaultValue: {} },
+    markerSize: { type: "number", defaultValue: 32, description: "Marker diameter in pixels" },
+    markerTextColor: { type: "string", defaultValue: "#ffffff", description: "Marker icon color" },
+    readMoreTarget: { type: "choice", options: ["_self", "_blank"], defaultValue: "_self", description: "Target when auto-opening link on Read more" },
+    imageWidth: { type: "string", defaultValue: "100%", description: "Width of image inside item (CSS width)" },
+    imagePreview: { type: "boolean", defaultValue: true, description: "Enable lightbox preview for image" },
+    enableDialog: { type: "boolean", defaultValue: false, description: "Open a PrimeReact Dialog on Read more when no link" },
+    dialogHeaderField: { type: "string", defaultValue: "", description: "Field for dialog header (fallbacks to title)" },
+    dialogContentField: { type: "string", defaultValue: "", description: "Field for dialog body (fallbacks to description)" },
+    dialogWidth: { type: "string", defaultValue: "30rem", description: "Dialog width (e.g., '30rem', '600px')" },
+    dialogMode: { type: "choice", options: ["content", "twoCards"], defaultValue: "content", description: "Dialog layout mode" },
+    leftCardTitle: { type: "string", defaultValue: "", description: "Left card title for twoCards mode" },
+    rightCardTitle: { type: "string", defaultValue: "", description: "Right card title for twoCards mode" },
+    leftFields: { type: "object", defaultValue: [], description: "Left card fields: array of {label, field} (supports dot paths)" },
+    rightFields: { type: "object", defaultValue: [], description: "Right card fields: array of {label, field} (supports dot paths)" },
+    columnGap: { type: "string", defaultValue: "1rem", description: "Gap between two cards" },
+    cardPadding: { type: "string", defaultValue: "1rem", description: "Padding inside each card" },
+    summaryTitle: { type: "string", defaultValue: "", description: "Title for summary block on main card" },
+    summaryFields: { type: "object", defaultValue: [], description: "Main card summary fields: array of {label, field}" },
+
+    // Events
+    onReadMore: {
+      type: "eventHandler",
+      description: "Called when the Read more action is clicked",
+      argTypes: [
+        { name: "item", type: "object", description: "The timeline item object" },
+        { name: "href", type: "string", description: "Link from the item (if provided)" }
+      ]
+    },
+    onItemClick: {
+      type: "eventHandler",
+      description: "Called when the timeline card is clicked",
+      argTypes: [ { name: "item", type: "object" } ]
+    },
+    onImageClick: {
+      type: "eventHandler",
+      description: "Called when the image inside an item is clicked",
+      argTypes: [ { name: "item", type: "object" }, { name: "src", type: "string" } ]
+    },
+    onDialogOpen: {
+      type: "eventHandler",
+      description: "Called right before dialog is shown (when enabledDialog is true and no link)",
+      argTypes: [ { name: "item", type: "object" } ]
+    }
+  },
+  importPath: "./components/PrimeTimeline"
 });
 
