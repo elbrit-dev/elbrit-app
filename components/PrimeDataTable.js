@@ -1,21 +1,22 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { DataTable } from 'primereact/datatable';
-import { Column } from 'primereact/column';
-import { ColumnGroup } from 'primereact/columngroup';
-import { Row } from 'primereact/row';
-import { InputText } from 'primereact/inputtext';
-import { Button } from 'primereact/button';
-import { Checkbox } from 'primereact/checkbox';
-import { Dialog } from 'primereact/dialog';
-import { Toolbar } from 'primereact/toolbar';
+import dynamic from 'next/dynamic';
+const DataTable = dynamic(() => import('primereact/datatable').then(m => m.DataTable), { ssr: false });
+const Column = dynamic(() => import('primereact/column').then(m => m.Column), { ssr: false });
+const ColumnGroup = dynamic(() => import('primereact/columngroup').then(m => m.ColumnGroup), { ssr: false });
+const Row = dynamic(() => import('primereact/row').then(m => m.Row), { ssr: false });
+const InputText = dynamic(() => import('primereact/inputtext').then(m => m.InputText), { ssr: false });
+const Button = dynamic(() => import('primereact/button').then(m => m.Button), { ssr: false });
+const Checkbox = dynamic(() => import('primereact/checkbox').then(m => m.Checkbox), { ssr: false });
+const Dialog = dynamic(() => import('primereact/dialog').then(m => m.Dialog), { ssr: false });
+const Toolbar = dynamic(() => import('primereact/toolbar').then(m => m.Toolbar), { ssr: false });
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
-import { IconField } from 'primereact/iconfield';
-import { InputIcon } from 'primereact/inputicon';
-import { ContextMenu } from 'primereact/contextmenu';
-import { Dropdown } from 'primereact/dropdown';
+const IconField = dynamic(() => import('primereact/iconfield').then(m => m.IconField), { ssr: false });
+const InputIcon = dynamic(() => import('primereact/inputicon').then(m => m.InputIcon), { ssr: false });
+const ContextMenu = dynamic(() => import('primereact/contextmenu').then(m => m.ContextMenu), { ssr: false });
+const Dropdown = dynamic(() => import('primereact/dropdown').then(m => m.Dropdown), { ssr: false });
+const Calendar = dynamic(() => import('primereact/calendar').then(m => m.Calendar), { ssr: false });
+const InputNumber = dynamic(() => import('primereact/inputnumber').then(m => m.InputNumber), { ssr: false });
 import { classNames } from 'primereact/utils';
-import { Calendar } from 'primereact/calendar';
-import { InputNumber } from 'primereact/inputnumber';
 import Image from 'next/image';
 
 // Import utility functions
@@ -453,6 +454,11 @@ const PrimeDataTable = ({
     groupSeparator: '__', // Default separator for detecting groups
     customGroupMappings: {} // Custom word to group name mappings e.g., { "inventory": "Inventory", "warehouse": "Warehouse" }
   },
+
+  // Performance: gate heavy table until visible
+  deferRenderUntilVisible = true,
+  deferHydrationMs = 0,
+  minPlaceholderHeight = '320px',
   
   // Footer totals props
   enableFooterTotals = false,
@@ -604,6 +610,31 @@ const PrimeDataTable = ({
     sortDirection: 'asc' // 'asc' or 'desc'
   }
 }) => {
+  // Defer mount until visible to reduce TBT on initial load
+  const rootRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(!deferRenderUntilVisible);
+
+  useEffect(() => {
+    if (!deferRenderUntilVisible) return;
+    if (!rootRef.current) return;
+    let observer;
+    const node = rootRef.current;
+    const onIntersect = (entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          if (deferHydrationMs > 0) {
+            setTimeout(() => setIsVisible(true), deferHydrationMs);
+          } else {
+            setIsVisible(true);
+          }
+          observer && observer.disconnect();
+        }
+      });
+    };
+    observer = new IntersectionObserver(onIntersect, { rootMargin: '200px 0px' });
+    observer.observe(node);
+    return () => observer && observer.disconnect();
+  }, [deferRenderUntilVisible, deferHydrationMs]);
   // Local state
   const [selectedRows, setSelectedRows] = useState([]);
   const [showColumnManager, setShowColumnManager] = useState(false);
@@ -2812,6 +2843,13 @@ const PrimeDataTable = ({
   
   // Row expansion is now handled by the expansionConfig utility function above
   
+  // Performance gate: avoid mounting heavy table until it is in/near viewport
+  if (deferRenderUntilVisible && !isVisible) {
+    return (
+      <div ref={rootRef} className={className} style={{ minHeight: minPlaceholderHeight, ...style }} />
+    );
+  }
+
   // Loading and error states
   if (isLoading) {
     return (
