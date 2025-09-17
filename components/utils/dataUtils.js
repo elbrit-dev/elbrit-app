@@ -255,6 +255,90 @@ const mergeRecordsByKeys = (records, mergeBy, preserve) => {
   return Array.from(map.values());
 };
 
+// Soft merge: supports merging with partial keys. Rows missing secondary keys
+// (e.g., team rows without date) will be merged into all rows that share the
+// primary key within their bucket.
+const softMergeRecordsByKeys = (records, mergeBy, preserve) => {
+  if (!Array.isArray(records) || records.length === 0) return [];
+  if (!Array.isArray(mergeBy) || mergeBy.length === 0) return records.filter(isPlainObject);
+  if (mergeBy.length === 1) return mergeRecordsByKeys(records, mergeBy, preserve);
+
+  // Choose primary key as the one present in most records
+  const presenceCounts = mergeBy.map(k => (
+    records.reduce((acc, r) => acc + (isPlainObject(r) && isNonEmptyValue(r[k]) ? 1 : 0), 0)
+  ));
+  let primaryIdx = 0;
+  for (let i = 1; i < presenceCounts.length; i++) {
+    if (presenceCounts[i] > presenceCounts[primaryIdx]) primaryIdx = i;
+  }
+  const primaryKey = mergeBy[primaryIdx];
+  const secondaryKeys = mergeBy.filter(k => k !== primaryKey);
+
+  // Build buckets by primary key
+  const buckets = new Map(); // normPrimary -> { narrow: Map(secKeyStr -> obj), broad: [rows] }
+  const preserveSet = new Set(preserve || []);
+
+  // Cache preserve values by primary id
+  const preserveCache = new Map();
+
+  for (const row of records) {
+    if (!isPlainObject(row)) continue;
+    const pkVal = row[primaryKey];
+    if (!isNonEmptyValue(pkVal)) continue;
+    const pk = normalizeForKey(pkVal);
+    if (!buckets.has(pk)) buckets.set(pk, { narrow: new Map(), broad: [] });
+    const bucket = buckets.get(pk);
+
+    // Preserve cache seed
+    if (!preserveCache.has(pk)) preserveCache.set(pk, {});
+    const cacheObj = preserveCache.get(pk);
+    for (const f of preserveSet) {
+      const v = row[f];
+      if (isNonEmptyValue(v) && !isNonEmptyValue(cacheObj[f])) cacheObj[f] = v;
+    }
+
+    const hasAllSecondary = secondaryKeys.every(k => isNonEmptyValue(row[k]));
+    if (hasAllSecondary) {
+      const secKey = secondaryKeys.map(k => normalizeForKey(row[k])).join('||');
+      const existing = bucket.narrow.get(secKey);
+      bucket.narrow.set(secKey, existing ? deepMergeObjects(existing, row) : { ...row });
+    } else {
+      bucket.broad.push(row);
+    }
+  }
+
+  // Build final rows: merge broad rows into every narrow row within the same bucket
+  const results = [];
+  for (const [pk, { narrow, broad }] of buckets.entries()) {
+    if (narrow.size === 0 && broad.length > 0) {
+      // No narrow rows; collapse broad rows by deep merge
+      const mergedBroad = broad.reduce((acc, r) => deepMergeObjects(acc, r), {});
+      // Apply preserve backfill
+      const cacheObj = preserveCache.get(pk) || {};
+      for (const f of preserveSet) {
+        mergedBroad[f] = choosePreferNonEmpty(mergedBroad[f], cacheObj[f]);
+      }
+      results.push(mergedBroad);
+      continue;
+    }
+
+    for (const [secKey, baseObj] of narrow.entries()) {
+      let merged = { ...baseObj };
+      for (const broadRow of broad) {
+        merged = deepMergeObjects(merged, broadRow);
+      }
+      // Apply preserve backfill
+      const cacheObj = preserveCache.get(pk) || {};
+      for (const f of preserveSet) {
+        merged[f] = choosePreferNonEmpty(merged[f], cacheObj[f]);
+      }
+      results.push(merged);
+    }
+  }
+
+  return results;
+};
+
 // Merge function for combining data from multiple arrays
 export const mergeData = (by = [], preserve = []) => (tables = {}) => {
   // CRITICAL: Ensure tables is valid
@@ -500,7 +584,9 @@ export const advancedMerge = (input) => {
     if (records.length === 0) return [];
     const { mergeBy, preserve } = detectMergeFields(records);
     if (Array.isArray(mergeBy) && mergeBy.length > 0) {
-      return mergeRecordsByKeys(records, mergeBy, preserve);
+      // Use soft merge so rows missing secondary keys (e.g., team without date)
+      // enrich matching primary-key rows instead of being dropped
+      return softMergeRecordsByKeys(records, mergeBy, preserve);
     }
     return records;
   } catch (err) {

@@ -1726,6 +1726,45 @@ const PrimeDataTable = ({
 
   // Column type detection and filter element functions moved to utils/filterUtils.js and utils/templateUtils.js
 
+  // Advanced, data-driven column type detection (no manual config required)
+  const getEffectiveColumnType = useCallback((column) => {
+    // 1) Respect explicit type when provided
+    if (column && column.type) return column.type;
+
+    const key = column?.key;
+    if (!key) return getColumnType(column || {});
+
+    // 2) Inspect sample values in data
+    let sampleValue = undefined;
+    if (Array.isArray(finalTableData) && finalTableData.length > 0) {
+      for (let i = 0; i < finalTableData.length; i++) {
+        const val = finalTableData[i]?.[key];
+        if (val !== null && val !== undefined) { sampleValue = val; break; }
+      }
+    }
+
+    // 2a) Primitive-based detection
+    if (typeof sampleValue === 'number') return 'number';
+    if (typeof sampleValue === 'boolean') return 'boolean';
+
+    // 2b) Date-like string detection
+    if (typeof sampleValue === 'string') {
+      const looksLikeISODateTime = sampleValue.includes('T') && sampleValue.includes('Z');
+      const looksLikeYMD = /^\d{4}-\d{2}-\d{2}/.test(sampleValue);
+      if (looksLikeISODateTime) return 'datetime';
+      if (looksLikeYMD) return 'date';
+    }
+
+    // 3) Categorical detection from unique value count (strings, small domains → dropdown)
+    const uniques = getUniqueValues(finalTableData || [], key);
+    if (Array.isArray(uniques) && uniques.length > 0 && uniques.length <= 30) {
+      return 'dropdown';
+    }
+
+    // 4) Fallback to key-based heuristics
+    return getColumnType(column || {});
+  }, [finalTableData, getColumnType]);
+
 
 
 
@@ -2236,7 +2275,7 @@ const PrimeDataTable = ({
       
       if (isFilterable) {
         // FIXED: Determine appropriate match mode based on column type
-        const columnType = getColumnType(col);
+        const columnType = getEffectiveColumnType(col);
         let matchMode = FilterMatchMode.CONTAINS;
         
         switch (columnType) {
@@ -2274,7 +2313,7 @@ const PrimeDataTable = ({
     });
     
     setFilters(initialFilters);
-  }, [defaultColumns, enableColumnFilter, globalFilterValue, getColumnType]);
+  }, [defaultColumns, enableColumnFilter, globalFilterValue, getEffectiveColumnType]);
 
   useEffect(() => {
     if (!isMountedRef.current) return;
@@ -2681,13 +2720,15 @@ const PrimeDataTable = ({
     };
 
     // Get the appropriate filter element for the selected field
-    const getCommonFilterElement = () => {
+      const getCommonFilterElement = () => {
       if (!commonFilterField) return null;
       
       const selectedColumn = defaultColumns.find(col => col.key === commonFilterField);
       if (!selectedColumn) return null;
 
-      return getColumnFilterElement(selectedColumn, commonFilterValue, handleCommonFilterValueChange);
+        const columnType = getEffectiveColumnType(selectedColumn);
+        const filterOptions = getFilterOptions(finalTableData, selectedColumn.key, customFilterOptions);
+        return createFilterElement(columnType, commonFilterValue, handleCommonFilterValueChange, selectedColumn, filterOptions);
     };
 
     return (
@@ -3401,7 +3442,7 @@ const PrimeDataTable = ({
           return finalColumnsToRender.map(column => {
             const isImageField = imageFields && Array.isArray(imageFields) && imageFields.includes(column.key);
             const columnKey = column.key;
-            const columnType = getColumnType(column);
+            const columnType = getEffectiveColumnType(column);
             
             // Enhanced categorical detection including explicit configuration
             const uniqueValues = getUniqueValues(finalTableData, columnKey);
@@ -3422,22 +3463,15 @@ const PrimeDataTable = ({
                 filter={column.filterable !== false && enableColumnFilter}
                 filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
                 filterElement={
-                  // FIXED: Only use custom filter elements for specific column types, let PrimeReact handle standard text/number filtering
+                  // Use custom filter elements for supported types; otherwise fall back to default
                   (column.filterable !== false && enableColumnFilter && 
-                   ['dropdown', 'select', 'categorical', 'boolean'].includes(columnType)) ? 
+                   ['dropdown', 'select', 'categorical', 'boolean', 'date', 'datetime', 'number'].includes(columnType)) ? 
                   (options) => {
                     const filterValue = options.value;
                     const filterCallback = options.filterCallback;
-                    
-                    console.log('🔍 CUSTOM FILTER ELEMENT:', {
-                      columnKey: column.key,
-                      columnType,
-                      filterValue,
-                      hasCallback: !!filterCallback,
-                      options
-                    });
-                    
-                    return getColumnFilterElement(column, filterValue, filterCallback);
+                    const onChange = (newValue) => filterCallback(newValue);
+                    const filterOptions = generateFilterOptions(column);
+                    return createFilterElement(columnType, filterValue, onChange, column, filterOptions);
                   } : undefined
                 }
                 filterPlaceholder={`Filter ${column.title}...`}
