@@ -13,6 +13,7 @@ import { useAuth } from '../components/AuthContext';
 import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import PlasmicDataContext from '../components/PlasmicDataContext';
 import PlasmicErrorBoundary from '../components/PlasmicErrorBoundary';
+import { DataProvider } from '@plasmicapp/host';
 
 export default function PlasmicLoaderPage(props) {
   const { plasmicData, queryCache } = props;
@@ -182,11 +183,11 @@ export default function PlasmicLoaderPage(props) {
             key={`user-context-${firebaseUser?.uid || 'anonymous'}-${renderKey}`} // HYDRATION FIX: Stable key with retry support
           >
             {/* Make email available as a global variable for Plasmic Studio */}
-            <DataProvider 
-              name="userEmail" 
-              data={userEmail}
-              key={`user-email-${userEmail}-${renderKey}`} // HYDRATION FIX: Stable key with retry support
-            >
+              <DataProvider 
+                name="userEmail" 
+                data={userEmail}
+                key={`user-email-${userEmail}-${renderKey}`} // HYDRATION FIX: Stable key with retry support
+              >
               {/* Set up global variables for Plasmic Studio GraphQL queries */}
               <PlasmicDataContext />
               {/* HYDRATION FIX: Wrap in error boundary to catch setState during render errors */}
@@ -196,8 +197,8 @@ export default function PlasmicLoaderPage(props) {
                   key={`component-${pageMeta.displayName}-${userContext.isAuthenticated}-${renderKey}`} // HYDRATION FIX: Stable component key with retry support
                 />
               </PlasmicErrorBoundary>
+              </DataProvider>
             </DataProvider>
-          </DataProvider>
         </>
       )}
     </PlasmicRootProvider>
