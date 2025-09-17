@@ -1,6 +1,20 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import app from '../firebase';
+
+// Lazily load Firebase only on the client to cut initial JS and block time
+let __firebaseCache = null;
+const loadFirebaseAuth = async () => {
+  if (typeof window === 'undefined') return null;
+  if (!__firebaseCache) {
+    __firebaseCache = (async () => {
+      const [{ default: app }, authMod] = await Promise.all([
+        import('../firebase'),
+        import('firebase/auth')
+      ]);
+      return { app, getAuth: authMod.getAuth, onAuthStateChanged: authMod.onAuthStateChanged };
+    })();
+  }
+  return __firebaseCache;
+};
 
 // Function to generate SVG avatar from first letter
 const generateAvatarSvg = (letter) => {
@@ -144,9 +158,15 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to Firebase Auth state changes
   useEffect(() => {
-    const auth = getAuth(app);
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    let unsubscribe = () => {};
+    let mounted = true;
+    (async () => {
+      const mods = await loadFirebaseAuth();
+      if (!mods || !mounted) return;
+      const { app, getAuth, onAuthStateChanged } = mods;
+      const auth = getAuth(app);
+      
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
       // Prevent race conditions
       if (isProcessingRef.current) {
         console.log('Auth state change already processing, skipping...');
@@ -341,13 +361,15 @@ export const AuthProvider = ({ children }) => {
         isProcessingRef.current = false;
         console.log('🏁 Auth state change processing completed');
       }
-    });
+      });
 
-    // Load initial auth state from storage
-    loadAuthFromStorage();
-
+      // Load initial auth state from storage
+      loadAuthFromStorage();
+    })();
+    
     return () => {
-      unsubscribe();
+      mounted = false;
+      try { unsubscribe(); } catch {}
       isProcessingRef.current = false;
     };
   }, []);
@@ -362,6 +384,9 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    const mods = await loadFirebaseAuth();
+    if (!mods) return;
+    const { app, getAuth } = mods;
     const auth = getAuth(app);
     try {
       await auth.signOut();

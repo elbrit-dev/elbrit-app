@@ -4,11 +4,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  compiler: {
-    removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn']
-    } : false,
-  },
   // Production optimizations
   compress: true,
   generateEtags: true,
@@ -35,6 +30,18 @@ const nextConfig = {
   // Performance optimizations
   swcMinify: true,
   poweredByHeader: false,
+
+  // Reduce client bundle size by stripping console.* in production
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn']
+    } : false,
+  },
+
+  experimental: {
+    // Enable package import optimization for icon library
+    optimizePackageImports: ['lucide-react']
+  },
   
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
@@ -74,8 +81,18 @@ const nextConfig = {
             },
           },
         },
+        runtimeChunk: 'single',
       };
     }
+
+    // Prefer smaller ESM builds when available
+    config.resolve.conditionNames = [
+      'import',
+      'module',
+      'browser',
+      'default'
+    ];
+
     return config;
   },
   
@@ -92,6 +109,13 @@ const nextConfig = {
         source: '/_next/image',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      },
+      {
+        source: '/fonts/(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Access-Control-Allow-Origin', value: '*' }
         ]
       },
       {
