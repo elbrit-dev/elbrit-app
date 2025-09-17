@@ -1734,6 +1734,12 @@ const PrimeDataTable = ({
     const key = column?.key;
     if (!key) return getColumnType(column || {});
 
+    // 1a) Priority keyword-based detection for common categorical columns
+    const keyLower = String(key).toLowerCase();
+    if (/(team|status|type|category|dept|department|region|zone|state|city|brand|hq)/.test(keyLower)) {
+      return 'dropdown';
+    }
+
     // 2) Inspect sample values in data
     let sampleValue = undefined;
     if (Array.isArray(finalTableData) && finalTableData.length > 0) {
@@ -1757,7 +1763,7 @@ const PrimeDataTable = ({
 
     // 3) Categorical detection from unique value count (strings, small domains → dropdown)
     const uniques = getUniqueValues(finalTableData || [], key);
-    if (Array.isArray(uniques) && uniques.length > 0 && uniques.length <= 30) {
+    if (Array.isArray(uniques) && uniques.length > 0 && uniques.length <= 200) {
       return 'dropdown';
     }
 
