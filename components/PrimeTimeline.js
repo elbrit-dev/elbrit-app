@@ -64,7 +64,7 @@ const PrimeTimeline = ({
   dialogMode = "content", // content | twoCards | twoTables
   displayMode = "dialog", // dialog | drawer
   drawerPosition = "auto", // auto | right | left | top | bottom
-  drawerSize = "30rem",
+  drawerSize = "50rem", // Wider default for better table display
   leftCardTitle = "",
   rightCardTitle = "",
   leftFields = [], // [{label:"Gross pay", field:"gross_pay"}]
@@ -110,7 +110,7 @@ const PrimeTimeline = ({
     
     // Auto mode: right for desktop, bottom for mobile
     if (typeof window !== "undefined") {
-      return window.innerWidth >= 768 ? "right" : "bottom";
+      return window.innerWidth >= 968 ? "right" : "bottom";
     }
     return "right"; // fallback
   };
@@ -242,10 +242,11 @@ const PrimeTimeline = ({
     const wrapperStyle = isDesktop && isVerticalDrawer ? {
       display: "flex",
       flexDirection: "column",
-      justifyContent: "center",
+      justifyContent: "flex-start", // Start from top instead of center
       alignItems: "center",
       minHeight: "100vh",
-      padding: "2rem"
+      padding: "3rem 2rem", // More top padding
+      paddingTop: "4rem" // Extra top space
     } : {
       padding: "1rem"
     };
@@ -259,7 +260,7 @@ const PrimeTimeline = ({
             gap: columnGap,
             minHeight: "300px",
             width: "100%",
-            maxWidth: isDesktop ? "800px" : "100%"
+            maxWidth: isDesktop ? "100%" : "100%" // Use full drawer width
           }}>
           <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
             {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
@@ -358,7 +359,7 @@ const PrimeTimeline = ({
             minHeight: "400px",
             overflow: "hidden",
             width: "100%",
-            maxWidth: isDesktop ? "900px" : "100%"
+            maxWidth: isDesktop ? "100%" : "100%" // Use full drawer width for tables
           }}>
           <div>
             {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
@@ -378,7 +379,7 @@ const PrimeTimeline = ({
                 style={{ 
                   fontSize: "0.875rem",
                   width: "100%",
-                  minWidth: "200px" // Prevent tables from getting too narrow
+                  minWidth: "300px" // Wider minimum for better readability
                 }}
                 rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
               >
@@ -421,7 +422,7 @@ const PrimeTimeline = ({
                 style={{ 
                   fontSize: "0.875rem",
                   width: "100%",
-                  minWidth: "200px" // Prevent tables from getting too narrow
+                  minWidth: "300px" // Wider minimum for better readability
                 }}
                 rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
               >

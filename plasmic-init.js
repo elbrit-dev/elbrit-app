@@ -3263,7 +3263,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     dialogMode: { type: "choice", options: ["content", "twoCards", "twoTables"], defaultValue: "content", description: "Dialog layout mode" },
     displayMode: { type: "choice", options: ["dialog", "drawer"], defaultValue: "dialog", description: "Display as dialog popup or drawer" },
     drawerPosition: { type: "choice", options: ["auto", "right", "left", "top", "bottom"], defaultValue: "auto", description: "Drawer position (auto = right on desktop, bottom on mobile)" },
-    drawerSize: { type: "string", defaultValue: "30rem", description: "Drawer size (width for left/right, height for top/bottom)" },
+    drawerSize: { type: "string", defaultValue: "50rem", description: "Drawer size (width for left/right, height for top/bottom)" },
     leftCardTitle: { type: "string", defaultValue: "", description: "Left card title for twoCards mode" },
     rightCardTitle: { type: "string", defaultValue: "", description: "Right card title for twoCards mode" },
     leftFields: { type: "object", defaultValue: [], description: "Left card fields: array of {label, field} (supports dot paths)" },
