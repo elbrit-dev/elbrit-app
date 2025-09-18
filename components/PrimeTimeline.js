@@ -64,7 +64,7 @@ const PrimeTimeline = ({
   leftFields = [], // [{label:"Gross pay", field:"gross_pay"}]
   rightFields = [],
   columnGap = "1rem",
-  cardPadding = "1rem",
+  dialogCardPadding = "1rem",
   leftListField = "",
   leftListItemLabelField = "salary_component__name",
   leftListItemValueField = "amount",
@@ -278,7 +278,7 @@ const PrimeTimeline = ({
           {dialogItem ? (
             dialogMode === "twoCards" ? (
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: columnGap }}>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: cardPadding }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
                   {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
                   {leftFields && leftFields.length > 0 ? (
                     <div className="flex flex-column" style={{ gap: 6 }}>
@@ -303,7 +303,7 @@ const PrimeTimeline = ({
                     </div>
                   ) : null}
                 </div>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: cardPadding }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
                   {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
                   {rightFields && rightFields.length > 0 ? (
                     <div className="flex flex-column" style={{ gap: 6 }}>

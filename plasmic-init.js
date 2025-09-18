@@ -3266,7 +3266,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     leftFields: { type: "object", defaultValue: [], description: "Left card fields: array of {label, field} (supports dot paths)" },
     rightFields: { type: "object", defaultValue: [], description: "Right card fields: array of {label, field} (supports dot paths)" },
     columnGap: { type: "string", defaultValue: "1rem", description: "Gap between two cards" },
-    cardPadding: { type: "string", defaultValue: "1rem", description: "Padding inside each card" },
+    dialogCardPadding: { type: "string", defaultValue: "1rem", description: "Padding inside dialog cards" },
     leftListField: { type: "string", defaultValue: "", description: "Array field for left card list (e.g., 'earnings')" },
     leftListItemLabelField: { type: "string", defaultValue: "salary_component__name", description: "Label field path for left list rows" },
     leftListItemValueField: { type: "string", defaultValue: "amount", description: "Value field path for left list rows" },
