@@ -234,14 +234,33 @@ const PrimeTimeline = ({
   const renderDialogContent = () => {
     if (!dialogItem) return null;
 
+    const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
+    const drawerPos = getDrawerPosition();
+    const isVerticalDrawer = drawerPos === "right" || drawerPos === "left";
+    
+    // Centering wrapper for desktop vertical drawers
+    const wrapperStyle = isDesktop && isVerticalDrawer ? {
+      display: "flex",
+      flexDirection: "column",
+      justifyContent: "center",
+      alignItems: "center",
+      minHeight: "100vh",
+      padding: "2rem"
+    } : {
+      padding: "1rem"
+    };
+
     if (dialogMode === "twoCards") {
       return (
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "1fr 1fr", 
-          gap: columnGap,
-          minHeight: "300px" // Ensure minimum height for mobile
-        }}>
+        <div style={wrapperStyle}>
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "1fr 1fr", 
+            gap: columnGap,
+            minHeight: "300px",
+            width: "100%",
+            maxWidth: isDesktop ? "800px" : "100%"
+          }}>
           <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
             {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
             {leftFields && leftFields.length > 0 ? (
@@ -326,17 +345,21 @@ const PrimeTimeline = ({
               </div>
             ) : null}
           </div>
+          </div>
         </div>
       );
     } else if (dialogMode === "twoTables") {
       return (
-        <div style={{ 
-          display: "grid", 
-          gridTemplateColumns: "1fr 1fr", 
-          gap: columnGap,
-          minHeight: "400px", // Ensure minimum height for tables
-          overflow: "hidden" // Prevent horizontal scroll
-        }}>
+        <div style={wrapperStyle}>
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "1fr 1fr", 
+            gap: columnGap,
+            minHeight: "400px",
+            overflow: "hidden",
+            width: "100%",
+            maxWidth: isDesktop ? "900px" : "100%"
+          }}>
           <div>
             {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
             {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
@@ -423,18 +446,24 @@ const PrimeTimeline = ({
               <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
             )}
           </div>
+          </div>
         </div>
       );
     } else {
       return (
-        <div className="flex flex-column gap-3">
-          {imageField && dialogItem?.[imageField] ? (
-            <Image src={dialogItem[imageField]} alt={dialogItem?.[imageAltField || ""] || ""} preview={imagePreview} />
-          ) : null}
-          <div>
-            {dialogContentField
-              ? dialogItem?.[dialogContentField]
-              : dialogItem?.[descriptionField]}
+        <div style={wrapperStyle}>
+          <div className="flex flex-column gap-3" style={{ 
+            width: "100%", 
+            maxWidth: isDesktop ? "600px" : "100%" 
+          }}>
+            {imageField && dialogItem?.[imageField] ? (
+              <Image src={dialogItem[imageField]} alt={dialogItem?.[imageAltField || ""] || ""} preview={imagePreview} />
+            ) : null}
+            <div>
+              {dialogContentField
+                ? dialogItem?.[dialogContentField]
+                : dialogItem?.[descriptionField]}
+            </div>
           </div>
         </div>
       );
@@ -520,7 +549,10 @@ const PrimeTimeline = ({
           visible={dialogVisible}
           position={getDrawerPosition()}
           onHide={() => setDialogVisible(false)}
-          style={{ width: drawerSize, height: drawerSize }}
+          style={{ 
+            width: getDrawerPosition() === "right" || getDrawerPosition() === "left" ? drawerSize : "100%",
+            height: getDrawerPosition() === "right" || getDrawerPosition() === "left" ? "100vh" : drawerSize
+          }}
           header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
         >
           {renderDialogContent()}
