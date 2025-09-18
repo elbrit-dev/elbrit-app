@@ -3247,6 +3247,8 @@ PLASMIC.registerComponent(PrimeTimeline, {
     // Styling
     className: { type: "string", defaultValue: "" },
     style: { type: "object", defaultValue: {} },
+    containerWidth: { type: "string", defaultValue: "auto", description: "Width of the wrapper container (e.g., '100%', '600px')" },
+    containerHeight: { type: "string", defaultValue: "auto", description: "Height of the wrapper container (e.g., 'auto', '480px')" },
     markerSize: { type: "number", defaultValue: 32, description: "Marker diameter in pixels" },
     markerTextColor: { type: "string", defaultValue: "#ffffff", description: "Marker icon color" },
     markerVariant: { type: "choice", options: ["icon", "dot", "none"], defaultValue: "icon", description: "Marker content variant" },

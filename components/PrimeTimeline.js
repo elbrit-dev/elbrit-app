@@ -44,6 +44,8 @@ const PrimeTimeline = ({
   // Styling
   className = "",
   style = {},
+  containerWidth = "auto",
+  containerHeight = "auto",
   markerSize = 32,
   markerTextColor = "#ffffff",
   readMoreTarget = "_self",
@@ -222,7 +224,7 @@ const PrimeTimeline = ({
   const oppositeProp = finalLayout === "horizontal" && finalAlign === "alternate" ? <span>&nbsp;</span> : renderOpposite;
 
   return (
-    <div className={className} style={style}>
+    <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
       <Timeline
         value={Array.isArray(events) ? events : []}
         align={finalAlign}
