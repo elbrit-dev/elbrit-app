@@ -3267,6 +3267,15 @@ PLASMIC.registerComponent(PrimeTimeline, {
     rightFields: { type: "object", defaultValue: [], description: "Right card fields: array of {label, field} (supports dot paths)" },
     columnGap: { type: "string", defaultValue: "1rem", description: "Gap between two cards" },
     cardPadding: { type: "string", defaultValue: "1rem", description: "Padding inside each card" },
+    leftListField: { type: "string", defaultValue: "", description: "Array field for left card list (e.g., 'earnings')" },
+    leftListItemLabelField: { type: "string", defaultValue: "salary_component__name", description: "Label field path for left list rows" },
+    leftListItemValueField: { type: "string", defaultValue: "amount", description: "Value field path for left list rows" },
+    rightListField: { type: "string", defaultValue: "", description: "Array field for right card list (e.g., 'deductions')" },
+    rightListItemLabelField: { type: "string", defaultValue: "salary_component__name", description: "Label field path for right list rows" },
+    rightListItemValueField: { type: "string", defaultValue: "amount", description: "Value field path for right list rows" },
+    showSummary: { type: "boolean", defaultValue: false, description: "Show summary block in main timeline content" },
+    summaryTitle: { type: "string", defaultValue: "Summary", description: "Title for the summary block" },
+    summaryFields: { type: "object", defaultValue: [], description: "Summary fields: array of {label, field} (supports dot paths)" },
 
     // Events
     onReadMore: {

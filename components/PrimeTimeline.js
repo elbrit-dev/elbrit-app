@@ -65,6 +65,15 @@ const PrimeTimeline = ({
   rightFields = [],
   columnGap = "1rem",
   cardPadding = "1rem",
+  leftListField = "",
+  leftListItemLabelField = "salary_component__name",
+  leftListItemValueField = "amount",
+  rightListField = "",
+  rightListItemLabelField = "salary_component__name",
+  rightListItemValueField = "amount",
+  showSummary = false,
+  summaryTitle = "Summary",
+  summaryFields = [], // [{label:"Gross pay", field:"gross_pay"}]
 
   // Events
   onReadMore,
@@ -124,6 +133,19 @@ const PrimeTimeline = ({
         {title ? <h6 style={{ margin: 0, fontSize: 14 }}>{title}</h6> : null}
         {date ? <small className="text-color-secondary" style={{ display: "block", marginTop: 4 }}>{date}</small> : null}
         {description ? <p style={{ margin: "8px 0 12px 0" }}>{description}</p> : null}
+        {showSummary && summaryFields && summaryFields.length > 0 ? (
+          <div style={{ marginTop: 8, marginBottom: 8 }}>
+            {summaryTitle ? <div style={{ fontWeight: 600, marginBottom: 6 }}>{summaryTitle}</div> : null}
+            <div className="flex flex-column" style={{ gap: 6 }}>
+              {summaryFields.map((f, idx) => (
+                <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
+                  <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
+                  <span>{String(getValue(item, f?.field))}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
         {img ? (
           <div style={{ marginBottom: 12 }}>
             <Image
@@ -259,6 +281,16 @@ const PrimeTimeline = ({
                   ) : (
                     <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
                   )}
+                  {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
+                    <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
+                      {getValue(dialogItem, leftListField).map((row, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                          <span>{String(getValue(row, leftListItemLabelField))}</span>
+                          <span style={{ fontWeight: 500 }}>{String(getValue(row, leftListItemValueField))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
                 <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: cardPadding }}>
                   {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
@@ -274,6 +306,16 @@ const PrimeTimeline = ({
                   ) : (
                     <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
                   )}
+                  {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
+                    <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
+                      {getValue(dialogItem, rightListField).map((row, i) => (
+                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                          <span>{String(getValue(row, rightListItemLabelField))}</span>
+                          <span style={{ fontWeight: 500 }}>{String(getValue(row, rightListItemValueField))}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : (
