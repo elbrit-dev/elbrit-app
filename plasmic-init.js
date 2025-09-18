@@ -3243,6 +3243,8 @@ PLASMIC.registerComponent(PrimeTimeline, {
     showOpposite: { type: "boolean", defaultValue: true, description: "Show date on opposite side (vertical only)" },
     showReadMore: { type: "boolean", defaultValue: true, description: "Show the Read more action button" },
     readMoreLabel: { type: "string", defaultValue: "Read more", description: "Label for the Read more button" },
+    showPdfButton: { type: "boolean", defaultValue: true, description: "Show the PDF view button" },
+    pdfButtonLabel: { type: "string", defaultValue: "View as PDF", description: "Label for the PDF button" },
 
     // Styling
     className: { type: "string", defaultValue: "" },
@@ -3301,6 +3303,13 @@ PLASMIC.registerComponent(PrimeTimeline, {
       argTypes: [
         { name: "item", type: "object", description: "The timeline item object" },
         { name: "href", type: "string", description: "Link from the item (if provided)" }
+      ]
+    },
+    onPdfView: {
+      type: "eventHandler",
+      description: "Called when the PDF view button is clicked",
+      argTypes: [
+        { name: "item", type: "object", description: "The timeline item object" }
       ]
     },
     onItemClick: {

@@ -43,6 +43,8 @@ const PrimeTimeline = ({
   showOpposite = true, // show date on the opposite side (vertical only)
   showReadMore = true,
   readMoreLabel = "Read more",
+  showPdfButton = true,
+  pdfButtonLabel = "View as PDF",
 
   // Styling
   className = "",
@@ -97,6 +99,7 @@ const PrimeTimeline = ({
 
   // Events
   onReadMore,
+  onPdfView,
   onItemClick,
   onImageClick,
   onDialogOpen
@@ -119,6 +122,110 @@ const PrimeTimeline = ({
     if (!obj || !path) return undefined;
     if (path.indexOf(".") === -1) return obj?.[path];
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  };
+
+  const generatePDF = (item) => {
+    const title = item?.[titleField] || "Payslip Details";
+    const leftTitle = leftCardTitle || "Earnings";
+    const rightTitle = rightCardTitle || "Deductions";
+    
+    // Get data arrays
+    const leftData = leftListField && Array.isArray(getValue(item, leftListField)) ? getValue(item, leftListField) : [];
+    const rightData = rightListField && Array.isArray(getValue(item, rightListField)) ? getValue(item, rightListField) : [];
+    
+    // Generate HTML for PDF
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; background: white; }
+          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+          .container { display: flex; gap: 30px; justify-content: space-between; }
+          .column { flex: 1; }
+          .column-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .total-row { background-color: #e3f2fd; font-weight: bold; }
+          .amount { text-align: right; }
+          @media print { body { margin: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1>${title}</h1>
+        </div>
+        <div class="container">
+          <div class="column">
+            <div class="column-title">${leftTitle}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th class="amount">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${leftData.map(row => `
+                  <tr>
+                    <td>${String(getValue(row, leftListItemLabelField))}</td>
+                    <td class="amount">${String(getValue(row, leftListItemValueField))}</td>
+                  </tr>
+                `).join('')}
+                ${showTableTotals ? `
+                  <tr class="total-row">
+                    <td><strong>${leftTotalLabel}</strong></td>
+                    <td class="amount"><strong>${String(getValue(item, leftTotalField))}</strong></td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
+          <div class="column">
+            <div class="column-title">${rightTitle}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Component</th>
+                  <th class="amount">Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rightData.map(row => `
+                  <tr>
+                    <td>${String(getValue(row, rightListItemLabelField))}</td>
+                    <td class="amount">${String(getValue(row, rightListItemValueField))}</td>
+                  </tr>
+                `).join('')}
+                ${showTableTotals ? `
+                  <tr class="total-row">
+                    <td><strong>${rightTotalLabel}</strong></td>
+                    <td class="amount"><strong>${String(getValue(item, rightTotalField))}</strong></td>
+                  </tr>
+                ` : ''}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open PDF in new window/tab
+    const newWindow = window.open('', '_blank');
+    if (newWindow) {
+      newWindow.document.write(htmlContent);
+      newWindow.document.close();
+      
+      // Trigger print dialog after content loads
+      newWindow.onload = () => {
+        setTimeout(() => {
+          newWindow.print();
+        }, 500);
+      };
+    }
   };
   const renderMarker = (item) => {
     const backgroundColor = item?.[markerColorField] || "#3b82f6";
@@ -199,28 +306,45 @@ const PrimeTimeline = ({
             />
           </div>
         ) : null}
-        {showReadMore ? (
-          <Button
-            label={readMoreLabel}
-            text
-            size="small"
-            onClick={() => {
-              if (onReadMore) {
-                onReadMore({ item, href });
-              } else if (href) {
-                if (readMoreTarget === "_blank") {
-                  window.open(href, "_blank");
-                } else {
-                  window.location.href = href;
+        <div style={{ display: "flex", gap: "8px", marginTop: "8px" }}>
+          {showReadMore ? (
+            <Button
+              label={readMoreLabel}
+              text
+              size="small"
+              onClick={() => {
+                if (onReadMore) {
+                  onReadMore({ item, href });
+                } else if (href) {
+                  if (readMoreTarget === "_blank") {
+                    window.open(href, "_blank");
+                  } else {
+                    window.location.href = href;
+                  }
+                } else if (enableDialog) {
+                  setDialogItem(item);
+                  setDialogVisible(true);
+                  if (onDialogOpen) onDialogOpen({ item });
                 }
-              } else if (enableDialog) {
-                setDialogItem(item);
-                setDialogVisible(true);
-                if (onDialogOpen) onDialogOpen({ item });
-              }
-            }}
-          />
-        ) : null}
+              }}
+            />
+          ) : null}
+          {showPdfButton ? (
+            <Button
+              label={pdfButtonLabel}
+              text
+              size="small"
+              icon="pi pi-file-pdf"
+              onClick={() => {
+                if (onPdfView) {
+                  onPdfView({ item });
+                } else {
+                  generatePDF(item);
+                }
+              }}
+            />
+          ) : null}
+        </div>
       </div>
     );
   };
@@ -254,14 +378,15 @@ const PrimeTimeline = ({
     if (dialogMode === "twoCards") {
       return (
         <div style={wrapperStyle}>
-          <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "1fr 1fr", 
-            gap: columnGap,
-            minHeight: "300px",
-            width: "100%",
-            maxWidth: isDesktop ? "100%" : "100%" // Use full drawer width
-          }}>
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
+          gridTemplateRows: isDesktop ? "1fr" : "auto auto", // Single row on desktop, two rows on mobile
+          gap: columnGap,
+          minHeight: "300px",
+          width: "100%",
+          maxWidth: isDesktop ? "100%" : "100%" // Use full drawer width
+        }}>
           <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
             {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
             {leftFields && leftFields.length > 0 ? (
@@ -354,7 +479,8 @@ const PrimeTimeline = ({
         <div style={wrapperStyle}>
           <div style={{ 
             display: "grid", 
-            gridTemplateColumns: "1fr 1fr", 
+            gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
+            gridTemplateRows: isDesktop ? "1fr" : "auto auto", // Single row on desktop, two rows on mobile
             gap: columnGap,
             minHeight: "400px",
             overflow: "hidden",
