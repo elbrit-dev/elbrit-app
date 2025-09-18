@@ -3276,6 +3276,10 @@ PLASMIC.registerComponent(PrimeTimeline, {
     showSummary: { type: "boolean", defaultValue: false, description: "Show summary block in main timeline content" },
     summaryTitle: { type: "string", defaultValue: "Summary", description: "Title for the summary block" },
     summaryFields: { type: "object", defaultValue: [], description: "Summary fields: array of {label, field} (supports dot paths)" },
+    cardWidth: { type: "string", defaultValue: "auto", description: "Width of main timeline cards (e.g., 'auto', '300px', 'fit-content')" },
+    cardHeight: { type: "string", defaultValue: "auto", description: "Height of main timeline cards (e.g., 'auto', '200px', 'fit-content')" },
+    cardPadding: { type: "string", defaultValue: "12px", description: "Padding inside main timeline cards" },
+    cardBorderRadius: { type: "string", defaultValue: "8px", description: "Border radius of main timeline cards" },
 
     // Events
     onReadMore: {

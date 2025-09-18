@@ -74,6 +74,10 @@ const PrimeTimeline = ({
   showSummary = false,
   summaryTitle = "Summary",
   summaryFields = [], // [{label:"Gross pay", field:"gross_pay"}]
+  cardWidth = "auto",
+  cardHeight = "auto",
+  cardPadding = "12px",
+  cardBorderRadius = "8px",
 
   // Events
   onReadMore,
@@ -127,7 +131,14 @@ const PrimeTimeline = ({
     return (
       <div
         className="p-3"
-        style={{ borderRadius: 8, border: "1px solid var(--surface-border)", background: "var(--surface-card)" }}
+        style={{ 
+          borderRadius: cardBorderRadius, 
+          border: "1px solid var(--surface-border)", 
+          background: "var(--surface-card)",
+          width: cardWidth,
+          height: cardHeight,
+          padding: cardPadding
+        }}
         onClick={() => onItemClick && onItemClick({ item })}
       >
         {title ? <h6 style={{ margin: 0, fontSize: 14 }}>{title}</h6> : null}
