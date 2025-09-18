@@ -47,6 +47,9 @@ const PrimeTimeline = ({
   markerSize = 32,
   markerTextColor = "#ffffff",
   readMoreTarget = "_self",
+  styleMode = "verticalAlternate", // verticalBasic | verticalRight | verticalOpposite | verticalAlternate | horizontalTop | horizontalBottom | horizontalAlternate
+  markerVariant = "icon", // icon | dot | none
+  timelineClassName = "",
   imageWidth = "100%",
   imagePreview = true,
   enableDialog = false,
@@ -60,8 +63,6 @@ const PrimeTimeline = ({
   rightFields = [],
   columnGap = "1rem",
   cardPadding = "1rem",
-  summaryTitle = "",
-  summaryFields = [], // [{label:"Gross pay", field:"gross_pay"}]
 
   // Events
   onReadMore,
@@ -81,6 +82,10 @@ const PrimeTimeline = ({
     const backgroundColor = item?.[markerColorField] || "#3b82f6";
     const icon = item?.[iconField];
 
+    if (markerVariant === "none") {
+      return null;
+    }
+
     return (
       <span
         className="p-shadow-2"
@@ -95,7 +100,7 @@ const PrimeTimeline = ({
           color: markerTextColor
         }}
       >
-        {icon ? <i className={icon} /> : null}
+        {markerVariant === "icon" && icon ? <i className={icon} /> : null}
       </span>
     );
   };
@@ -117,19 +122,6 @@ const PrimeTimeline = ({
         {title ? <h6 style={{ margin: 0, fontSize: 14 }}>{title}</h6> : null}
         {date ? <small className="text-color-secondary" style={{ display: "block", marginTop: 4 }}>{date}</small> : null}
         {description ? <p style={{ margin: "8px 0 12px 0" }}>{description}</p> : null}
-        {summaryFields && summaryFields.length > 0 ? (
-          <div style={{ marginTop: 8, marginBottom: 8 }}>
-            {summaryTitle ? <div style={{ fontWeight: 600, marginBottom: 6 }}>{summaryTitle}</div> : null}
-            <div className="flex flex-column" style={{ gap: 6 }}>
-              {summaryFields.map((f, idx) => (
-                <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
-                  <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                  <span>{String(getValue(item, f?.field))}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : null}
         {img ? (
           <div style={{ marginBottom: 12 }}>
             <Image
@@ -177,16 +169,68 @@ const PrimeTimeline = ({
     return content ? <small className="text-color-secondary">{content}</small> : null;
   };
 
+  // Resolve styleMode to effective layout/align/opposite defaults (explicit props still override)
+  let computedLayout = layout;
+  let computedAlign = align;
+  let computedShowOpposite = showOpposite;
+  switch (styleMode) {
+    case "verticalBasic":
+      computedLayout = "vertical";
+      computedAlign = "left";
+      computedShowOpposite = false;
+      break;
+    case "verticalRight":
+      computedLayout = "vertical";
+      computedAlign = "right";
+      computedShowOpposite = false;
+      break;
+    case "verticalOpposite":
+      computedLayout = "vertical";
+      computedAlign = "left";
+      computedShowOpposite = true;
+      break;
+    case "verticalAlternate":
+      computedLayout = "vertical";
+      computedAlign = "alternate";
+      computedShowOpposite = true;
+      break;
+    case "horizontalTop":
+      computedLayout = "horizontal";
+      computedAlign = "top";
+      computedShowOpposite = false;
+      break;
+    case "horizontalBottom":
+      computedLayout = "horizontal";
+      computedAlign = "bottom";
+      computedShowOpposite = false;
+      break;
+    case "horizontalAlternate":
+      computedLayout = "horizontal";
+      computedAlign = "alternate";
+      computedShowOpposite = false; // handled by empty opposite placeholder per docs
+      break;
+    default:
+      break;
+  }
+
+  // Explicit props take precedence
+  const finalLayout = layout || computedLayout;
+  const finalAlign = align || computedAlign;
+  const finalShowOpposite = typeof showOpposite === "boolean" ? showOpposite : computedShowOpposite;
+
+  // For horizontal alternate layout, provide an empty opposite to balance layout
+  const oppositeProp = finalLayout === "horizontal" && finalAlign === "alternate" ? <span>&nbsp;</span> : renderOpposite;
+
   return (
     <div className={className} style={style}>
       <Timeline
         value={Array.isArray(events) ? events : []}
-        align={align}
-        layout={layout}
+        align={finalAlign}
+        layout={finalLayout}
         marker={renderMarker}
         content={renderContent}
-        opposite={renderOpposite}
-        className="w-full"
+        opposite={oppositeProp}
+        className={`w-full ${timelineClassName}`.trim()}
       />
       {enableDialog && (
         <Dialog

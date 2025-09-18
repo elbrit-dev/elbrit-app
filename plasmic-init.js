@@ -3222,8 +3222,22 @@ PLASMIC.registerComponent(PrimeTimeline, {
     imageAltField: { type: "string", defaultValue: "", description: "Field name for image alt text (optional)" },
 
     // Layout
-    align: { type: "choice", options: ["left", "right", "alternate"], defaultValue: "alternate", description: "Content alignment relative to the line" },
-    layout: { type: "choice", options: ["vertical", "horizontal"], defaultValue: "vertical", description: "Timeline orientation" },
+    align: { type: "choice", options: ["", "left", "right", "alternate"], defaultValue: "", description: "Override alignment (leave empty to use styleMode)" },
+    layout: { type: "choice", options: ["", "vertical", "horizontal"], defaultValue: "", description: "Override layout (leave empty to use styleMode)" },
+    styleMode: {
+      type: "choice",
+      options: [
+        "verticalBasic",
+        "verticalRight",
+        "verticalOpposite",
+        "verticalAlternate",
+        "horizontalTop",
+        "horizontalBottom",
+        "horizontalAlternate"
+      ],
+      defaultValue: "verticalAlternate",
+      description: "Preset timeline layout/styles"
+    },
 
     // UI
     showOpposite: { type: "boolean", defaultValue: true, description: "Show date on opposite side (vertical only)" },
@@ -3235,6 +3249,8 @@ PLASMIC.registerComponent(PrimeTimeline, {
     style: { type: "object", defaultValue: {} },
     markerSize: { type: "number", defaultValue: 32, description: "Marker diameter in pixels" },
     markerTextColor: { type: "string", defaultValue: "#ffffff", description: "Marker icon color" },
+    markerVariant: { type: "choice", options: ["icon", "dot", "none"], defaultValue: "icon", description: "Marker content variant" },
+    timelineClassName: { type: "string", defaultValue: "", description: "Extra class applied to the Timeline element" },
     readMoreTarget: { type: "choice", options: ["_self", "_blank"], defaultValue: "_self", description: "Target when auto-opening link on Read more" },
     imageWidth: { type: "string", defaultValue: "100%", description: "Width of image inside item (CSS width)" },
     imagePreview: { type: "boolean", defaultValue: true, description: "Enable lightbox preview for image" },
@@ -3249,8 +3265,6 @@ PLASMIC.registerComponent(PrimeTimeline, {
     rightFields: { type: "object", defaultValue: [], description: "Right card fields: array of {label, field} (supports dot paths)" },
     columnGap: { type: "string", defaultValue: "1rem", description: "Gap between two cards" },
     cardPadding: { type: "string", defaultValue: "1rem", description: "Padding inside each card" },
-    summaryTitle: { type: "string", defaultValue: "", description: "Title for summary block on main card" },
-    summaryFields: { type: "object", defaultValue: [], description: "Main card summary fields: array of {label, field}" },
 
     // Events
     onReadMore: {
