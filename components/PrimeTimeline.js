@@ -3,6 +3,8 @@ import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
 import { Image } from "primereact/image";
+import { DataTable } from "primereact/datatable";
+import { Column } from "primereact/column";
 
 /**
  * PrimeTimeline
@@ -58,7 +60,7 @@ const PrimeTimeline = ({
   dialogHeaderField = null,
   dialogContentField = null,
   dialogWidth = "30rem",
-  dialogMode = "content", // content | twoCards
+  dialogMode = "content", // content | twoCards | twoTables
   leftCardTitle = "",
   rightCardTitle = "",
   leftFields = [], // [{label:"Gross pay", field:"gross_pay"}]
@@ -78,6 +80,11 @@ const PrimeTimeline = ({
   cardHeight = "auto",
   cardPadding = "12px",
   cardBorderRadius = "8px",
+  leftTableColumns = [], // [{field: 'salary_component__name', header: 'Component'}, {field: 'amount', header: 'Amount'}]
+  rightTableColumns = [],
+  tableSize = "small", // small | normal | large
+  showTableBorders = true,
+  tableStripedRows = true,
 
   // Events
   onReadMore,
@@ -327,6 +334,71 @@ const PrimeTimeline = ({
                       ))}
                     </div>
                   ) : null}
+                </div>
+              </div>
+            ) : dialogMode === "twoTables" ? (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: columnGap }}>
+                <div>
+                  {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
+                  {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
+                    <DataTable
+                      value={getValue(dialogItem, leftListField)}
+                      size={tableSize}
+                      showGridlines={showTableBorders}
+                      stripedRows={tableStripedRows}
+                      style={{ fontSize: "0.875rem" }}
+                    >
+                      {leftTableColumns && leftTableColumns.length > 0 ? (
+                        leftTableColumns.map((col, idx) => (
+                          <Column
+                            key={idx}
+                            field={col.field}
+                            header={col.header}
+                            style={{ ...(col.style || {}), textAlign: col.align || "left" }}
+                            body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
+                          />
+                        ))
+                      ) : (
+                        <>
+                          <Column field={leftListItemLabelField} header="Component" />
+                          <Column field={leftListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                        </>
+                      )}
+                    </DataTable>
+                  ) : (
+                    <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
+                  )}
+                </div>
+                <div>
+                  {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
+                  {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
+                    <DataTable
+                      value={getValue(dialogItem, rightListField)}
+                      size={tableSize}
+                      showGridlines={showTableBorders}
+                      stripedRows={tableStripedRows}
+                      style={{ fontSize: "0.875rem" }}
+                    >
+                      {rightTableColumns && rightTableColumns.length > 0 ? (
+                        rightTableColumns.map((col, idx) => (
+                          <Column
+                            key={idx}
+                            field={col.field}
+                            header={col.header}
+                            style={{ ...(col.style || {}), textAlign: col.align || "left" }}
+                            body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
+                          />
+                        ))
+                      ) : (
+                        <>
+                          <Column field={rightListItemLabelField} header="Component" />
+                          <Column field={rightListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                        </>
+                      )}
+                    </DataTable>
+                  ) : (
+                    <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
+                  )}
                 </div>
               </div>
             ) : (

@@ -3260,7 +3260,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     dialogHeaderField: { type: "string", defaultValue: "", description: "Field for dialog header (fallbacks to title)" },
     dialogContentField: { type: "string", defaultValue: "", description: "Field for dialog body (fallbacks to description)" },
     dialogWidth: { type: "string", defaultValue: "30rem", description: "Dialog width (e.g., '30rem', '600px')" },
-    dialogMode: { type: "choice", options: ["content", "twoCards"], defaultValue: "content", description: "Dialog layout mode" },
+    dialogMode: { type: "choice", options: ["content", "twoCards", "twoTables"], defaultValue: "content", description: "Dialog layout mode" },
     leftCardTitle: { type: "string", defaultValue: "", description: "Left card title for twoCards mode" },
     rightCardTitle: { type: "string", defaultValue: "", description: "Right card title for twoCards mode" },
     leftFields: { type: "object", defaultValue: [], description: "Left card fields: array of {label, field} (supports dot paths)" },
@@ -3280,6 +3280,11 @@ PLASMIC.registerComponent(PrimeTimeline, {
     cardHeight: { type: "string", defaultValue: "auto", description: "Height of main timeline cards (e.g., 'auto', '200px', 'fit-content')" },
     cardPadding: { type: "string", defaultValue: "12px", description: "Padding inside main timeline cards" },
     cardBorderRadius: { type: "string", defaultValue: "8px", description: "Border radius of main timeline cards" },
+    leftTableColumns: { type: "object", defaultValue: [], description: "Left table columns: array of {field, header, align, style, formatter}" },
+    rightTableColumns: { type: "object", defaultValue: [], description: "Right table columns: array of {field, header, align, style, formatter}" },
+    tableSize: { type: "choice", options: ["small", "normal", "large"], defaultValue: "small", description: "Table size for twoTables mode" },
+    showTableBorders: { type: "boolean", defaultValue: true, description: "Show table borders in twoTables mode" },
+    tableStripedRows: { type: "boolean", defaultValue: true, description: "Enable striped rows in twoTables mode" },
 
     // Events
     onReadMore: {
