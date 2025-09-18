@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
+import { Sidebar } from "primereact/sidebar";
 import { Image } from "primereact/image";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
@@ -61,6 +62,9 @@ const PrimeTimeline = ({
   dialogContentField = null,
   dialogWidth = "30rem",
   dialogMode = "content", // content | twoCards | twoTables
+  displayMode = "dialog", // dialog | drawer
+  drawerPosition = "auto", // auto | right | left | top | bottom
+  drawerSize = "30rem",
   leftCardTitle = "",
   rightCardTitle = "",
   leftFields = [], // [{label:"Gross pay", field:"gross_pay"}]
@@ -85,6 +89,11 @@ const PrimeTimeline = ({
   tableSize = "small", // small | normal | large
   showTableBorders = true,
   tableStripedRows = true,
+  showTableTotals = true,
+  leftTotalField = "gross_pay",
+  leftTotalLabel = "Gross Pay",
+  rightTotalField = "total_deduction", 
+  rightTotalLabel = "Total Deduction",
 
   // Events
   onReadMore,
@@ -94,6 +103,17 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
+  
+  // Responsive drawer position
+  const getDrawerPosition = () => {
+    if (drawerPosition !== "auto") return drawerPosition;
+    
+    // Auto mode: right for desktop, bottom for mobile
+    if (typeof window !== "undefined") {
+      return window.innerWidth >= 768 ? "right" : "bottom";
+    }
+    return "right"; // fallback
+  };
 
   const getValue = (obj, path) => {
     if (!obj || !path) return undefined;
@@ -211,6 +231,216 @@ const PrimeTimeline = ({
     return content ? <small className="text-color-secondary">{content}</small> : null;
   };
 
+  const renderDialogContent = () => {
+    if (!dialogItem) return null;
+
+    if (dialogMode === "twoCards") {
+      return (
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "1fr 1fr", 
+          gap: columnGap,
+          minHeight: "300px" // Ensure minimum height for mobile
+        }}>
+          <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
+            {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
+            {leftFields && leftFields.length > 0 ? (
+              <div className="flex flex-column" style={{ gap: 6 }}>
+                {leftFields.map((f, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
+                    <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
+                    <span>{String(getValue(dialogItem, f?.field))}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
+            )}
+            {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
+              <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
+                {getValue(dialogItem, leftListField).map((row, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <span>{String(getValue(row, leftListItemLabelField))}</span>
+                    <span style={{ fontWeight: 500 }}>{String(getValue(row, leftListItemValueField))}</span>
+                  </div>
+                ))}
+                {showTableTotals ? (
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    gap: 12, 
+                    marginTop: 8, 
+                    paddingTop: 8, 
+                    borderTop: "1px solid var(--surface-border)",
+                    fontWeight: 600,
+                    backgroundColor: "var(--primary-50)",
+                    padding: "8px",
+                    borderRadius: "4px"
+                  }}>
+                    <span>{leftTotalLabel}</span>
+                    <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+          <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
+            {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
+            {rightFields && rightFields.length > 0 ? (
+              <div className="flex flex-column" style={{ gap: 6 }}>
+                {rightFields.map((f, idx) => (
+                  <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
+                    <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
+                    <span>{String(getValue(dialogItem, f?.field))}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
+            )}
+            {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
+              <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
+                {getValue(dialogItem, rightListField).map((row, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+                    <span>{String(getValue(row, rightListItemLabelField))}</span>
+                    <span style={{ fontWeight: 500 }}>{String(getValue(row, rightListItemValueField))}</span>
+                  </div>
+                ))}
+                {showTableTotals ? (
+                  <div style={{ 
+                    display: "flex", 
+                    justifyContent: "space-between", 
+                    gap: 12, 
+                    marginTop: 8, 
+                    paddingTop: 8, 
+                    borderTop: "1px solid var(--surface-border)",
+                    fontWeight: 600,
+                    backgroundColor: "var(--primary-50)",
+                    padding: "8px",
+                    borderRadius: "4px"
+                  }}>
+                    <span>{rightTotalLabel}</span>
+                    <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      );
+    } else if (dialogMode === "twoTables") {
+      return (
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "1fr 1fr", 
+          gap: columnGap,
+          minHeight: "400px", // Ensure minimum height for tables
+          overflow: "hidden" // Prevent horizontal scroll
+        }}>
+          <div>
+            {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
+            {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
+              <DataTable
+                value={[
+                  ...getValue(dialogItem, leftListField),
+                  ...(showTableTotals ? [{
+                    [leftListItemLabelField]: leftTotalLabel,
+                    [leftListItemValueField]: getValue(dialogItem, leftTotalField),
+                    _isTotal: true
+                  }] : [])
+                ]}
+                size={tableSize}
+                showGridlines={showTableBorders}
+                stripedRows={tableStripedRows}
+                style={{ 
+                  fontSize: "0.875rem",
+                  width: "100%",
+                  minWidth: "200px" // Prevent tables from getting too narrow
+                }}
+                rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
+              >
+                {leftTableColumns && leftTableColumns.length > 0 ? (
+                  leftTableColumns.map((col, idx) => (
+                    <Column
+                      key={idx}
+                      field={col.field}
+                      header={col.header}
+                      style={{ ...(col.style || {}), textAlign: col.align || "left" }}
+                      body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <Column field={leftListItemLabelField} header="Component" />
+                    <Column field={leftListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                  </>
+                )}
+              </DataTable>
+            ) : (
+              <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
+            )}
+          </div>
+          <div>
+            {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
+            {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
+              <DataTable
+                value={[
+                  ...getValue(dialogItem, rightListField),
+                  ...(showTableTotals ? [{
+                    [rightListItemLabelField]: rightTotalLabel,
+                    [rightListItemValueField]: getValue(dialogItem, rightTotalField),
+                    _isTotal: true
+                  }] : [])
+                ]}
+                size={tableSize}
+                showGridlines={showTableBorders}
+                stripedRows={tableStripedRows}
+                style={{ 
+                  fontSize: "0.875rem",
+                  width: "100%",
+                  minWidth: "200px" // Prevent tables from getting too narrow
+                }}
+                rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
+              >
+                {rightTableColumns && rightTableColumns.length > 0 ? (
+                  rightTableColumns.map((col, idx) => (
+                    <Column
+                      key={idx}
+                      field={col.field}
+                      header={col.header}
+                      style={{ ...(col.style || {}), textAlign: col.align || "left" }}
+                      body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
+                    />
+                  ))
+                ) : (
+                  <>
+                    <Column field={rightListItemLabelField} header="Component" />
+                    <Column field={rightListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                  </>
+                )}
+              </DataTable>
+            ) : (
+              <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
+            )}
+          </div>
+        </div>
+      );
+    } else {
+      return (
+        <div className="flex flex-column gap-3">
+          {imageField && dialogItem?.[imageField] ? (
+            <Image src={dialogItem[imageField]} alt={dialogItem?.[imageAltField || ""] || ""} preview={imagePreview} />
+          ) : null}
+          <div>
+            {dialogContentField
+              ? dialogItem?.[dialogContentField]
+              : dialogItem?.[descriptionField]}
+          </div>
+        </div>
+      );
+    }
+  };
+
   // Resolve styleMode to effective layout/align/opposite defaults (explicit props still override)
   let computedLayout = layout;
   let computedAlign = align;
@@ -274,7 +504,7 @@ const PrimeTimeline = ({
         opposite={oppositeProp}
         className={`w-full ${timelineClassName}`.trim()}
       />
-      {enableDialog && (
+      {enableDialog && displayMode === "dialog" && (
         <Dialog
           header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
           visible={dialogVisible}
@@ -282,139 +512,19 @@ const PrimeTimeline = ({
           modal
           onHide={() => setDialogVisible(false)}
         >
-          {dialogItem ? (
-            dialogMode === "twoCards" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: columnGap }}>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
-                  {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
-                  {leftFields && leftFields.length > 0 ? (
-                    <div className="flex flex-column" style={{ gap: 6 }}>
-                      {leftFields.map((f, idx) => (
-                        <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
-                          <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                          <span>{String(getValue(dialogItem, f?.field))}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
-                  )}
-                  {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
-                    <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
-                      {getValue(dialogItem, leftListField).map((row, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                          <span>{String(getValue(row, leftListItemLabelField))}</span>
-                          <span style={{ fontWeight: 500 }}>{String(getValue(row, leftListItemValueField))}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding }}>
-                  {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
-                  {rightFields && rightFields.length > 0 ? (
-                    <div className="flex flex-column" style={{ gap: 6 }}>
-                      {rightFields.map((f, idx) => (
-                        <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
-                          <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                          <span>{String(getValue(dialogItem, f?.field))}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ color: "var(--text-color-secondary)" }}>No fields configured.</div>
-                  )}
-                  {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
-                    <div className="flex flex-column" style={{ gap: 6, marginTop: 8 }}>
-                      {getValue(dialogItem, rightListField).map((row, i) => (
-                        <div key={i} style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                          <span>{String(getValue(row, rightListItemLabelField))}</span>
-                          <span style={{ fontWeight: 500 }}>{String(getValue(row, rightListItemValueField))}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            ) : dialogMode === "twoTables" ? (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: columnGap }}>
-                <div>
-                  {leftCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{leftCardTitle}</div> : null}
-                  {leftListField && Array.isArray(getValue(dialogItem, leftListField)) ? (
-                    <DataTable
-                      value={getValue(dialogItem, leftListField)}
-                      size={tableSize}
-                      showGridlines={showTableBorders}
-                      stripedRows={tableStripedRows}
-                      style={{ fontSize: "0.875rem" }}
-                    >
-                      {leftTableColumns && leftTableColumns.length > 0 ? (
-                        leftTableColumns.map((col, idx) => (
-                          <Column
-                            key={idx}
-                            field={col.field}
-                            header={col.header}
-                            style={{ ...(col.style || {}), textAlign: col.align || "left" }}
-                            body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
-                          />
-                        ))
-                      ) : (
-                        <>
-                          <Column field={leftListItemLabelField} header="Component" />
-                          <Column field={leftListItemValueField} header="Amount" style={{ textAlign: "right" }} />
-                        </>
-                      )}
-                    </DataTable>
-                  ) : (
-                    <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
-                  )}
-                </div>
-                <div>
-                  {rightCardTitle ? <div style={{ fontWeight: 600, marginBottom: 8 }}>{rightCardTitle}</div> : null}
-                  {rightListField && Array.isArray(getValue(dialogItem, rightListField)) ? (
-                    <DataTable
-                      value={getValue(dialogItem, rightListField)}
-                      size={tableSize}
-                      showGridlines={showTableBorders}
-                      stripedRows={tableStripedRows}
-                      style={{ fontSize: "0.875rem" }}
-                    >
-                      {rightTableColumns && rightTableColumns.length > 0 ? (
-                        rightTableColumns.map((col, idx) => (
-                          <Column
-                            key={idx}
-                            field={col.field}
-                            header={col.header}
-                            style={{ ...(col.style || {}), textAlign: col.align || "left" }}
-                            body={col.formatter ? (rowData) => col.formatter(getValue(rowData, col.field), rowData) : undefined}
-                          />
-                        ))
-                      ) : (
-                        <>
-                          <Column field={rightListItemLabelField} header="Component" />
-                          <Column field={rightListItemValueField} header="Amount" style={{ textAlign: "right" }} />
-                        </>
-                      )}
-                    </DataTable>
-                  ) : (
-                    <div style={{ color: "var(--text-color-secondary)" }}>No data available</div>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex flex-column gap-3">
-                {imageField && dialogItem?.[imageField] ? (
-                  <Image src={dialogItem[imageField]} alt={dialogItem?.[imageAltField || ""] || ""} preview={imagePreview} />
-                ) : null}
-                <div>
-                  {dialogContentField
-                    ? dialogItem?.[dialogContentField]
-                    : dialogItem?.[descriptionField]}
-                </div>
-              </div>
-            )
-          ) : null}
+          {renderDialogContent()}
         </Dialog>
+      )}
+      {enableDialog && displayMode === "drawer" && (
+        <Sidebar
+          visible={dialogVisible}
+          position={getDrawerPosition()}
+          onHide={() => setDialogVisible(false)}
+          style={{ width: drawerSize, height: drawerSize }}
+          header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
+        >
+          {renderDialogContent()}
+        </Sidebar>
       )}
     </div>
   );

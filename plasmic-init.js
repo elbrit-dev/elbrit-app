@@ -3261,6 +3261,9 @@ PLASMIC.registerComponent(PrimeTimeline, {
     dialogContentField: { type: "string", defaultValue: "", description: "Field for dialog body (fallbacks to description)" },
     dialogWidth: { type: "string", defaultValue: "30rem", description: "Dialog width (e.g., '30rem', '600px')" },
     dialogMode: { type: "choice", options: ["content", "twoCards", "twoTables"], defaultValue: "content", description: "Dialog layout mode" },
+    displayMode: { type: "choice", options: ["dialog", "drawer"], defaultValue: "dialog", description: "Display as dialog popup or drawer" },
+    drawerPosition: { type: "choice", options: ["auto", "right", "left", "top", "bottom"], defaultValue: "auto", description: "Drawer position (auto = right on desktop, bottom on mobile)" },
+    drawerSize: { type: "string", defaultValue: "30rem", description: "Drawer size (width for left/right, height for top/bottom)" },
     leftCardTitle: { type: "string", defaultValue: "", description: "Left card title for twoCards mode" },
     rightCardTitle: { type: "string", defaultValue: "", description: "Right card title for twoCards mode" },
     leftFields: { type: "object", defaultValue: [], description: "Left card fields: array of {label, field} (supports dot paths)" },
@@ -3285,6 +3288,11 @@ PLASMIC.registerComponent(PrimeTimeline, {
     tableSize: { type: "choice", options: ["small", "normal", "large"], defaultValue: "small", description: "Table size for twoTables mode" },
     showTableBorders: { type: "boolean", defaultValue: true, description: "Show table borders in twoTables mode" },
     tableStripedRows: { type: "boolean", defaultValue: true, description: "Enable striped rows in twoTables mode" },
+    showTableTotals: { type: "boolean", defaultValue: true, description: "Show total rows at bottom of tables" },
+    leftTotalField: { type: "string", defaultValue: "gross_pay", description: "Field for left table total (e.g., 'gross_pay')" },
+    leftTotalLabel: { type: "string", defaultValue: "Gross Pay", description: "Label for left table total row" },
+    rightTotalField: { type: "string", defaultValue: "total_deduction", description: "Field for right table total (e.g., 'total_deduction')" },
+    rightTotalLabel: { type: "string", defaultValue: "Total Deduction", description: "Label for right table total row" },
 
     // Events
     onReadMore: {
