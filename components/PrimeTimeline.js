@@ -205,14 +205,12 @@ const PrimeTimeline = ({
                       wordBreak: "break-word",
                       ...(isGrossPay && { 
                         backgroundColor: leftTotalColor, 
-                        color: leftTotalTextColor, 
                         padding: "4px 8px", 
                         borderRadius: "4px",
                         fontWeight: "bold"
                       }),
                       ...(isTotalDeduction && { 
                         backgroundColor: rightTotalColor, 
-                        color: rightTotalTextColor, 
                         padding: "4px 8px", 
                         borderRadius: "4px",
                         fontWeight: "bold"
@@ -220,7 +218,9 @@ const PrimeTimeline = ({
                     }}
                   >
                     <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                    <span>{String(getValue(item, f?.field))}</span>
+                    <span style={{ color: isGrossPay ? leftTotalTextColor : (isTotalDeduction ? rightTotalTextColor : undefined) }}>
+                      {String(getValue(item, f?.field))}
+                    </span>
                   </div>
                 );
               })}
@@ -400,8 +400,8 @@ const PrimeTimeline = ({
                     padding: "8px",
                     borderRadius: "4px"
                   }}>
-                    <span>{leftTotalLabel}</span>
-                    <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                    <span style={{ color: undefined }}>{leftTotalLabel}</span>
+                    <span style={{ color: leftTotalTextColor }}>{String(getValue(dialogItem, leftTotalField))}</span>
                   </div>
                 ) : null}
               </div>
@@ -442,8 +442,8 @@ const PrimeTimeline = ({
                     padding: "8px",
                     borderRadius: "4px"
                   }}>
-                    <span>{rightTotalLabel}</span>
-                    <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                    <span style={{ color: undefined }}>{rightTotalLabel}</span>
+                    <span style={{ color: rightTotalTextColor }}>{String(getValue(dialogItem, rightTotalField))}</span>
                   </div>
                 ) : null}
               </div>
@@ -453,13 +453,13 @@ const PrimeTimeline = ({
           {showBottomTotalsSeparately ? (
             <div style={{ marginTop: 16, width: "100%", maxWidth: isDesktop ? "100%" : "100%" }}>
               <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: columnGap }}>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, color: leftTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
                   <span>{leftTotalLabel}</span>
-                  <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                  <span style={{ color: leftTotalTextColor }}>{String(getValue(dialogItem, leftTotalField))}</span>
                 </div>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, color: rightTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
                   <span>{rightTotalLabel}</span>
-                  <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                  <span style={{ color: rightTotalTextColor }}>{String(getValue(dialogItem, rightTotalField))}</span>
                 </div>
               </div>
             </div>
@@ -502,7 +502,6 @@ const PrimeTimeline = ({
                 rowClassName={(rowData) => rowData._isTotal ? "font-bold" : ""}
                 rowStyle={(rowData) => rowData._isTotal ? {
                   backgroundColor: leftTotalColor,
-                  color: leftTotalTextColor,
                   fontWeight: 'bold'
                 } : {}}
               >
@@ -519,7 +518,20 @@ const PrimeTimeline = ({
                 ) : (
                   <>
                     <Column field={leftListItemLabelField} header="Component" />
-                    <Column field={leftListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                    <Column
+                      field={leftListItemValueField}
+                      header="Amount"
+                      style={{ textAlign: "right" }}
+                      body={(rowData) => {
+                        const isTotal = rowData._isTotal;
+                        const value = getValue(rowData, leftListItemValueField);
+                        return (
+                          <span style={{ color: isTotal ? leftTotalTextColor : undefined }}>
+                            {String(value)}
+                          </span>
+                        );
+                      }}
+                    />
                   </>
                 )}
               </DataTable>
@@ -550,7 +562,6 @@ const PrimeTimeline = ({
                 rowClassName={(rowData) => rowData._isTotal ? "font-bold" : ""}
                 rowStyle={(rowData) => rowData._isTotal ? {
                   backgroundColor: rightTotalColor,
-                  color: rightTotalTextColor,
                   fontWeight: 'bold'
                 } : {}}
               >
@@ -567,7 +578,20 @@ const PrimeTimeline = ({
                 ) : (
                   <>
                     <Column field={rightListItemLabelField} header="Component" />
-                    <Column field={rightListItemValueField} header="Amount" style={{ textAlign: "right" }} />
+                    <Column
+                      field={rightListItemValueField}
+                      header="Amount"
+                      style={{ textAlign: "right" }}
+                      body={(rowData) => {
+                        const isTotal = rowData._isTotal;
+                        const value = getValue(rowData, rightListItemValueField);
+                        return (
+                          <span style={{ color: isTotal ? rightTotalTextColor : undefined }}>
+                            {String(value)}
+                          </span>
+                        );
+                      }}
+                    />
                   </>
                 )}
               </DataTable>
@@ -579,13 +603,13 @@ const PrimeTimeline = ({
           {showBottomTotalsSeparately ? (
             <div style={{ marginTop: 16, width: "100%", maxWidth: isDesktop ? "100%" : "100%" }}>
               <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: columnGap }}>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, color: leftTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
                   <span>{leftTotalLabel}</span>
-                  <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                  <span style={{ color: leftTotalTextColor }}>{String(getValue(dialogItem, leftTotalField))}</span>
                 </div>
-                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, color: rightTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
                   <span>{rightTotalLabel}</span>
-                  <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                  <span style={{ color: rightTotalTextColor }}>{String(getValue(dialogItem, rightTotalField))}</span>
                 </div>
               </div>
             </div>
