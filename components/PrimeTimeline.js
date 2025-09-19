@@ -279,7 +279,9 @@ const PrimeTimeline = ({
           background: "var(--surface-card)",
           width: cardWidth,
           height: cardHeight,
-          padding: cardPadding
+          padding: cardPadding,
+          minWidth: "250px", // Ensure consistent minimum width for better alignment
+          boxSizing: "border-box"
         }}
         onClick={() => onItemClick && onItemClick({ item })}
       >
@@ -387,6 +389,47 @@ const PrimeTimeline = ({
 
   const renderOpposite = (item) => {
     if (!showOpposite || layout === "horizontal") return null;
+    
+    // Determine current alignment (same logic as below)
+    let computedAlign = align;
+    switch (styleMode) {
+      case "verticalBasic":
+        computedAlign = "left";
+        break;
+      case "verticalRight":
+        computedAlign = "right";
+        break;
+      case "verticalOpposite":
+      case "verticalAlternate":
+        computedAlign = "alternate";
+        break;
+      default:
+        break;
+    }
+    const currentAlign = align || computedAlign;
+    
+    // For alternate alignment, always provide content to maintain proper alignment
+    if (currentAlign === "alternate") {
+      const content = item?.[oppositeField];
+      return (
+        <div style={{ 
+          textAlign: "center", 
+          padding: "8px", 
+          minHeight: "24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          {content ? (
+            <small className="text-color-secondary">{content}</small>
+          ) : (
+            <small className="text-color-secondary" style={{ opacity: 0.5 }}>•</small>
+          )}
+        </div>
+      );
+    }
+    
+    // For non-alternate layouts, use original behavior
     const content = item?.[oppositeField];
     return content ? <small className="text-color-secondary">{content}</small> : null;
   };
@@ -697,15 +740,30 @@ const PrimeTimeline = ({
 
   return (
     <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
-      <Timeline
-        value={Array.isArray(events) ? events : []}
-        align={finalAlign}
-        layout={finalLayout}
-        marker={renderMarker}
-        content={renderContent}
-        opposite={oppositeProp}
-        className={`w-full ${timelineClassName}`.trim()}
-      />
+      <div style={{ 
+        position: "relative",
+        ...(finalAlign === "alternate" && {
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center"
+        })
+      }}>
+        <Timeline
+          value={Array.isArray(events) ? events : []}
+          align={finalAlign}
+          layout={finalLayout}
+          marker={renderMarker}
+          content={renderContent}
+          opposite={oppositeProp}
+          className={`w-full ${timelineClassName}`.trim()}
+          style={{
+            ...(finalAlign === "alternate" && {
+              width: "100%",
+              maxWidth: "800px" // Constrain width for better centering
+            })
+          }}
+        />
+      </div>
       {enableDialog && displayMode === "dialog" && (
         <Dialog
           header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
