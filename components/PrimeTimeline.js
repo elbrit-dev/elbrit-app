@@ -103,6 +103,12 @@ const PrimeTimeline = ({
   rightTotalColor = "#ffebee", // Light red background for total deduction
   rightTotalTextColor = "#d32f2f", // Dark red text for total deduction
 
+  // Timeline alignment controls
+  timelineMaxWidth = "800px", // Maximum width to control center alignment
+  contentMinWidth = "250px", // Minimum width for content cards
+  forceCenter = true, // Force center alignment of timeline
+  itemSpacing = "2rem", // Spacing between timeline items
+
   // Events
   onReadMore,
   onPdfView,
@@ -280,7 +286,7 @@ const PrimeTimeline = ({
           width: cardWidth,
           height: cardHeight,
           padding: cardPadding,
-          minWidth: "250px", // Ensure consistent minimum width for better alignment
+          minWidth: contentMinWidth, // Ensure consistent minimum width for better alignment
           boxSizing: "border-box"
         }}
         onClick={() => onItemClick && onItemClick({ item })}
@@ -742,10 +748,12 @@ const PrimeTimeline = ({
     <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
       <div style={{ 
         position: "relative",
-        ...(finalAlign === "alternate" && {
+        ...(forceCenter && finalAlign === "alternate" && {
           display: "flex",
           flexDirection: "column",
-          alignItems: "center"
+          alignItems: "center",
+          justifyContent: "center",
+          width: "100%"
         })
       }}>
         <Timeline
@@ -759,7 +767,11 @@ const PrimeTimeline = ({
           style={{
             ...(finalAlign === "alternate" && {
               width: "100%",
-              maxWidth: "800px" // Constrain width for better centering
+              maxWidth: timelineMaxWidth,
+              margin: "0 auto"
+            }),
+            ...(itemSpacing && {
+              "--timeline-item-gap": itemSpacing
             })
           }}
         />

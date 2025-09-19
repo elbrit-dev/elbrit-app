@@ -3302,6 +3302,12 @@ PLASMIC.registerComponent(PrimeTimeline, {
     rightTotalColor: { type: "string", defaultValue: "#ffebee", description: "Background color for total deduction row (light red default)" },
     rightTotalTextColor: { type: "string", defaultValue: "#d32f2f", description: "Text color for total deduction row (dark red default)" },
 
+    // Timeline alignment controls
+    timelineMaxWidth: { type: "string", defaultValue: "800px", description: "Maximum width of timeline for center alignment (e.g., '600px', '100%')" },
+    contentMinWidth: { type: "string", defaultValue: "250px", description: "Minimum width of content cards for consistent alignment" },
+    forceCenter: { type: "boolean", defaultValue: true, description: "Force center alignment of timeline for straight line" },
+    itemSpacing: { type: "string", defaultValue: "2rem", description: "Spacing between timeline items (CSS gap value)" },
+
     // Events
     onReadMore: {
       type: "eventHandler",
