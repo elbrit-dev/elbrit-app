@@ -741,27 +741,50 @@ const PrimeTimeline = ({
   return (
     <>
       <style>{`
+        .prime-timeline-centered {
+          margin: 0 auto !important;
+          padding: 20px !important;
+          display: flex !important;
+          justify-content: center !important;
+        }
         .prime-timeline-centered .p-timeline {
+          position: relative !important;
           display: flex !important;
           flex-direction: column !important;
           align-items: center !important;
         }
         .prime-timeline-centered .p-timeline-event {
+          position: relative !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          width: 100% !important;
+          margin-bottom: 2rem !important;
         }
-        .prime-timeline-centered .p-timeline-event-connector {
-          margin: 0 auto !important;
+        .prime-timeline-centered .p-timeline-event-content {
+          flex: 1 !important;
+          max-width: 350px !important;
+          margin: 0 20px !important;
+        }
+        .prime-timeline-centered .p-timeline-event-opposite {
+          flex: 1 !important;
+          max-width: 120px !important;
+          text-align: center !important;
+          margin: 0 20px !important;
+        }
+        .prime-timeline-centered .p-timeline-event-separator {
+          position: absolute !important;
+          left: 50% !important;
+          transform: translateX(-50%) !important;
+          z-index: 2 !important;
         }
       `}</style>
       <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
         <div style={{ 
           position: "relative",
+          width: "100%",
           display: "flex",
-          flexDirection: "column",
-          alignItems: "center", // Center the timeline for ALL modes
-          width: "100%"
+          justifyContent: "center"
         }}>
         <Timeline
           value={Array.isArray(events) ? events : []}
@@ -770,13 +793,10 @@ const PrimeTimeline = ({
           marker={renderMarker}
           content={renderContent}
           opposite={oppositeProp}
-          className={`w-full prime-timeline-centered ${timelineClassName}`.trim()}
+          className={`prime-timeline-centered ${timelineClassName}`.trim()}
           style={{
             width: "100%",
-            maxWidth: "900px", // Constrain width for better centering
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center"
+            maxWidth: "800px" // Wider to accommodate alternating content
           }}
         />
       </div>
