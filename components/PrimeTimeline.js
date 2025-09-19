@@ -753,7 +753,7 @@ const PrimeTimeline = ({
           grid-template-columns: minmax(0,1fr) ${typeof markerSize === 'number' ? `${markerSize}px` : '32px'} minmax(0,1fr) !important;
           align-items: start !important;
           width: 100% !important;
-          column-gap: 16px !important; /* constant inner gap near marker */
+          column-gap: 4px !important; /* tighter inner gap near marker */
           margin-bottom: 2rem !important;
         }
 
@@ -764,6 +764,12 @@ const PrimeTimeline = ({
           align-items: center !important;
           justify-content: center !important;
           z-index: 2 !important;
+        }
+
+        /* Remove extra spacing around the date/opposite so it sits close to marker */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-opposite {
+          padding: 0 !important;
+          margin: 0 !important;
         }
 
         /* Odd items: opposite left (end-aligned), content right (start-aligned) */
