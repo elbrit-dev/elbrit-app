@@ -338,6 +338,7 @@ const PrimeTimeline = ({
     const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
     const drawerPos = getDrawerPosition();
     const isVerticalDrawer = drawerPos === "right" || drawerPos === "left";
+    const showBottomTotalsSeparately = displayMode === "drawer" && showTableTotals;
     
     // Centering wrapper for desktop vertical drawers
     const wrapperStyle = isDesktop && isVerticalDrawer ? {
@@ -386,7 +387,7 @@ const PrimeTimeline = ({
                     <span style={{ fontWeight: 500 }}>{String(getValue(row, leftListItemValueField))}</span>
                   </div>
                 ))}
-                {showTableTotals ? (
+                {showTableTotals && !showBottomTotalsSeparately ? (
                   <div style={{ 
                     display: "flex", 
                     justifyContent: "space-between", 
@@ -428,7 +429,7 @@ const PrimeTimeline = ({
                     <span style={{ fontWeight: 500 }}>{String(getValue(row, rightListItemValueField))}</span>
                   </div>
                 ))}
-                {showTableTotals ? (
+                {showTableTotals && !showBottomTotalsSeparately ? (
                   <div style={{ 
                     display: "flex", 
                     justifyContent: "space-between", 
@@ -449,6 +450,20 @@ const PrimeTimeline = ({
             ) : null}
           </div>
           </div>
+          {showBottomTotalsSeparately ? (
+            <div style={{ marginTop: 16, width: "100%", maxWidth: isDesktop ? "100%" : "100%" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: columnGap }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, color: leftTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                  <span>{leftTotalLabel}</span>
+                  <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                </div>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, color: rightTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                  <span>{rightTotalLabel}</span>
+                  <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       );
     } else if (dialogMode === "twoTables") {
@@ -470,7 +485,7 @@ const PrimeTimeline = ({
               <DataTable
                 value={[
                   ...getValue(dialogItem, leftListField),
-                  ...(showTableTotals ? [{
+                  ...(showTableTotals && !showBottomTotalsSeparately ? [{
                     [leftListItemLabelField]: leftTotalLabel,
                     [leftListItemValueField]: getValue(dialogItem, leftTotalField),
                     _isTotal: true
@@ -518,7 +533,7 @@ const PrimeTimeline = ({
               <DataTable
                 value={[
                   ...getValue(dialogItem, rightListField),
-                  ...(showTableTotals ? [{
+                  ...(showTableTotals && !showBottomTotalsSeparately ? [{
                     [rightListItemLabelField]: rightTotalLabel,
                     [rightListItemValueField]: getValue(dialogItem, rightTotalField),
                     _isTotal: true
@@ -561,6 +576,20 @@ const PrimeTimeline = ({
             )}
           </div>
           </div>
+          {showBottomTotalsSeparately ? (
+            <div style={{ marginTop: 16, width: "100%", maxWidth: isDesktop ? "100%" : "100%" }}>
+              <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: columnGap }}>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: leftTotalColor, color: leftTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                  <span>{leftTotalLabel}</span>
+                  <span>{String(getValue(dialogItem, leftTotalField))}</span>
+                </div>
+                <div style={{ border: "1px solid var(--surface-border)", borderRadius: 8, padding: dialogCardPadding, backgroundColor: rightTotalColor, color: rightTotalTextColor, fontWeight: 600, display: "flex", justifyContent: "space-between" }}>
+                  <span>{rightTotalLabel}</span>
+                  <span>{String(getValue(dialogItem, rightTotalField))}</span>
+                </div>
+              </div>
+            </div>
+          ) : null}
         </div>
       );
     } else {
