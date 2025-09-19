@@ -96,6 +96,12 @@ const PrimeTimeline = ({
   leftTotalLabel = "Gross Pay",
   rightTotalField = "total_deduction", 
   rightTotalLabel = "Total Deduction",
+  
+  // Total row colors
+  leftTotalColor = "#e3f2fd", // Light blue background for gross pay
+  leftTotalTextColor = "#1976d2", // Dark blue text for gross pay
+  rightTotalColor = "#ffebee", // Light red background for total deduction
+  rightTotalTextColor = "#d32f2f", // Dark red text for total deduction
 
   // Events
   onReadMore,
@@ -148,7 +154,9 @@ const PrimeTimeline = ({
           table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
           th { background-color: #f5f5f5; font-weight: bold; }
-          .total-row { background-color: #e3f2fd; font-weight: bold; }
+            .total-row { font-weight: bold; }
+            .left-total-row { background-color: ${leftTotalColor}; color: ${leftTotalTextColor}; }
+            .right-total-row { background-color: ${rightTotalColor}; color: ${rightTotalTextColor}; }
           .amount { text-align: right; }
           @media print { body { margin: 0; } }
         </style>
@@ -175,7 +183,7 @@ const PrimeTimeline = ({
                   </tr>
                 `).join('')}
                 ${showTableTotals ? `
-                  <tr class="total-row">
+                  <tr class="total-row left-total-row">
                     <td><strong>${leftTotalLabel}</strong></td>
                     <td class="amount"><strong>${String(getValue(item, leftTotalField))}</strong></td>
                   </tr>
@@ -200,7 +208,7 @@ const PrimeTimeline = ({
                   </tr>
                 `).join('')}
                 ${showTableTotals ? `
-                  <tr class="total-row">
+                  <tr class="total-row right-total-row">
                     <td><strong>${rightTotalLabel}</strong></td>
                     <td class="amount"><strong>${String(getValue(item, rightTotalField))}</strong></td>
                   </tr>
@@ -282,12 +290,40 @@ const PrimeTimeline = ({
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             {summaryTitle ? <div style={{ fontWeight: 600, marginBottom: 6 }}>{summaryTitle}</div> : null}
             <div className="flex flex-column" style={{ gap: 6 }}>
-              {summaryFields.map((f, idx) => (
-                <div key={idx} style={{ display: "flex", gap: 6, alignItems: "baseline", wordBreak: "break-word" }}>
-                  <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                  <span>{String(getValue(item, f?.field))}</span>
-                </div>
-              ))}
+              {summaryFields.map((f, idx) => {
+                const fieldName = f?.field;
+                const isGrossPay = fieldName === leftTotalField;
+                const isTotalDeduction = fieldName === rightTotalField;
+                
+                return (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      display: "flex", 
+                      gap: 6, 
+                      alignItems: "baseline", 
+                      wordBreak: "break-word",
+                      ...(isGrossPay && { 
+                        backgroundColor: leftTotalColor, 
+                        color: leftTotalTextColor, 
+                        padding: "4px 8px", 
+                        borderRadius: "4px",
+                        fontWeight: "bold"
+                      }),
+                      ...(isTotalDeduction && { 
+                        backgroundColor: rightTotalColor, 
+                        color: rightTotalTextColor, 
+                        padding: "4px 8px", 
+                        borderRadius: "4px",
+                        fontWeight: "bold"
+                      })
+                    }}
+                  >
+                    <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
+                    <span>{String(getValue(item, f?.field))}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ) : null}
@@ -507,7 +543,12 @@ const PrimeTimeline = ({
                   width: "100%",
                   minWidth: "300px" // Wider minimum for better readability
                 }}
-                rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
+                rowClassName={(rowData) => rowData._isTotal ? "font-bold" : ""}
+                rowStyle={(rowData) => rowData._isTotal ? {
+                  backgroundColor: leftTotalColor,
+                  color: leftTotalTextColor,
+                  fontWeight: 'bold'
+                } : {}}
               >
                 {leftTableColumns && leftTableColumns.length > 0 ? (
                   leftTableColumns.map((col, idx) => (
@@ -550,7 +591,12 @@ const PrimeTimeline = ({
                   width: "100%",
                   minWidth: "300px" // Wider minimum for better readability
                 }}
-                rowClassName={(rowData) => rowData._isTotal ? "font-bold bg-primary-50" : ""}
+                rowClassName={(rowData) => rowData._isTotal ? "font-bold" : ""}
+                rowStyle={(rowData) => rowData._isTotal ? {
+                  backgroundColor: rightTotalColor,
+                  color: rightTotalTextColor,
+                  fontWeight: 'bold'
+                } : {}}
               >
                 {rightTableColumns && rightTableColumns.length > 0 ? (
                   rightTableColumns.map((col, idx) => (

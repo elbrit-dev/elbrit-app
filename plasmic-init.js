@@ -3295,6 +3295,12 @@ PLASMIC.registerComponent(PrimeTimeline, {
     leftTotalLabel: { type: "string", defaultValue: "Gross Pay", description: "Label for left table total row" },
     rightTotalField: { type: "string", defaultValue: "total_deduction", description: "Field for right table total (e.g., 'total_deduction')" },
     rightTotalLabel: { type: "string", defaultValue: "Total Deduction", description: "Label for right table total row" },
+    
+    // Total row colors
+    leftTotalColor: { type: "string", defaultValue: "#e3f2fd", description: "Background color for gross pay total row (light blue default)" },
+    leftTotalTextColor: { type: "string", defaultValue: "#1976d2", description: "Text color for gross pay total row (dark blue default)" },
+    rightTotalColor: { type: "string", defaultValue: "#ffebee", description: "Background color for total deduction row (light red default)" },
+    rightTotalTextColor: { type: "string", defaultValue: "#d32f2f", description: "Text color for total deduction row (dark red default)" },
 
     // Events
     onReadMore: {
