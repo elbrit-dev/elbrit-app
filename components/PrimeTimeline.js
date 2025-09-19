@@ -747,22 +747,23 @@ const PrimeTimeline = ({
           max-width: 800px !important;
         }
 
-        /* 3-column grid per event: [left] [marker] [right] */
+        /* FLEX layout per event: [left] [marker] [right] centered */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event {
-          display: grid !important;
-          grid-template-columns: minmax(0,1fr) ${typeof markerSize === 'number' ? `${markerSize}px` : '32px'} minmax(0,1fr) !important;
-          align-items: start !important;
+          display: flex !important;
+          align-items: flex-start !important;
+          justify-content: center !important; /* center row */
           width: 100% !important;
-          column-gap: 4px !important; /* tighter inner gap near marker */
           margin-bottom: 2rem !important;
+          gap: 0 !important;
         }
 
-        /* Place separator (icon/line) always in center column */
+        /* Separator fixed width with 30px inner gap to both sides */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-separator {
-          grid-column: 2 !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
+          flex: 0 0 ${typeof markerSize === 'number' ? `${markerSize}px` : '32px'} !important;
+          margin: 0 30px !important;
           z-index: 2 !important;
         }
 
@@ -772,34 +773,23 @@ const PrimeTimeline = ({
           margin: 0 !important;
         }
 
-        /* Odd items: opposite left (end-aligned), content right (start-aligned) */
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite {
-          grid-column: 1 !important;
-          justify-self: end !important; /* inner edge fixed before marker */
-          text-align: right !important;
-        }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content {
-          grid-column: 3 !important;
-          justify-self: start !important; /* inner edge fixed after marker */
-          margin: 0 !important;
-        }
+        /* Odd row order: [opposite][separator][content] */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) { flex-direction: row !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite { text-align: right !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content { margin: 0 !important; }
 
-        /* Even items: opposite right (start-aligned), content left (end-aligned) */
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite {
-          grid-column: 3 !important;
-          justify-self: start !important; /* inner edge fixed after marker (on right) */
-          text-align: left !important;
-        }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
-          grid-column: 1 !important;
-          justify-self: end !important; /* inner edge fixed before marker (on left) */
-          margin: 0 !important;
-        }
+        /* Even row order: [content][separator][opposite] */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) { flex-direction: row-reverse !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite { text-align: left !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content { margin: 0 !important; }
 
-        /* Constrain content width a bit for readability */
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content {
-          max-width: 420px !important;
+        /* Shared sizing for sides */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content,
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-opposite {
+          flex: 1 1 0 !important;
+          max-width: 460px !important;
           box-sizing: border-box !important;
+          padding: 0 !important;
         }
       `}</style>
       <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
