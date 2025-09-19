@@ -807,13 +807,26 @@ const PrimeTimeline = ({
           align-items: flex-end !important; /* lock inner edge toward center */
         }
 
-        /* Shared sizing for sides */
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content,
+        /* Base sizing/centering for sides */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-opposite {
-          flex: 1 1 0 !important;
+          flex: 0 0 auto !important; /* don't stretch date */
+          display: flex !important;
+          align-items: center !important; /* vertical align with marker */
+          justify-content: center !important;
+          max-width: 220px !important;
+          box-sizing: border-box !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content {
+          flex: 1 1 auto !important; /* let card side grow */
+          display: flex !important;
+          align-items: center !important; /* vertical align with marker */
+          justify-content: flex-start !important;
           max-width: 460px !important;
           box-sizing: border-box !important;
           padding: 0 !important;
+          margin: 0 !important;
         }
       `}</style>
       <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
