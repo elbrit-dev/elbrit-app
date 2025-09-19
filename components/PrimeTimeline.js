@@ -103,12 +103,6 @@ const PrimeTimeline = ({
   rightTotalColor = "#ffebee", // Light red background for total deduction
   rightTotalTextColor = "#d32f2f", // Dark red text for total deduction
 
-  // Timeline alignment controls
-  timelineMaxWidth = "800px", // Maximum width to control center alignment
-  contentMinWidth = "250px", // Minimum width for content cards
-  forceCenter = true, // Force center alignment of timeline
-  itemSpacing = "2rem", // Spacing between timeline items
-
   // Events
   onReadMore,
   onPdfView,
@@ -286,7 +280,7 @@ const PrimeTimeline = ({
           width: cardWidth,
           height: cardHeight,
           padding: cardPadding,
-          minWidth: contentMinWidth, // Ensure consistent minimum width for better alignment
+          minWidth: "250px", // Ensure consistent minimum width for better alignment
           boxSizing: "border-box"
         }}
         onClick={() => onItemClick && onItemClick({ item })}
@@ -745,17 +739,30 @@ const PrimeTimeline = ({
   const oppositeProp = finalLayout === "horizontal" && finalAlign === "alternate" ? <span>&nbsp;</span> : renderOpposite;
 
   return (
-    <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
-      <div style={{ 
-        position: "relative",
-        ...(forceCenter && finalAlign === "alternate" && {
+    <>
+      <style>{`
+        .prime-timeline-centered .p-timeline {
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+        }
+        .prime-timeline-centered .p-timeline-event {
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        .prime-timeline-centered .p-timeline-event-connector {
+          margin: 0 auto !important;
+        }
+      `}</style>
+      <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
+        <div style={{ 
+          position: "relative",
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
+          alignItems: "center", // Center the timeline for ALL modes
           width: "100%"
-        })
-      }}>
+        }}>
         <Timeline
           value={Array.isArray(events) ? events : []}
           align={finalAlign}
@@ -763,16 +770,13 @@ const PrimeTimeline = ({
           marker={renderMarker}
           content={renderContent}
           opposite={oppositeProp}
-          className={`w-full ${timelineClassName}`.trim()}
+          className={`w-full prime-timeline-centered ${timelineClassName}`.trim()}
           style={{
-            ...(finalAlign === "alternate" && {
-              width: "100%",
-              maxWidth: timelineMaxWidth,
-              margin: "0 auto"
-            }),
-            ...(itemSpacing && {
-              "--timeline-item-gap": itemSpacing
-            })
+            width: "100%",
+            maxWidth: "900px", // Constrain width for better centering
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center"
           }}
         />
       </div>
@@ -801,7 +805,8 @@ const PrimeTimeline = ({
           {renderDialogContent()}
         </Sidebar>
       )}
-    </div>
+      </div>
+    </>
   );
 };
 
