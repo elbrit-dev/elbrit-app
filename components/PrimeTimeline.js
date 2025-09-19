@@ -775,13 +775,37 @@ const PrimeTimeline = ({
 
         /* Odd row order: [opposite][separator][content] */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) { flex-direction: row !important; }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite { text-align: right !important; }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content { margin: 0 !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite {
+          text-align: right !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-end !important; /* vertical stack; align to bottom if needed */
+          align-items: flex-end !important; /* lock inner edge toward center */
+        }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content {
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-start !important;
+          align-items: flex-start !important; /* lock inner edge toward center */
+        }
 
         /* Even row order: [content][separator][opposite] */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) { flex-direction: row-reverse !important; }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite { text-align: left !important; }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content { margin: 0 !important; }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite {
+          text-align: left !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-start !important;
+          align-items: flex-start !important; /* lock inner edge toward center */
+        }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
+          margin: 0 !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-end !important; /* vertical stack; align to bottom if needed */
+          align-items: flex-end !important; /* lock inner edge toward center */
+        }
 
         /* Shared sizing for sides */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content,
