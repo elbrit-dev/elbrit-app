@@ -744,39 +744,56 @@ const PrimeTimeline = ({
         .prime-timeline-centered {
           margin: 0 auto !important;
           padding: 20px !important;
-          display: flex !important;
-          justify-content: center !important;
+          max-width: 800px !important;
         }
-        .prime-timeline-centered .p-timeline {
-          position: relative !important;
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: center !important;
-        }
-        .prime-timeline-centered .p-timeline-event {
-          position: relative !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
+
+        /* 3-column grid per event: [left] [marker] [right] */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event {
+          display: grid !important;
+          grid-template-columns: minmax(0,1fr) ${typeof markerSize === 'number' ? `${markerSize}px` : '32px'} minmax(0,1fr) !important;
+          align-items: start !important;
           width: 100% !important;
+          column-gap: 16px !important; /* constant inner gap near marker */
           margin-bottom: 2rem !important;
         }
-        .prime-timeline-centered .p-timeline-event-content {
-          flex: 1 !important;
-          max-width: 350px !important;
-          margin: 0 20px !important;
-        }
-        .prime-timeline-centered .p-timeline-event-opposite {
-          flex: 1 !important;
-          max-width: 120px !important;
-          text-align: center !important;
-          margin: 0 20px !important;
-        }
-        .prime-timeline-centered .p-timeline-event-separator {
-          position: absolute !important;
-          left: 50% !important;
-          transform: translateX(-50%) !important;
+
+        /* Place separator (icon/line) always in center column */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-separator {
+          grid-column: 2 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
           z-index: 2 !important;
+        }
+
+        /* Odd items: opposite left (end-aligned), content right (start-aligned) */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite {
+          grid-column: 1 !important;
+          justify-self: end !important; /* inner edge fixed before marker */
+          text-align: right !important;
+        }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content {
+          grid-column: 3 !important;
+          justify-self: start !important; /* inner edge fixed after marker */
+          margin: 0 !important;
+        }
+
+        /* Even items: opposite right (start-aligned), content left (end-aligned) */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite {
+          grid-column: 3 !important;
+          justify-self: start !important; /* inner edge fixed after marker (on right) */
+          text-align: left !important;
+        }
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
+          grid-column: 1 !important;
+          justify-self: end !important; /* inner edge fixed before marker (on left) */
+          margin: 0 !important;
+        }
+
+        /* Constrain content width a bit for readability */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content {
+          max-width: 420px !important;
+          box-sizing: border-box !important;
         }
       `}</style>
       <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
