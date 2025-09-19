@@ -45,6 +45,8 @@ const PrimeTimeline = ({
   readMoreLabel = "Read more",
   showPdfButton = true,
   pdfButtonLabel = "View as PDF",
+  pdfData = null,
+  pdfDataField = null,
 
   // Styling
   className = "",
@@ -130,111 +132,7 @@ const PrimeTimeline = ({
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
   };
 
-  const generatePDF = (item) => {
-    const title = item?.[titleField] || "Payslip Details";
-    const leftTitle = leftCardTitle || "Earnings";
-    const rightTitle = rightCardTitle || "Deductions";
-    
-    // Get data arrays
-    const leftData = leftListField && Array.isArray(getValue(item, leftListField)) ? getValue(item, leftListField) : [];
-    const rightData = rightListField && Array.isArray(getValue(item, rightListField)) ? getValue(item, rightListField) : [];
-    
-    // Generate HTML for PDF
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${title}</title>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 20px; background: white; }
-          .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #333; padding-bottom: 10px; }
-          .container { display: flex; gap: 30px; justify-content: space-between; }
-          .column { flex: 1; }
-          .column-title { font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #333; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f5f5f5; font-weight: bold; }
-            .total-row { font-weight: bold; }
-            .left-total-row { background-color: ${leftTotalColor}; color: ${leftTotalTextColor}; }
-            .right-total-row { background-color: ${rightTotalColor}; color: ${rightTotalTextColor}; }
-          .amount { text-align: right; }
-          @media print { body { margin: 0; } }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <h1>${title}</h1>
-        </div>
-        <div class="container">
-          <div class="column">
-            <div class="column-title">${leftTitle}</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Component</th>
-                  <th class="amount">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${leftData.map(row => `
-                  <tr>
-                    <td>${String(getValue(row, leftListItemLabelField))}</td>
-                    <td class="amount">${String(getValue(row, leftListItemValueField))}</td>
-                  </tr>
-                `).join('')}
-                ${showTableTotals ? `
-                  <tr class="total-row left-total-row">
-                    <td><strong>${leftTotalLabel}</strong></td>
-                    <td class="amount"><strong>${String(getValue(item, leftTotalField))}</strong></td>
-                  </tr>
-                ` : ''}
-              </tbody>
-            </table>
-          </div>
-          <div class="column">
-            <div class="column-title">${rightTitle}</div>
-            <table>
-              <thead>
-                <tr>
-                  <th>Component</th>
-                  <th class="amount">Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${rightData.map(row => `
-                  <tr>
-                    <td>${String(getValue(row, rightListItemLabelField))}</td>
-                    <td class="amount">${String(getValue(row, rightListItemValueField))}</td>
-                  </tr>
-                `).join('')}
-                ${showTableTotals ? `
-                  <tr class="total-row right-total-row">
-                    <td><strong>${rightTotalLabel}</strong></td>
-                    <td class="amount"><strong>${String(getValue(item, rightTotalField))}</strong></td>
-                  </tr>
-                ` : ''}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Open PDF in new window/tab
-    const newWindow = window.open('', '_blank');
-    if (newWindow) {
-      newWindow.document.write(htmlContent);
-      newWindow.document.close();
-      
-      // Trigger print dialog after content loads
-      newWindow.onload = () => {
-        setTimeout(() => {
-          newWindow.print();
-        }, 500);
-      };
-    }
-  };
+  // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
   const renderMarker = (item) => {
     const backgroundColor = item?.[markerColorField] || "#3b82f6";
     const icon = item?.[iconField];
@@ -374,11 +272,11 @@ const PrimeTimeline = ({
               size="small"
               icon="pi pi-file-pdf"
               onClick={() => {
-                if (onPdfView) {
-                  onPdfView({ item });
-                } else {
-                  generatePDF(item);
-                }
+                const resolvedData =
+                  typeof pdfData === "function"
+                    ? pdfData(item)
+                    : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
+                if (onPdfView) onPdfView({ item, data: resolvedData });
               }}
             />
           ) : null}

@@ -3245,6 +3245,8 @@ PLASMIC.registerComponent(PrimeTimeline, {
     readMoreLabel: { type: "string", defaultValue: "Read more", description: "Label for the Read more button" },
     showPdfButton: { type: "boolean", defaultValue: true, description: "Show the PDF view button" },
     pdfButtonLabel: { type: "string", defaultValue: "View as PDF", description: "Label for the PDF button" },
+    pdfData: { type: "object", defaultValue: null, description: "Static data or function(item) -> data passed on PDF view" },
+    pdfDataField: { type: "string", defaultValue: "", description: "Field path on item to pass as data when PDF button clicked" },
 
     // Styling
     className: { type: "string", defaultValue: "" },
@@ -3313,9 +3315,10 @@ PLASMIC.registerComponent(PrimeTimeline, {
     },
     onPdfView: {
       type: "eventHandler",
-      description: "Called when the PDF view button is clicked",
+      description: "Called when the PDF view button is clicked (no internal generation)",
       argTypes: [
-        { name: "item", type: "object", description: "The timeline item object" }
+        { name: "item", type: "object", description: "The timeline item object" },
+        { name: "data", type: "object", description: "Data resolved from pdfData/pdfDataField" }
       ]
     },
     onItemClick: {
