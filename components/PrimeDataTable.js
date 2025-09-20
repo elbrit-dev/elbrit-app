@@ -397,11 +397,6 @@ const PrimeDataTable = ({
   onRowEditInit = null,
   onEditingRowsChange = null,
   
-  // Cell editing callbacks
-  onCellEditComplete = null,
-  onCellEditInit = null,
-  onCellEditCancel = null,
-  
   // Context menu
   enableContextMenu = false,
   contextMenu = null,
@@ -2991,9 +2986,6 @@ const PrimeDataTable = ({
         onRowEditCancel={editMode ? handleRowEditCancel : undefined}
         onRowEditInit={editMode ? handleRowEditInit : undefined}
         onEditingRowsChange={editMode ? handleEditingRowsChange : undefined}
-        onCellEditComplete={editMode === 'cell' ? onCellEditComplete : undefined}
-        onCellEditInit={editMode === 'cell' ? onCellEditInit : undefined}
-        onCellEditCancel={editMode === 'cell' ? onCellEditCancel : undefined}
         contextMenu={enableContextMenu ? contextMenu : undefined}
         contextMenuSelection={enableContextMenu ? localContextMenuSelection : undefined}
         onContextMenuSelectionChange={enableContextMenu ? handleContextMenuSelectionChange : undefined}
@@ -3294,75 +3286,6 @@ const PrimeDataTable = ({
             header="Actions"
             headerStyle={{ width: '10rem', textAlign: 'center' }}
             bodyStyle={{ textAlign: 'center' }}
-          />
-        )}
-
-        {/* Cell Edit Actions Column */}
-        {editMode === 'cell' && (
-          <Column
-            header="Actions"
-            headerStyle={{ width: '10rem', textAlign: 'center' }}
-            bodyStyle={{ textAlign: 'center' }}
-            body={(rowData, { rowIndex }) => (
-              <div className="flex gap-1 justify-center">
-                <Button 
-                  icon="pi pi-pencil" 
-                  className="p-button-text p-button-sm" 
-                  tooltip="Edit Cells"
-                  onClick={() => {
-                    // Focus on first editable cell to start editing
-                    const firstEditableField = editableColumns[0];
-                    if (firstEditableField) {
-                      // Trigger cell edit by dispatching a click event on the cell
-                      setTimeout(() => {
-                        const cellElement = document.querySelector(
-                          `tr[data-ri="${rowIndex}"] td[data-field="${firstEditableField}"]`
-                        );
-                        if (cellElement) {
-                          cellElement.click();
-                        }
-                      }, 100);
-                    }
-                  }}
-                />
-                <Button 
-                  icon="pi pi-check" 
-                  className="p-button-text p-button-sm p-button-success" 
-                  tooltip="Save Row Changes"
-                  onClick={() => {
-                    // Trigger save for all modified cells in this row
-                    console.log('Saving changes for row:', rowData);
-                    // You can add custom save logic here
-                    if (onCellEditComplete) {
-                      // Simulate completion of all editable fields
-                      editableColumns.forEach(field => {
-                        onCellEditComplete({ 
-                          field, 
-                          newValue: rowData[field], 
-                          rowData,
-                          rowIndex
-                        });
-                      });
-                    }
-                  }}
-                />
-                <Button 
-                  icon="pi pi-times" 
-                  className="p-button-text p-button-sm p-button-danger" 
-                  tooltip="Cancel Changes"
-                  onClick={() => {
-                    // Refresh the row to cancel any pending changes
-                    console.log('Cancelling changes for row:', rowData);
-                    // You can add custom cancel logic here
-                    if (onCellEditCancel) {
-                      editableColumns.forEach(field => {
-                        onCellEditCancel({ field, rowData, rowIndex });
-                      });
-                    }
-                  }}
-                />
-              </div>
-            )}
           />
         )}
 

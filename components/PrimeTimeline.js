@@ -277,6 +277,7 @@ const PrimeTimeline = ({
             <Button
               label={pdfButtonLabel}
               severity="primary"
+              color="#fff"
               size="small"
               icon="pi pi-file-pdf"
               onClick={() => {
@@ -495,6 +496,7 @@ const PrimeTimeline = ({
               <Button
                 label={pdfButtonLabel}
                 severity="primary"
+                color="#fff"
                 size="normal"
                 icon="pi pi-file-pdf"
                 onClick={() => {
@@ -680,6 +682,7 @@ const PrimeTimeline = ({
               <Button
                 label={pdfButtonLabel}
                 severity="primary"
+                color="#fff"
                 size="normal"
                 icon="pi pi-file-pdf"
                 onClick={() => {
