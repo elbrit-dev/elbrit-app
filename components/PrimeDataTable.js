@@ -2770,7 +2770,7 @@ const PrimeDataTable = ({
         <i className="pi pi-filter text-primary"></i>
         <span 
           className="font-semibold text-primary"
-          style={isMobile && enableMobileResponsive ? { fontSize: '10px' } : {}}
+          style={{}}
         >
           Common Filter:
         </span>
@@ -2782,7 +2782,7 @@ const PrimeDataTable = ({
           placeholder="Select field to filter..."
           className="w-12rem"
           showClear={false}
-          style={isMobile && enableMobileResponsive ? mobileStyles.dropdown : {}}
+          style={{}}
         />
         
         {commonFilterField && (
@@ -2794,7 +2794,7 @@ const PrimeDataTable = ({
               className="p-button-text p-button-sm p-button-danger"
               tooltip="Clear this filter"
               tooltipOptions={{ position: 'top' }}
-              style={isMobile && enableMobileResponsive ? mobileStyles.smallButton : {}}
+              style={{}}
             />
           </div>
         )}
@@ -3191,8 +3191,8 @@ const PrimeDataTable = ({
                         <div style={{ 
                           fontWeight: 'bold', 
                           color: '#28a745',
-                          fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
-                          padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
+                          fontSize: '14px',
+                          padding: '8px 0'
                         }}>
                           📊 Grand Total ({dataCount} rows)
                         </div>
@@ -3214,9 +3214,9 @@ const PrimeDataTable = ({
                           <div style={{ 
                             fontWeight: 'bold', 
                             color: '#28a745',
-                            fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
+                            fontSize: '14px',
                             textAlign: 'right',
-                            padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
+                            padding: '8px 0'
                           }}>
                             {formattedValue}
                           </div>
@@ -3226,9 +3226,9 @@ const PrimeDataTable = ({
                           <div style={{ 
                             fontWeight: 'bold', 
                             color: '#28a745',
-                            fontSize: isMobile && enableMobileResponsive ? '10px' : '14px',
+                            fontSize: '14px',
                             textAlign: 'right',
-                            padding: isMobile && enableMobileResponsive ? '4px 0' : '8px 0'
+                            padding: '8px 0'
                           }}>
                             {grandTotalValue.toLocaleString()}
                           </div>
@@ -3326,13 +3326,9 @@ const PrimeDataTable = ({
         visible={showImageModal}
         onHide={() => setShowImageModal(false)}
         header={imageModalAlt}
-        style={isMobile && enableMobileResponsive ? { 
-          width: '95vw', 
-          maxWidth: '95vw',
-          fontSize: '10px'
-        } : {}}
+        style={{}}
         modal
-        className={`p-fluid ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`}
+        className="p-fluid"
       >
         <Image
           src={imageModalSrc}
@@ -3349,9 +3345,9 @@ const PrimeDataTable = ({
           visible={showRowEditDialog}
           onHide={() => setShowRowEditDialog(false)}
           header={rowEditDialogTitle}
-          style={{ width: rowEditDialogWidth, ...(isMobile && enableMobileResponsive ? { fontSize: '10px' } : {}) }}
+          style={{ width: rowEditDialogWidth }}
           modal
-          className={isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}
+          className=""
         >
           {rowEditDraft && (
             <div className="p-fluid formgrid grid">
@@ -3365,13 +3361,13 @@ const PrimeDataTable = ({
                     {readOnly ? (
                       <div style={{ padding: '8px 10px' }}>{safeCell(value)}</div>
                     ) : field.type === 'number' ? (
-                      <InputNumber value={value} onValueChange={(e) => onValue(e.value)} inputStyle={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                      <InputNumber value={value} onValueChange={(e) => onValue(e.value)} />
                     ) : field.type === 'date' || field.type === 'datetime' ? (
-                      <Calendar value={value ? new Date(value) : null} onChange={(e) => onValue(e.value)} dateFormat="yy-mm-dd" showIcon style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                      <Calendar value={value ? new Date(value) : null} onChange={(e) => onValue(e.value)} dateFormat="yy-mm-dd" showIcon />
                     ) : field.type === 'boolean' ? (
                       <Checkbox checked={!!value} onChange={(e) => onValue(!!e.checked)} />
                     ) : (
-                      <InputText value={value ?? ''} onChange={(e) => onValue(e.target.value)} style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                      <InputText value={value ?? ''} onChange={(e) => onValue(e.target.value)} />
                     )}
                   </div>
                 );
@@ -3390,13 +3386,9 @@ const PrimeDataTable = ({
         visible={showColumnManager}
         onHide={() => setShowColumnManager(false)}
         header="Manage Columns"
-        style={isMobile && enableMobileResponsive ? { 
-          width: '95vw', 
-          maxWidth: '95vw',
-          fontSize: '10px'
-        } : {}}
+        style={{}}
         modal
-        className={isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}
+        className=""
       >
         <div>
           {defaultColumns.map(column => (
@@ -3423,15 +3415,14 @@ const PrimeDataTable = ({
         onHide={() => setShowPivotConfig(false)}
         header="Configure Pivot Table"
         style={{ 
-          width: isMobile && enableMobileResponsive ? '95vw' : '90vw', 
-          maxWidth: isMobile && enableMobileResponsive ? '95vw' : '800px',
-          ...(isMobile && enableMobileResponsive ? { fontSize: '10px' } : {})
+          width: '90vw', 
+          maxWidth: '800px'
         }}
         modal
         closable
         draggable={false}
         resizable={false}
-        className={`pivot-config-dialog ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`}
+        className="pivot-config-dialog"
       >
         <div className="pivot-config-content">
           {/* Pivot Table Enable/Disable */}
@@ -3803,7 +3794,7 @@ const PrimeDataTable = ({
               className="p-button-outlined p-button-secondary"
               onClick={resetPivotConfig}
               disabled={isSavingPivotConfig}
-              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
+              style={{}}
             />
             
             {/* Manual Save Button - only show if auto-save is disabled */}
@@ -3814,7 +3805,7 @@ const PrimeDataTable = ({
                 className="p-button-outlined p-button-info"
                 onClick={savePivotConfigManually}
                 disabled={isSavingPivotConfig}
-                style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
+                style={{}}
               />
             )}
             
@@ -3824,7 +3815,7 @@ const PrimeDataTable = ({
               className="p-button-outlined"
               onClick={() => setShowPivotConfig(false)}
               disabled={isSavingPivotConfig}
-              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
+              style={{}}
             />
             
             {/* Apply (Temporary UI Only) */}
@@ -3838,7 +3829,7 @@ const PrimeDataTable = ({
               }
               tooltip="Apply temporarily (not saved to CMS)"
               tooltipOptions={{ position: 'top' }}
-              style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
+              style={{}}
             />
             
             {/* Apply & Save (Persistent) */}
@@ -3854,7 +3845,7 @@ const PrimeDataTable = ({
                 }
                 tooltip="Apply and save to CMS for persistence"
                 tooltipOptions={{ position: 'top' }}
-                style={isMobile && enableMobileResponsive ? mobileStyles.button : {}}
+                style={{}}
               />
             )}
           </div>
