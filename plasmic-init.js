@@ -1193,6 +1193,39 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Size of the table",
       defaultValue: "normal"
     },
+    
+    // NEW: Register layout / numbering / editor column
+    tableVariant: {
+      type: "choice",
+      options: ["default", "register"],
+      description: "Table layout variant (default or register-style)",
+      defaultValue: "default"
+    },
+    showRowNumbers: {
+      type: "boolean",
+      description: "Show row number column (No.)",
+      defaultValue: false
+    },
+    rowNumberColumnHeader: {
+      type: "string",
+      description: "Header text for the row number column",
+      defaultValue: "No."
+    },
+    rowNumberColumnWidth: {
+      type: "string",
+      description: "Width of the row number column (e.g., '4rem')",
+      defaultValue: "4rem"
+    },
+    enableRowEditorColumn: {
+      type: "boolean",
+      description: "Show PrimeReact row editor action column (requires inline editing)",
+      defaultValue: false
+    },
+    rowEditorColumnWidth: {
+      type: "string",
+      description: "Width of the row editor action column",
+      defaultValue: "8rem"
+    },
 
     
     // Custom templates
@@ -1346,6 +1379,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable inline row editing",
       defaultValue: false
     },
+    editableColumns: {
+      type: "object",
+      description: "Array of column keys that are editable inline",
+      defaultValue: []
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",
@@ -1360,6 +1398,41 @@ PLASMIC.registerComponent(PrimeDataTable, {
           type: "object",
           description: "Row edit save event"
         }
+      ]
+    },
+    
+    // NEW: Row edit dialog (form) configuration
+    enableRowEditDialog: {
+      type: "boolean",
+      description: "Enable per-row edit dialog with form inputs",
+      defaultValue: false
+    },
+    rowEditDialogTitle: {
+      type: "string",
+      description: "Title for the edit dialog",
+      defaultValue: "Edit Row"
+    },
+    rowEditDialogWidth: {
+      type: "string",
+      description: "Width of the edit dialog (e.g., '700px')",
+      defaultValue: "700px"
+    },
+    rowEditDialogIncludeFields: {
+      type: "object",
+      description: "Array of field keys to include in the dialog form; empty = visible columns",
+      defaultValue: []
+    },
+    rowEditDialogReadOnlyFields: {
+      type: "object",
+      description: "Array of field keys that are read-only in the dialog",
+      defaultValue: []
+    },
+    onRowEditDialogSave: {
+      type: "eventHandler",
+      description: "Called when dialog Save is clicked with merged row data",
+      argTypes: [
+        { name: "updatedRow", type: "object", description: "Updated row values" },
+        { name: "originalRow", type: "object", description: "Original row values" }
       ]
     },
     onRowEditCancel: {
