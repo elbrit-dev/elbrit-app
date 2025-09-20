@@ -47,6 +47,10 @@ const PrimeTimeline = ({
   pdfButtonLabel = "View as PDF",
   pdfData = null,
   pdfDataField = null,
+  pdfButtonSeverity = "primary",
+  pdfButtonSize = "small",
+  pdfButtonStyle = { color: "#ffffff" },
+  pdfButtonClassName = "",
 
   // Styling
   className = "",
@@ -276,10 +280,11 @@ const PrimeTimeline = ({
           {showPdfButton ? (
             <Button
               label={pdfButtonLabel}
-              severity="primary"
-              lable="priamry"
-              size="small"
+              severity={pdfButtonSeverity}
+              size={pdfButtonSize}
               icon="pi pi-file-pdf"
+              style={pdfButtonStyle}
+              className={pdfButtonClassName}
               onClick={() => {
                 const resolvedData =
                   typeof pdfData === "function"
@@ -495,10 +500,11 @@ const PrimeTimeline = ({
             }}>
               <Button
                 label={pdfButtonLabel}
-                severity="primary"
-                lable="priamry"
-                size="normal"
+                severity={pdfButtonSeverity}
+                size={pdfButtonSize}
                 icon="pi pi-file-pdf"
+                style={pdfButtonStyle}
+                className={pdfButtonClassName}
                 onClick={() => {
                   const resolvedData =
                     typeof pdfData === "function"
@@ -681,10 +687,11 @@ const PrimeTimeline = ({
             }}>
               <Button
                 label={pdfButtonLabel}
-                severity="primary"
-                lable="priamry"
-                size="normal"
+                severity={pdfButtonSeverity}
+                size={pdfButtonSize}
                 icon="pi pi-file-pdf"
+                style={pdfButtonStyle}
+                className={pdfButtonClassName}
                 onClick={() => {
                   const resolvedData =
                     typeof pdfData === "function"
