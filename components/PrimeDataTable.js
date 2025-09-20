@@ -2881,6 +2881,7 @@ const PrimeDataTable = ({
         value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
         loading={isLoading}
         editMode={editMode}
+        dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
         filters={filters}
         filterDisplay={
           enableColumnFilter 
