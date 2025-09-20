@@ -641,7 +641,7 @@ PLASMIC.registerComponent(LinkComponent, {
 PLASMIC.registerComponent(PrimeDataTable, {
   name: "PrimeDataTable",
   displayName: "PrimeReact Data Table",
-  description: "A comprehensive data table component built with PrimeReact DataTable, featuring advanced search, filtering, sorting, pagination, row selection, and export capabilities",
+  description: "A comprehensive data table component built with PrimeReact DataTable, featuring advanced search, filtering, sorting, pagination, row selection, export capabilities, and native mobile responsive layouts",
   
   props: {
     // Data props
@@ -652,7 +652,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     columns: {
       type: "object",
-      description: "Array of column definitions with key, title, sortable, filterable, type, etc.",
+      description: "Array of column definitions with key, title, sortable, filterable, type, responsivePriority (1-5, for responsive column hiding), etc.",
       defaultValue: []
     },
     loading: {
@@ -1193,27 +1193,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Size of the table",
       defaultValue: "normal"
     },
-    mobileVariant: {
+    responsiveLayout: {
       type: "choice",
-      options: ["default", "compact", "cards"],
-      description: "Mobile design variant",
-      defaultValue: "compact"
-    },
-    mobileVisibleColumns: {
-      type: "object",
-      description: "Array of column keys to show on mobile; others are hidden",
-      defaultValue: []
-    },
-    forceMobileResponsive: {
-      type: "boolean",
-      description: "Force mobile mode regardless of viewport (useful in Studio previews)",
-      defaultValue: false
-    },
-    mobileDensity: {
-      type: "choice",
-      options: ["sm", "xs"],
-      description: "Mobile density; xs is extra dense (smaller paddings and heights)",
-      defaultValue: "sm"
+      options: ["scroll", "reflow", "stack"],
+      description: "Native PrimeReact responsive layout: scroll (horizontal scroll), reflow (stacks columns), stack (alternative stacking)",
+      defaultValue: "scroll"
     },
     
     // NEW: Register layout / numbering / editor column
