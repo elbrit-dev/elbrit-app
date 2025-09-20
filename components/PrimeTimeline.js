@@ -733,11 +733,11 @@ const PrimeTimeline = ({
         /* LEFT SIDE STYLING - applies to both left dates (odd) and left content (even) */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite,
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
-          text-align: right !important;
+          text-align: left !important;
           display: flex !important;
           flex-direction: column !important;
-          justify-content: right !important; /* center align with marker */
-          align-items: flex-end !important; /* align toward center marker */
+          justify-content: left !important; /* center align with marker */
+          align-items: flex-start !important; /* align toward center marker */
         }
         
         /* RIGHT SIDE STYLING - applies to both right content (odd) and right dates (even) */
