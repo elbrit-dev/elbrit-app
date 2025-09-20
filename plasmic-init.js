@@ -1378,13 +1378,17 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Locale for filter formatting",
       defaultValue: "en"
     },
-    
     // Native PrimeReact editing
     editMode: {
       type: "choice",
       options: ["cell", "row"],
       description: "PrimeReact native editing mode: cell (click to edit individual cells) or row (edit entire row)",
       defaultValue: null
+    },
+    editableColumns: {
+      type: "object",
+      description: "Array of column keys that should be editable (auto-creates appropriate editors based on data type)",
+      defaultValue: []
     },
     editingRows: {
       type: "object",

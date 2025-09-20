@@ -348,6 +348,7 @@ const PrimeDataTable = ({
   rowNumberColumnWidth = '4rem',
   // Native PrimeReact editing props
   editMode = null, // "cell" | "row" for PrimeReact native editing
+  editableColumns = [], // Array of column keys that should be editable (auto-handles editors)
   
   // Pagination
   pageSize = 10,
@@ -2530,7 +2531,68 @@ const PrimeDataTable = ({
     isRefreshing
   );
 
-
+  // Auto-create editors for editable columns based on data type
+  const createAutoEditor = useCallback((column) => {
+    const columnType = getEffectiveColumnType(column);
+    
+    if (columnType === 'number') {
+      // Check if it's likely a currency/value field
+      const isCurrency = column.key.toLowerCase().includes('value') || 
+                        column.key.toLowerCase().includes('amount') || 
+                        column.key.toLowerCase().includes('price');
+      
+      return (options) => (
+        <InputNumber 
+          value={options.value} 
+          onValueChange={(e) => options.editorCallback(e.value)}
+          mode="decimal"
+          minFractionDigits={isCurrency ? 2 : 0}
+          maxFractionDigits={isCurrency ? 2 : 0}
+          useGrouping={true}
+        />
+      );
+    }
+    
+    if (columnType === 'date' || columnType === 'datetime') {
+      return (options) => (
+        <Calendar 
+          value={options.value ? new Date(options.value) : null} 
+          onChange={(e) => options.editorCallback(e.value)} 
+          dateFormat="yy-mm-dd" 
+          showIcon 
+        />
+      );
+    }
+    
+    if (columnType === 'boolean') {
+      return (options) => (
+        <Checkbox 
+          checked={!!options.value} 
+          onChange={(e) => options.editorCallback(!!e.checked)} 
+        />
+      );
+    }
+    
+    if (columnType === 'dropdown' || columnType === 'select' || column.isCategorical) {
+      const opts = getUniqueValues(finalTableData, column.key).map(v => ({ label: String(v), value: v }));
+      return (options) => (
+        <Dropdown 
+          value={options.value} 
+          options={opts} 
+          onChange={(e) => options.editorCallback(e.value)} 
+          placeholder="Select..."
+        />
+      );
+    }
+    
+    // Default to text input
+    return (options) => (
+      <InputText 
+        value={options.value ?? ''} 
+        onChange={(e) => options.editorCallback(e.target.value)} 
+      />
+    );
+  }, [getEffectiveColumnType, finalTableData, getUniqueValues]);
 
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
@@ -3045,8 +3107,20 @@ const PrimeDataTable = ({
                 sortable={column.sortable !== false && enableSorting}
                 filter={column.filterable !== false && enableColumnFilter}
                 filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
-                editable={editMode && column.editable !== false}
-                editor={editMode && column.editable !== false ? column.editor : undefined}
+                editable={editMode && (
+                  // Column is editable if:
+                  // 1. Column explicitly has editable: true, OR
+                  // 2. Column key is in editableColumns array, OR  
+                  // 3. Column has custom editor defined
+                  column.editable === true || 
+                  editableColumns.includes(column.key) || 
+                  column.editor
+                )}
+                editor={editMode && (
+                  column.editable === true || 
+                  editableColumns.includes(column.key) || 
+                  column.editor
+                ) ? (column.editor || createAutoEditor(column)) : undefined}
                 filterElement={
                   // Use custom filter elements for supported types; otherwise fall back to default
                   (column.filterable !== false && enableColumnFilter && 
