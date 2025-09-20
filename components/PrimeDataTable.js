@@ -346,6 +346,23 @@ const PrimeDataTable = ({
     enableNestedPagination: false,
     nestedPageSize: 10
   },
+
+  // NEW: Variant/layout controls
+  tableVariant = "default", // "default" | "register"
+  showRowNumbers = false, // Force show row numbers regardless of variant
+  rowNumberColumnHeader = "No.",
+  rowNumberColumnWidth = '4rem',
+  enableRowEditorColumn = false, // Force row editor column (requires enableInlineEditing)
+  rowEditorColumnWidth = '8rem',
+  // NEW: Inline edit controls
+  editableColumns = [], // array of keys that are editable inline
+  // NEW: Row edit dialog config
+  enableRowEditDialog = false,
+  rowEditDialogTitle = 'Edit Row',
+  rowEditDialogWidth = '700px',
+  rowEditDialogIncludeFields = null, // array of keys to include; null = visible columns
+  rowEditDialogReadOnlyFields = [], // array of keys
+  onRowEditDialogSave = null, // (updatedRow, originalRow) => void
   
   // Pagination
   pageSize = 10,
@@ -705,6 +722,11 @@ const PrimeDataTable = ({
 
   // NEW: Mobile responsive state
   const [isMobile, setIsMobile] = useState(false);
+  
+  // NEW: Row edit dialog state
+  const [showRowEditDialog, setShowRowEditDialog] = useState(false);
+  const [rowEditOriginal, setRowEditOriginal] = useState(null);
+  const [rowEditDraft, setRowEditDraft] = useState(null);
 
   // Get user from AuthContext
   const { user } = useAuth();
@@ -806,6 +828,22 @@ const PrimeDataTable = ({
     }
     return tableSize;
   }, [isMobile, enableMobileResponsive, tableSize, mobileTableSize]);
+
+  // NEW: Variant helpers
+  const isRegisterVariant = useMemo(() => tableVariant === 'register', [tableVariant]);
+  const shouldShowRowNumbers = useMemo(
+    () => isRegisterVariant || showRowNumbers,
+    [isRegisterVariant, showRowNumbers]
+  );
+  const shouldShowRowEditorColumn = useMemo(
+    () => enableInlineEditing && (isRegisterVariant || enableRowEditorColumn),
+    [enableInlineEditing, isRegisterVariant, enableRowEditorColumn]
+  );
+  
+  const shouldUseDialogEdit = useMemo(
+    () => enableRowEditDialog && (isRegisterVariant || enableRowEditorColumn || true),
+    [enableRowEditDialog, isRegisterVariant, enableRowEditorColumn]
+  );
 
   // ROI calculation functions moved to utils/calculationUtils.js
   const { calculateROI, getROIColor, formatROIValue } = useROICalculation(enableROICalculation, roiConfig);
@@ -2622,6 +2660,69 @@ const PrimeDataTable = ({
     isRefreshing
   );
 
+  // NEW: Build form fields list based on columns/props
+  const rowEditFormFields = useMemo(() => {
+    const sourceCols = defaultColumns;
+    const chosenKeys = Array.isArray(rowEditDialogIncludeFields) && rowEditDialogIncludeFields.length > 0
+      ? rowEditDialogIncludeFields
+      : sourceCols.map(c => c.key);
+    return chosenKeys
+      .map(key => {
+        const col = sourceCols.find(c => c.key === key) || { key, title: key };
+        const type = getEffectiveColumnType(col);
+        return { key, title: col.title || key, type };
+      });
+  }, [defaultColumns, rowEditDialogIncludeFields, getEffectiveColumnType]);
+
+  const openRowEditDialog = useCallback((row) => {
+    setRowEditOriginal(row);
+    setRowEditDraft({ ...row });
+    setShowRowEditDialog(true);
+  }, []);
+
+  const handleRowEditDialogSave = useCallback(() => {
+    if (!rowEditDraft || !rowEditOriginal) {
+      setShowRowEditDialog(false);
+      return;
+    }
+    const updated = { ...rowEditOriginal, ...rowEditDraft };
+    if (typeof onRowEditDialogSave === 'function') {
+      try { onRowEditDialogSave(updated, rowEditOriginal); } catch (e) { console.error(e); }
+    }
+    setShowRowEditDialog(false);
+    setRowEditOriginal(null);
+    setRowEditDraft(null);
+  }, [rowEditDraft, rowEditOriginal, onRowEditDialogSave]);
+
+  // NEW: Inline editor factory per column
+  const getColumnEditor = useCallback((column) => {
+    const columnType = getEffectiveColumnType(column);
+    if (columnType === 'number') {
+      return (options) => (
+        <InputNumber value={options.value} onValueChange={(e) => options.editorCallback(e.value)} inputStyle={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+      );
+    }
+    if (columnType === 'date' || columnType === 'datetime') {
+      return (options) => (
+        <Calendar value={options.value ? new Date(options.value) : null} onChange={(e) => options.editorCallback(e.value)} dateFormat="yy-mm-dd" showIcon style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+      );
+    }
+    if (columnType === 'boolean') {
+      return (options) => (
+        <Checkbox checked={!!options.value} onChange={(e) => options.editorCallback(!!e.checked)} />
+      );
+    }
+    if (columnType === 'dropdown' || columnType === 'select' || column.isCategorical) {
+      const opts = getUniqueValues(finalTableData, column.key).map(v => ({ label: String(v), value: v }));
+      return (options) => (
+        <Dropdown value={options.value} options={opts} onChange={(e) => options.editorCallback(e.value)} style={isMobile && enableMobileResponsive ? mobileStyles.dropdown : {}} />
+      );
+    }
+    return (options) => (
+      <InputText value={options.value ?? ''} onChange={(e) => options.editorCallback(e.target.value)} style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+    );
+  }, [finalTableData, getEffectiveColumnType, isMobile, enableMobileResponsive, mobileStyles]);
+
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
     if (!enableColumnGrouping || !finalColumnStructure.hasGroups || !enableColumnFilter) {
@@ -3290,6 +3391,7 @@ const PrimeDataTable = ({
         key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
         value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
         loading={isLoading}
+        editMode={enableInlineEditing ? 'row' : undefined}
         filters={filters}
         filterDisplay={
           enableColumnFilter 
@@ -3426,6 +3528,15 @@ const PrimeDataTable = ({
             frozen={enableFrozenColumns}
           />
         )}
+
+        {/* NEW: Row number column for register-style layouts */}
+        {shouldShowRowNumbers && (
+          <Column
+            header={rowNumberColumnHeader}
+            body={(rowData, options) => (options.rowIndex + 1)}
+            style={{ width: rowNumberColumnWidth, textAlign: 'right' }}
+          />
+        )}
         
 
 
@@ -3506,6 +3617,8 @@ const PrimeDataTable = ({
                 sortable={column.sortable !== false && enableSorting}
                 filter={column.filterable !== false && enableColumnFilter}
                 filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
+                editable={enableInlineEditing && Array.isArray(editableColumns) && editableColumns.includes(column.key)}
+                editor={enableInlineEditing && Array.isArray(editableColumns) && editableColumns.includes(column.key) ? getColumnEditor(column) : undefined}
                 filterElement={
                   // Use custom filter elements for supported types; otherwise fall back to default
                   (column.filterable !== false && enableColumnFilter && 
@@ -3663,6 +3776,27 @@ const PrimeDataTable = ({
           });
         })()}
 
+        {/* NEW: Dialog edit trigger column */}
+        {shouldUseDialogEdit && (
+          <Column
+            header=""
+            body={(rowData) => (
+              <Button icon="pi pi-pencil" className="p-button-text p-button-sm" onClick={() => openRowEditDialog(rowData)} />
+            )}
+            style={{ width: '4rem', textAlign: 'center' }}
+          />
+        )}
+
+        {/* NEW: Row editor action column (uses PrimeReact row editor) */}
+        {shouldShowRowEditorColumn && (
+          <Column
+            rowEditor
+            header=""
+            headerStyle={{ width: rowEditorColumnWidth }}
+            bodyStyle={{ textAlign: 'center' }}
+          />
+        )}
+
         {enableRowActions && rowActions.length > 0 && (
           <Column
             body={actionsBodyTemplate}
@@ -3696,6 +3830,48 @@ const PrimeDataTable = ({
           style={{ objectFit: 'contain', maxWidth: '100%', height: 'auto' }}
         />
       </Dialog>
+
+      {/* NEW: Row Edit Form Dialog */}
+      {enableRowEditDialog && (
+        <Dialog
+          visible={showRowEditDialog}
+          onHide={() => setShowRowEditDialog(false)}
+          header={rowEditDialogTitle}
+          style={{ width: rowEditDialogWidth, ...(isMobile && enableMobileResponsive ? { fontSize: '10px' } : {}) }}
+          modal
+          className={isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}
+        >
+          {rowEditDraft && (
+            <div className="p-fluid formgrid grid">
+              {rowEditFormFields.map((field) => {
+                const readOnly = rowEditDialogReadOnlyFields?.includes(field.key);
+                const value = rowEditDraft[field.key];
+                const onValue = (val) => setRowEditDraft(prev => ({ ...prev, [field.key]: val }));
+                return (
+                  <div key={field.key} className="field col-12 md:col-6">
+                    <label className="font-medium mb-1 block">{field.title}</label>
+                    {readOnly ? (
+                      <div style={{ padding: '8px 10px' }}>{safeCell(value)}</div>
+                    ) : field.type === 'number' ? (
+                      <InputNumber value={value} onValueChange={(e) => onValue(e.value)} inputStyle={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                    ) : field.type === 'date' || field.type === 'datetime' ? (
+                      <Calendar value={value ? new Date(value) : null} onChange={(e) => onValue(e.value)} dateFormat="yy-mm-dd" showIcon style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                    ) : field.type === 'boolean' ? (
+                      <Checkbox checked={!!value} onChange={(e) => onValue(!!e.checked)} />
+                    ) : (
+                      <InputText value={value ?? ''} onChange={(e) => onValue(e.target.value)} style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+                    )}
+                  </div>
+                );
+              })}
+              <div className="col-12 flex gap-2 justify-content-end mt-3">
+                <Button label="Cancel" className="p-button-text" onClick={() => setShowRowEditDialog(false)} />
+                <Button label="Save" icon="pi pi-check" onClick={handleRowEditDialogSave} />
+              </div>
+            </div>
+          )}
+        </Dialog>
+      )}
 
       {/* Column Manager Dialog */}
       <Dialog
