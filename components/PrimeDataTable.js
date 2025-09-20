@@ -3101,30 +3101,43 @@ const PrimeDataTable = ({
             font-size: ${mobileFontSizes.button} !important;
             padding: 4px 8px !important;
             min-height: 28px !important;
+            height: 28px !important;
+            line-height: 26px !important;
           }
           
           .mobile-responsive-table .p-button.p-button-sm {
             font-size: ${mobileFontSizes.smallButton} !important;
             padding: 2px 6px !important;
             min-height: 24px !important;
+            height: 24px !important;
+            line-height: 22px !important;
           }
           
           .mobile-responsive-table .p-inputtext {
             font-size: ${mobileFontSizes.input} !important;
             padding: 4px 6px !important;
             min-height: 28px !important;
+            height: 28px !important;
+            line-height: 26px !important;
           }
           
           .mobile-responsive-table .p-dropdown {
             font-size: ${mobileFontSizes.input} !important;
             min-height: 28px !important;
+            height: 28px !important;
           }
           /* Extra dense overrides */
           .mobile-density-xs .p-datatable .p-datatable-header { padding: 4px 6px !important; }
           .mobile-density-xs .p-datatable .p-column-header { padding: 3px 3px !important; }
           .mobile-density-xs .p-datatable .p-datatable-tbody > tr > td { padding: 2px 2px !important; }
           .mobile-density-xs .p-button { min-height: 24px !important; padding: 2px 6px !important; }
-          .mobile-density-xs .p-inputtext, .mobile-density-xs .p-dropdown { min-height: 24px !important; padding: 2px 6px !important; }
+          .mobile-density-xs .p-inputtext, .mobile-density-xs .p-dropdown { min-height: 24px !important; height: 24px !important; line-height: 22px !important; padding: 2px 6px !important; }
+          .mobile-responsive-table .p-button .p-button-label { font-size: ${mobileFontSizes.button} !important; padding: 0 4px !important; }
+          .mobile-responsive-table .p-button .p-button-icon { font-size: 12px !important; }
+          .mobile-density-xs .p-button .p-button-label { font-size: ${mobileFontSizes.smallButton} !important; }
+          .mobile-responsive-table .p-input-icon-left > .p-inputtext { padding-left: 2rem !important; height: 28px !important; }
+          .mobile-density-xs .p-input-icon-left > .p-inputtext { height: 24px !important; }
+          .mobile-responsive-table .p-inputicon { font-size: 12px !important; }
           
           .mobile-responsive-table .p-paginator {
             font-size: ${mobileFontSizes.pagination} !important;
