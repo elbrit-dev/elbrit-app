@@ -268,7 +268,7 @@ const PrimeTimeline = ({
           {showPdfButton ? (
             <Button
               label={pdfButtonLabel}
-              text
+              severity="primary"
               size="small"
               icon="pi pi-file-pdf"
               onClick={() => {

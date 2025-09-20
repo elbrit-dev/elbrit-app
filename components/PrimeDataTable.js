@@ -242,25 +242,19 @@ import { useAuth } from './AuthContext';
  *   collapseAllLabel="Collapse All Products"
  * />
  *
- * Mobile Responsive:
+ * Native Mobile Responsive (PrimeReact):
  * <PrimeDataTable
  *   data={salesData}
- *   enableMobileResponsive={true}
- *   mobileBreakpoint={768}
- *   mobileTableSize="smaller"
- *   mobileFontSizes={{
- *     header: "10px",      // Maximum 10px for headers
- *     cell: "8px",         // Maximum 8px for table content
- *     button: "10px",      // Maximum 10px for buttons
- *     smallButton: "8px",  // Maximum 8px for small buttons
- *     input: "10px",       // Maximum 10px for inputs
- *     pagination: "10px",  // Maximum 10px for pagination
- *     footer: "10px"       // Maximum 10px for footer
- *   }}
+ *   responsiveLayout="reflow"  // "scroll" | "reflow" | "stack"
+ *   tableSize="small"         // "small" | "normal" | "large"
  * />
  * 
- * Note: All mobile font sizes are strictly limited to maximum 10px
- * regardless of screen size to ensure optimal mobile readability.
+ * For individual column responsive priority:
+ * const columns = [
+ *   { field: 'name', header: 'Name', responsivePriority: 1 },
+ *   { field: 'email', header: 'Email', responsivePriority: 2 },
+ *   { field: 'phone', header: 'Phone', responsivePriority: 3 }
+ * ];
  */
 
 const PrimeDataTable = ({
@@ -374,26 +368,10 @@ const PrimeDataTable = ({
   style = {},
 
 
-  tableSize = "normal", // smaller, small, normal, large
+  tableSize = "normal", // small, normal, large
 
-  // NEW: Mobile responsive props
-  enableMobileResponsive = false, // Enable mobile responsive styling
-  mobileBreakpoint = 768, // Breakpoint for mobile styles (px)
-  mobileTableSize = "small", // Table size for mobile devices (smaller, small, normal, large)
-  mobileFontSizes = {
-    header: "10px",      // Maximum 10px for headers (never larger)
-    cell: "8px",         // Maximum 8px for table content (never larger)
-    button: "10px",      // Maximum 10px for buttons (never larger)
-    smallButton: "8px",  // Maximum 8px for small buttons (never larger)
-    input: "10px",       // Maximum 10px for inputs (never larger)
-    pagination: "10px",  // Maximum 10px for pagination (never larger)
-    footer: "11px"       // Maximum 10px for footer (never larger)
-  },
-  // NEW: Mobile design variant and visible columns
-  mobileVariant = "compact", // "default" | "compact" | "cards" (cards reserved)
-  mobileVisibleColumns = [], // keys to keep on mobile; others hidden
-  forceMobileResponsive = false, // NEW: Force mobile mode (useful in Plasmic Studio)
-  mobileDensity = 'sm', // NEW: 'sm' | 'xs' (xs = extra dense)
+  // PrimeReact native responsive props
+  responsiveLayout = "scroll", // "scroll" | "reflow" | "stack" - Native PrimeReact responsive behavior
 
   // Event handlers
   onRowClick,
@@ -725,8 +703,6 @@ const PrimeDataTable = ({
   // NEW: State to store filtered data for grand total calculations
   const [filteredDataForGrandTotal, setFilteredDataForGrandTotal] = useState([]);
 
-  // NEW: Mobile responsive state
-  const [isMobile, setIsMobile] = useState(false);
   
   // NEW: Row edit dialog state
   const [showRowEditDialog, setShowRowEditDialog] = useState(false);
@@ -744,122 +720,7 @@ const PrimeDataTable = ({
     user
   );
 
-  // NEW: Mobile responsive effect (window + container width + force)
-  useEffect(() => {
-    const computeIsMobile = (containerWidth) => {
-      if (!enableMobileResponsive) return false;
-      if (forceMobileResponsive) return true;
-      const byWindow = typeof window !== 'undefined' ? window.innerWidth <= mobileBreakpoint : false;
-      const byContainer = typeof containerWidth === 'number' && containerWidth > 0 ? containerWidth <= mobileBreakpoint : false;
-      return byWindow || byContainer;
-    };
 
-    const node = rootRef.current;
-    let ro;
-
-    const setFromNode = () => {
-      const width = node?.getBoundingClientRect?.().width || 0;
-      setIsMobile(computeIsMobile(width));
-    };
-
-    setFromNode();
-
-    if (typeof window !== 'undefined') {
-      const onResize = () => setFromNode();
-      window.addEventListener('resize', onResize);
-      if (node && 'ResizeObserver' in window) {
-        ro = new ResizeObserver(() => setFromNode());
-        ro.observe(node);
-      }
-      return () => {
-        window.removeEventListener('resize', onResize);
-        if (ro && node) ro.unobserve(node);
-      };
-    }
-  }, [enableMobileResponsive, forceMobileResponsive, mobileBreakpoint]);
-
-  // NEW: Mobile responsive styles
-  const mobileStyles = useMemo(() => {
-    if (!enableMobileResponsive || !isMobile) {
-      return {};
-    }
-    // Density scaling for 'xs'
-    const scale = mobileDensity === 'xs' ? 0.85 : 1;
-    const scalePx = (val) => {
-      if (!val) return val;
-      const num = parseFloat(String(val).replace('px',''));
-      if (isNaN(num)) return val;
-      const scaled = Math.max(6, Math.round(num * scale));
-      return `${scaled}px`;
-    };
-
-    return {
-      // Table container
-      tableContainer: {
-        fontSize: scalePx(mobileFontSizes.cell),
-        lineHeight: '1.2'
-      },
-      // Headers
-      header: {
-        fontSize: scalePx(mobileFontSizes.header),
-        fontWeight: 'bold',
-        padding: mobileDensity === 'xs' ? '3px 3px' : '6px 4px'
-      },
-      // Cell content
-      cell: {
-        fontSize: scalePx(mobileFontSizes.cell),
-        padding: mobileDensity === 'xs' ? '2px 2px' : '4px 2px',
-        lineHeight: '1.1'
-      },
-      // Buttons
-      button: {
-        fontSize: scalePx(mobileFontSizes.button),
-        padding: mobileDensity === 'xs' ? '2px 6px' : '4px 8px',
-        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
-      },
-      // Small buttons
-      smallButton: {
-        fontSize: scalePx(mobileFontSizes.smallButton),
-        padding: mobileDensity === 'xs' ? '1px 4px' : '2px 6px',
-        minHeight: mobileDensity === 'xs' ? '20px' : '24px'
-      },
-      // Toolbar
-      toolbar: {
-        padding: mobileDensity === 'xs' ? '6px' : '8px',
-        gap: mobileDensity === 'xs' ? '6px' : '8px'
-      },
-      // Input fields
-      input: {
-        fontSize: scalePx(mobileFontSizes.input),
-        padding: mobileDensity === 'xs' ? '2px 6px' : '4px 6px',
-        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
-      },
-      // Dropdown
-      dropdown: {
-        fontSize: scalePx(mobileFontSizes.input),
-        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
-      },
-      // Pagination
-      pagination: {
-        fontSize: scalePx(mobileFontSizes.pagination),
-        gap: mobileDensity === 'xs' ? '2px' : '4px'
-      },
-      // Footer totals
-      footer: {
-        fontSize: scalePx(mobileFontSizes.footer),
-        padding: mobileDensity === 'xs' ? '4px 3px' : '6px 4px'
-      }
-    };
-  }, [enableMobileResponsive, isMobile, mobileFontSizes, mobileDensity]);
-
-  // NEW: Mobile responsive table size
-  const responsiveTableSize = useMemo(() => {
-    if (isMobile && enableMobileResponsive) {
-      // Force small size for compact variant
-      return mobileVariant === 'compact' ? 'small' : mobileTableSize;
-    }
-    return tableSize;
-  }, [isMobile, enableMobileResponsive, tableSize, mobileTableSize, mobileVariant]);
 
   // NEW: Variant helpers
   const isRegisterVariant = useMemo(() => tableVariant === 'register', [tableVariant]);
@@ -2731,12 +2592,12 @@ const PrimeDataTable = ({
     const columnType = getEffectiveColumnType(column);
     if (columnType === 'number') {
       return (options) => (
-        <InputNumber value={options.value} onValueChange={(e) => options.editorCallback(e.value)} inputStyle={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+        <InputNumber value={options.value} onValueChange={(e) => options.editorCallback(e.value)} />
       );
     }
     if (columnType === 'date' || columnType === 'datetime') {
       return (options) => (
-        <Calendar value={options.value ? new Date(options.value) : null} onChange={(e) => options.editorCallback(e.value)} dateFormat="yy-mm-dd" showIcon style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+        <Calendar value={options.value ? new Date(options.value) : null} onChange={(e) => options.editorCallback(e.value)} dateFormat="yy-mm-dd" showIcon />
       );
     }
     if (columnType === 'boolean') {
@@ -2747,13 +2608,13 @@ const PrimeDataTable = ({
     if (columnType === 'dropdown' || columnType === 'select' || column.isCategorical) {
       const opts = getUniqueValues(finalTableData, column.key).map(v => ({ label: String(v), value: v }));
       return (options) => (
-        <Dropdown value={options.value} options={opts} onChange={(e) => options.editorCallback(e.value)} style={isMobile && enableMobileResponsive ? mobileStyles.dropdown : {}} />
+        <Dropdown value={options.value} options={opts} onChange={(e) => options.editorCallback(e.value)} />
       );
     }
     return (options) => (
-      <InputText value={options.value ?? ''} onChange={(e) => options.editorCallback(e.target.value)} style={isMobile && enableMobileResponsive ? mobileStyles.input : {}} />
+      <InputText value={options.value ?? ''} onChange={(e) => options.editorCallback(e.target.value)} />
     );
-  }, [finalTableData, getEffectiveColumnType, isMobile, enableMobileResponsive, mobileStyles]);
+  }, [finalTableData, getEffectiveColumnType]);
 
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
@@ -2904,7 +2765,7 @@ const PrimeDataTable = ({
     return (
       <div 
         className="flex align-items-center gap-3 p-3 border-round surface-50 mb-3"
-        style={isMobile && enableMobileResponsive ? mobileStyles.toolbar : {}}
+        style={{}}
       >
         <i className="pi pi-filter text-primary"></i>
         <span 
@@ -3008,11 +2869,8 @@ const PrimeDataTable = ({
 
   return (
     <div 
-      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''} ${responsiveTableSize === 'small' ? 'size-small-dense' : ''} ${responsiveTableSize === 'smaller' ? 'size-smaller-dense' : ''}`} 
-      style={{
-        ...style,
-        ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
-      }}
+      className={className} 
+      style={style}
     >
 
       
@@ -3023,443 +2881,17 @@ const PrimeDataTable = ({
         left={leftToolbarTemplate}
         right={rightToolbarTemplate}
         className="mb-4"
-        style={isMobile && enableMobileResponsive ? mobileStyles.toolbar : {}}
+        style={{}}
       />
 
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
       
-      {/* Mobile Responsive CSS */}
-      {enableMobileResponsive && (
-        <style jsx>{`
-          .mobile-responsive-table {
-            /* Global mobile styles */
-            font-size: ${mobileFontSizes.cell};
-            line-height: 1.2;
-            /* Enforce maximum font sizes for all mobile content */
-            max-font-size: 10px !important;
-          }
-          
-          /* Global mobile font size enforcement */
-          .mobile-responsive-table * {
-            max-font-size: 10px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable {
-            font-size: ${mobileFontSizes.cell};
-          }
-          
-          .mobile-responsive-table .p-datatable .p-datatable-header {
-            font-size: ${mobileFontSizes.header} !important;
-            font-weight: bold !important;
-            padding: 6px 4px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-column-header {
-            font-size: ${mobileFontSizes.header} !important;
-            font-weight: bold !important;
-            padding: 6px 4px !important;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-            font-size: ${mobileFontSizes.cell} !important;
-            padding: 4px 2px !important;
-            line-height: 1.1 !important;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-          }
-          /* Compact variant tweaks */
-          .mobile-variant-compact .p-datatable .p-datatable-header {
-            padding: 4px 6px !important;
-          }
-          .mobile-variant-compact .p-datatable .p-column-header {
-            padding: 4px 4px !important;
-          }
-          .mobile-variant-compact .p-datatable .p-datatable-tbody > tr > td {
-            padding: 2px 2px !important;
-          }
-          .mobile-variant-compact .p-button {
-            padding: 2px 6px !important;
-            min-height: 24px !important;
-          }
-          .mobile-variant-compact .p-inputtext,
-          .mobile-variant-compact .p-dropdown {
-            padding: 2px 6px !important;
-            min-height: 24px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-datatable-footer {
-            font-size: ${mobileFontSizes.footer} !important;
-            padding: 6px 4px !important;
-          }
-          
-          .mobile-responsive-table .p-button {
-            font-size: ${mobileFontSizes.button} !important;
-            padding: 4px 8px !important;
-            min-height: 28px !important;
-            height: 28px !important;
-            line-height: 26px !important;
-          }
-          
-          .mobile-responsive-table .p-button.p-button-sm {
-            font-size: ${mobileFontSizes.smallButton} !important;
-            padding: 2px 6px !important;
-            min-height: 24px !important;
-            height: 24px !important;
-            line-height: 22px !important;
-          }
-          
-          .mobile-responsive-table .p-inputtext {
-            font-size: ${mobileFontSizes.input} !important;
-            padding: 4px 6px !important;
-            min-height: 28px !important;
-            height: 28px !important;
-            line-height: 26px !important;
-          }
-          
-          .mobile-responsive-table .p-dropdown {
-            font-size: ${mobileFontSizes.input} !important;
-            min-height: 28px !important;
-            height: 28px !important;
-          }
-          /* Extra dense overrides */
-          .mobile-density-xs .p-datatable .p-datatable-header { padding: 4px 6px !important; }
-          .mobile-density-xs .p-datatable .p-column-header { padding: 3px 3px !important; }
-          .mobile-density-xs .p-datatable .p-datatable-tbody > tr > td { padding: 2px 2px !important; }
-          .mobile-density-xs .p-button { min-height: 24px !important; padding: 2px 6px !important; }
-          .mobile-density-xs .p-inputtext, .mobile-density-xs .p-dropdown { min-height: 24px !important; height: 24px !important; line-height: 22px !important; padding: 2px 6px !important; }
-          .mobile-responsive-table .p-button .p-button-label { font-size: ${mobileFontSizes.button} !important; padding: 0 4px !important; }
-          .mobile-responsive-table .p-button .p-button-icon { font-size: 12px !important; }
-          .mobile-density-xs .p-button .p-button-label { font-size: ${mobileFontSizes.smallButton} !important; }
-          .mobile-responsive-table .p-input-icon-left > .p-inputtext { padding-left: 2rem !important; height: 28px !important; }
-          .mobile-density-xs .p-input-icon-left > .p-inputtext { height: 24px !important; }
-          .mobile-responsive-table .p-inputicon { font-size: 12px !important; }
-          
-          .mobile-responsive-table .p-paginator {
-            font-size: ${mobileFontSizes.pagination} !important;
-            gap: 4px !important;
-          }
-          
-          .mobile-responsive-table .p-paginator .p-paginator-pages .p-paginator-page {
-            min-width: 28px !important;
-            min-height: 28px !important;
-            font-size: ${mobileFontSizes.pagination} !important;
-          }
-          
-          .mobile-responsive-table .p-toolbar {
-            padding: 8px !important;
-            gap: 8px !important;
-          }
-          
-          .mobile-responsive-table .p-toolbar .p-toolbar-group-left,
-          .mobile-responsive-table .p-toolbar .p-toolbar-group-right {
-            gap: 8px !important;
-          }
-          
-          .mobile-responsive-table .p-dialog .p-dialog-header {
-            font-size: ${mobileFontSizes.header} !important;
-            padding: 8px 12px !important;
-          }
-          
-          .mobile-responsive-table .p-dialog .p-dialog-content {
-            font-size: ${mobileFontSizes.input} !important;
-            padding: 8px 12px !important;
-          }
-          
-          .mobile-responsive-table .p-dialog .p-dialog-footer {
-            padding: 8px 12px !important;
-            gap: 8px !important;
-          }
-          
-          .mobile-responsive-table .p-checkbox {
-            transform: scale(0.8);
-          }
-          
-          /* Pivot configuration specific mobile styles */
-          .mobile-responsive-table .pivot-config-content {
-            font-size: ${mobileFontSizes.input} !important;
-          }
-          
-          .mobile-responsive-table .pivot-section {
-            margin-bottom: 12px !important;
-          }
-          
-          .mobile-responsive-table .pivot-section-header {
-            font-size: ${mobileFontSizes.button} !important;
-            padding: 6px 8px !important;
-          }
-          
-          .mobile-responsive-table .pivot-selected-items {
-            gap: 6px !important;
-          }
-          
-          .mobile-responsive-table .pivot-selected-item {
-            padding: 4px 6px !important;
-            font-size: ${mobileFontSizes.cell} !important;
-          }
-          
-          .mobile-responsive-table .pivot-value-item {
-            margin-bottom: 8px !important;
-          }
-          
-          .mobile-responsive-table .pivot-value-item-header {
-            margin-bottom: 4px !important;
-          }
-          
-          .mobile-responsive-table .pivot-display-options {
-            gap: 8px !important;
-          }
-          
-          .mobile-responsive-table .pivot-display-option {
-            font-size: ${mobileFontSizes.cell} !important;
-          }
-          
-          .mobile-responsive-table .pivot-actions {
-            gap: 8px !important;
-            padding: 12px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-sortable-column-icon {
-            font-size: ${mobileFontSizes.button} !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-trigger {
-            font-size: ${mobileFontSizes.button} !important;
-            padding: 2px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay {
-            font-size: ${mobileFontSizes.input} !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint {
-            margin-bottom: 8px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint input,
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint select {
-            font-size: ${mobileFontSizes.input} !important;
-            padding: 4px 6px !important;
-            min-height: 28px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-constraint .p-button {
-            font-size: ${mobileFontSizes.smallButton} !important;
-            padding: 2px 6px !important;
-            min-height: 24px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-footer {
-            padding: 8px !important;
-            gap: 8px !important;
-          }
-          
-          .mobile-responsive-table .p-datatable .p-filter-overlay .p-filter-footer .p-button {
-            font-size: ${mobileFontSizes.smallButton} !important;
-            padding: 2px 6px !important;
-            min-height: 24px !important;
-          }
-          
-          /* Responsive column widths for mobile */
-          @media (max-width: 768px) {
-            .mobile-responsive-table .p-datatable .p-datatable-wrapper {
-              overflow-x: auto;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-datatable-table {
-              min-width: 600px;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-column-header,
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              min-width: 80px;
-              max-width: 120px;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-column-header:first-child,
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td:first-child {
-              min-width: 60px;
-              max-width: 100px;
-            }
-            
-            /* Mobile toolbar adjustments */
-            .mobile-responsive-table .p-toolbar {
-              flex-direction: column !important;
-              align-items: stretch !important;
-            }
-            .mobile-variant-compact .p-toolbar {
-              padding: 6px !important;
-              gap: 6px !important;
-            }
-            
-            .mobile-responsive-table .p-toolbar .p-toolbar-group-left,
-            .mobile-responsive-table .p-toolbar .p-toolbar-group-right {
-              justify-content: center !important;
-              margin-bottom: 8px !important;
-            }
-            
-            /* Mobile button stacking */
-            .mobile-responsive-table .p-toolbar .p-button {
-              margin: 2px !important;
-              flex: 1 !important;
-              min-width: 80px !important;
-            }
-            
-            /* Mobile search input */
-            .mobile-responsive-table .p-toolbar .p-inputtext {
-              width: 100% !important;
-              margin-bottom: 8px !important;
-            }
-            
-            /* Mobile pagination adjustments */
-            .mobile-responsive-table .p-paginator {
-              flex-wrap: wrap !important;
-              justify-content: center !important;
-            }
-            
-            .mobile-responsive-table .p-paginator .p-paginator-pages {
-              order: 2 !important;
-              margin-top: 8px !important;
-            }
-            
-            .mobile-responsive-table .p-paginator .p-paginator-first,
-            .mobile-responsive-table .p-paginator .p-paginator-prev,
-            .mobile-responsive-table .p-paginator .p-paginator-next,
-            .mobile-responsive-table .p-paginator .p-paginator-last {
-              order: 1 !important;
-            }
-            
-            /* Enforce maximum font sizes for all mobile screens */
-            .mobile-responsive-table .p-datatable .p-column-header { font-size: ${mobileFontSizes.header} !important; max-font-size: ${mobileFontSizes.header} !important; }
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td { font-size: ${mobileFontSizes.cell} !important; max-font-size: ${mobileFontSizes.cell} !important; }
-            .mobile-responsive-table .p-button { font-size: ${mobileFontSizes.button} !important; max-font-size: ${mobileFontSizes.button} !important; }
-            .mobile-responsive-table .p-inputtext { font-size: ${mobileFontSizes.input} !important; max-font-size: ${mobileFontSizes.input} !important; }
-            .mobile-responsive-table .p-dropdown { font-size: ${mobileFontSizes.input} !important; max-font-size: ${mobileFontSizes.input} !important; }
-            .mobile-responsive-table .p-paginator { font-size: ${mobileFontSizes.pagination} !important; max-font-size: ${mobileFontSizes.pagination} !important; }
-          }
-          
-          /* Medium mobile devices */
-          @media (max-width: 600px) {
-            .mobile-responsive-table .p-datatable .p-column-header {
-              font-size: 9px !important;
-              max-font-size: 9px !important;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              font-size: 7px !important;
-              max-font-size: 7px !important;
-            }
-            
-            .mobile-responsive-table .p-button {
-              font-size: 9px !important;
-              max-font-size: 9px !important;
-            }
-            
-            .mobile-responsive-table .p-inputtext {
-              font-size: 9px !important;
-              max-font-size: 9px !important;
-            }
-          }
-          
-          /* Small mobile devices */
-          @media (max-width: 480px) {
-            .mobile-responsive-table .p-datatable .p-column-header,
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              min-width: 60px;
-              max-width: 80px;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-column-header {
-              font-size: 8px !important;
-              max-font-size: 8px !important;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              font-size: 6px !important;
-              max-font-size: 6px !important;
-            }
-            
-            .mobile-responsive-table .p-button {
-              font-size: 8px !important;
-              max-font-size: 8px !important;
-              padding: 2px 4px !important;
-              min-height: 24px !important;
-            }
-            
-            .mobile-responsive-table .p-inputtext {
-              font-size: 8px !important;
-              max-font-size: 8px !important;
-            }
-            
-            .mobile-responsive-table .p-toolbar {
-              padding: 4px !important;
-              gap: 4px !important;
-            }
-          }
-          
-          /* Extra small mobile devices */
-          @media (max-width: 360px) {
-            .mobile-responsive-table .p-datatable .p-column-header {
-              font-size: 7px !important;
-              max-font-size: 7px !important;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              font-size: 5px !important;
-              max-font-size: 5px !important;
-            }
-            
-            .mobile-responsive-table .p-button {
-              font-size: 7px !important;
-              max-font-size: 7px !important;
-              padding: 1px 3px !important;
-              min-height: 20px !important;
-            }
-            
-            .mobile-responsive-table .p-inputtext {
-              font-size: 7px !important;
-              max-font-size: 7px !important;
-            }
-            
-            .mobile-responsive-table .p-toolbar {
-              padding: 2px !important;
-              gap: 2px !important;
-            }
-          }
-        `}</style>
-      )}
+      {/* Mobile Responsive CSS - Removed, using PrimeReact native responsiveLayout */}
+      
 
-      {/* Always-on small-size density tweaks (applies even on desktop when size='small') */}
-      {responsiveTableSize === 'small' && (
-        <style jsx>{`
-          .size-small-dense .p-datatable { font-size: 9px; }
-          .size-small-dense .p-datatable .p-datatable-header { font-size: 10px; padding: 6px 6px; }
-          .size-small-dense .p-datatable .p-column-header { font-size: 10px; padding: 6px 6px; }
-          .size-small-dense .p-datatable .p-datatable-tbody > tr > td { font-size: 9px; padding: 6px 6px; }
-          .size-small-dense .p-toolbar { padding: 6px; gap: 6px; }
-          .size-small-dense .p-button { font-size: 10px; padding: 4px 8px; min-height: 26px; }
-          .size-small-dense .p-inputtext, .size-small-dense .p-dropdown { font-size: 10px; min-height: 26px; padding: 4px 6px; }
-          .size-small-dense .p-paginator { font-size: 10px; }
-        `}</style>
-      )}
-
-      {/* Always-on smaller-size density tweaks (applies even on desktop when size='smaller') */}
-      {responsiveTableSize === 'smaller' && (
-        <style jsx>{`
-          .size-smaller-dense .p-datatable { font-size: 7px; }
-          .size-smaller-dense .p-datatable .p-datatable-header { font-size: 8px; padding: 4px 4px; }
-          .size-smaller-dense .p-datatable .p-column-header { font-size: 8px; padding: 4px 4px; }
-          .size-smaller-dense .p-datatable .p-datatable-tbody > tr > td { font-size: 7px; padding: 4px 4px; }
-          .size-smaller-dense .p-toolbar { padding: 4px; gap: 4px; }
-          .size-smaller-dense .p-button { font-size: 8px; padding: 2px 6px; min-height: 22px; }
-          .size-smaller-dense .p-inputtext, .size-smaller-dense .p-dropdown { font-size: 8px; min-height: 22px; padding: 2px 4px; }
-          .size-smaller-dense .p-paginator { font-size: 8px; }
-        `}</style>
-      )}
+      {/* Small-size density tweaks - Disabled, using native PrimeReact size prop */}
+      
       
 
 
@@ -3561,7 +2993,8 @@ const PrimeDataTable = ({
         totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
         showGridlines={enableGridLines}
         stripedRows={enableStripedRows}
-        size={responsiveTableSize}
+        size={tableSize}
+        responsiveLayout={responsiveLayout}
         showFirstLastIcon={showFirstLastIcon}
         showPageLinks={showPageLinks}
         showCurrentPageReport={showCurrentPageReport}
