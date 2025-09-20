@@ -1189,7 +1189,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     // Table styling options
     tableSize: {
       type: "choice",
-      options: ["small", "normal", "large"],
+      options: ["smaller", "small", "normal", "large"],
       description: "Size of the table",
       defaultValue: "normal"
     },
@@ -3384,7 +3384,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     cardBorderRadius: { type: "string", defaultValue: "8px", description: "Border radius of main timeline cards" },
     leftTableColumns: { type: "object", defaultValue: [], description: "Left table columns: array of {field, header, align, style, formatter}" },
     rightTableColumns: { type: "object", defaultValue: [], description: "Right table columns: array of {field, header, align, style, formatter}" },
-    tableSize: { type: "choice", options: ["small", "normal", "large"], defaultValue: "small", description: "Table size for twoTables mode" },
+    tableSize: { type: "choice", options: ["smaller", "small", "normal", "large"], defaultValue: "small", description: "Table size for twoTables mode" },
     showTableBorders: { type: "boolean", defaultValue: true, description: "Show table borders in twoTables mode" },
     tableStripedRows: { type: "boolean", defaultValue: true, description: "Enable striped rows in twoTables mode" },
     showTableTotals: { type: "boolean", defaultValue: true, description: "Show total rows at bottom of tables" },
