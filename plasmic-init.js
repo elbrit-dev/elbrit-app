@@ -1204,6 +1204,17 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Array of column keys to show on mobile; others are hidden",
       defaultValue: []
     },
+    forceMobileResponsive: {
+      type: "boolean",
+      description: "Force mobile mode regardless of viewport (useful in Studio previews)",
+      defaultValue: false
+    },
+    mobileDensity: {
+      type: "choice",
+      options: ["sm", "xs"],
+      description: "Mobile density; xs is extra dense (smaller paddings and heights)",
+      defaultValue: "sm"
+    },
     
     // NEW: Register layout / numbering / editor column
     tableVariant: {

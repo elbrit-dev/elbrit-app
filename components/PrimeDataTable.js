@@ -392,6 +392,8 @@ const PrimeDataTable = ({
   // NEW: Mobile design variant and visible columns
   mobileVariant = "compact", // "default" | "compact" | "cards" (cards reserved)
   mobileVisibleColumns = [], // keys to keep on mobile; others hidden
+  forceMobileResponsive = false, // NEW: Force mobile mode (useful in Plasmic Studio)
+  mobileDensity = 'sm', // NEW: 'sm' | 'xs' (xs = extra dense)
 
   // Event handlers
   onRowClick,
@@ -742,87 +744,113 @@ const PrimeDataTable = ({
     user
   );
 
-  // NEW: Mobile responsive effect
+  // NEW: Mobile responsive effect (window + container width + force)
   useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth <= mobileBreakpoint);
+    const computeIsMobile = (containerWidth) => {
+      if (!enableMobileResponsive) return false;
+      if (forceMobileResponsive) return true;
+      const byWindow = typeof window !== 'undefined' ? window.innerWidth <= mobileBreakpoint : false;
+      const byContainer = typeof containerWidth === 'number' && containerWidth > 0 ? containerWidth <= mobileBreakpoint : false;
+      return byWindow || byContainer;
     };
 
-    // Initial check
-    checkMobile();
+    const node = rootRef.current;
+    let ro;
 
-    // Add resize listener
-    window.addEventListener('resize', checkMobile);
-
-    return () => {
-      window.removeEventListener('resize', checkMobile);
+    const setFromNode = () => {
+      const width = node?.getBoundingClientRect?.().width || 0;
+      setIsMobile(computeIsMobile(width));
     };
-  }, [mobileBreakpoint]);
+
+    setFromNode();
+
+    if (typeof window !== 'undefined') {
+      const onResize = () => setFromNode();
+      window.addEventListener('resize', onResize);
+      if (node && 'ResizeObserver' in window) {
+        ro = new ResizeObserver(() => setFromNode());
+        ro.observe(node);
+      }
+      return () => {
+        window.removeEventListener('resize', onResize);
+        if (ro && node) ro.unobserve(node);
+      };
+    }
+  }, [enableMobileResponsive, forceMobileResponsive, mobileBreakpoint]);
 
   // NEW: Mobile responsive styles
   const mobileStyles = useMemo(() => {
     if (!enableMobileResponsive || !isMobile) {
       return {};
     }
+    // Density scaling for 'xs'
+    const scale = mobileDensity === 'xs' ? 0.85 : 1;
+    const scalePx = (val) => {
+      if (!val) return val;
+      const num = parseFloat(String(val).replace('px',''));
+      if (isNaN(num)) return val;
+      const scaled = Math.max(6, Math.round(num * scale));
+      return `${scaled}px`;
+    };
 
     return {
       // Table container
       tableContainer: {
-        fontSize: mobileFontSizes.cell,
+        fontSize: scalePx(mobileFontSizes.cell),
         lineHeight: '1.2'
       },
       // Headers
       header: {
-        fontSize: mobileFontSizes.header,
+        fontSize: scalePx(mobileFontSizes.header),
         fontWeight: 'bold',
-        padding: '6px 4px'
+        padding: mobileDensity === 'xs' ? '3px 3px' : '6px 4px'
       },
       // Cell content
       cell: {
-        fontSize: mobileFontSizes.cell,
-        padding: '4px 2px',
+        fontSize: scalePx(mobileFontSizes.cell),
+        padding: mobileDensity === 'xs' ? '2px 2px' : '4px 2px',
         lineHeight: '1.1'
       },
       // Buttons
       button: {
-        fontSize: mobileFontSizes.button,
-        padding: '4px 8px',
-        minHeight: '28px'
+        fontSize: scalePx(mobileFontSizes.button),
+        padding: mobileDensity === 'xs' ? '2px 6px' : '4px 8px',
+        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
       },
       // Small buttons
       smallButton: {
-        fontSize: mobileFontSizes.smallButton,
-        padding: '2px 6px',
-        minHeight: '24px'
+        fontSize: scalePx(mobileFontSizes.smallButton),
+        padding: mobileDensity === 'xs' ? '1px 4px' : '2px 6px',
+        minHeight: mobileDensity === 'xs' ? '20px' : '24px'
       },
       // Toolbar
       toolbar: {
-        padding: '8px',
-        gap: '8px'
+        padding: mobileDensity === 'xs' ? '6px' : '8px',
+        gap: mobileDensity === 'xs' ? '6px' : '8px'
       },
       // Input fields
       input: {
-        fontSize: mobileFontSizes.input,
-        padding: '4px 6px',
-        minHeight: '28px'
+        fontSize: scalePx(mobileFontSizes.input),
+        padding: mobileDensity === 'xs' ? '2px 6px' : '4px 6px',
+        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
       },
       // Dropdown
       dropdown: {
-        fontSize: mobileFontSizes.input,
-        minHeight: '28px'
+        fontSize: scalePx(mobileFontSizes.input),
+        minHeight: mobileDensity === 'xs' ? '24px' : '28px'
       },
       // Pagination
       pagination: {
-        fontSize: mobileFontSizes.pagination,
-        gap: '4px'
+        fontSize: scalePx(mobileFontSizes.pagination),
+        gap: mobileDensity === 'xs' ? '2px' : '4px'
       },
       // Footer totals
       footer: {
-        fontSize: mobileFontSizes.footer,
-        padding: '6px 4px'
+        fontSize: scalePx(mobileFontSizes.footer),
+        padding: mobileDensity === 'xs' ? '4px 3px' : '6px 4px'
       }
     };
-  }, [enableMobileResponsive, isMobile, mobileFontSizes]);
+  }, [enableMobileResponsive, isMobile, mobileFontSizes, mobileDensity]);
 
   // NEW: Mobile responsive table size
   const responsiveTableSize = useMemo(() => {
@@ -2980,7 +3008,7 @@ const PrimeDataTable = ({
 
   return (
     <div 
-      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''}`} 
+      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''}`} 
       style={{
         ...style,
         ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
@@ -3091,6 +3119,12 @@ const PrimeDataTable = ({
             font-size: ${mobileFontSizes.input} !important;
             min-height: 28px !important;
           }
+          /* Extra dense overrides */
+          .mobile-density-xs .p-datatable .p-datatable-header { padding: 4px 6px !important; }
+          .mobile-density-xs .p-datatable .p-column-header { padding: 3px 3px !important; }
+          .mobile-density-xs .p-datatable .p-datatable-tbody > tr > td { padding: 2px 2px !important; }
+          .mobile-density-xs .p-button { min-height: 24px !important; padding: 2px 6px !important; }
+          .mobile-density-xs .p-inputtext, .mobile-density-xs .p-dropdown { min-height: 24px !important; padding: 2px 6px !important; }
           
           .mobile-responsive-table .p-paginator {
             font-size: ${mobileFontSizes.pagination} !important;
@@ -3287,35 +3321,12 @@ const PrimeDataTable = ({
             }
             
             /* Enforce maximum font sizes for all mobile screens */
-            .mobile-responsive-table .p-datatable .p-column-header {
-              font-size: 10px !important;
-              max-font-size: 10px !important;
-            }
-            
-            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td {
-              font-size: 8px !important;
-              max-font-size: 8px !important;
-            }
-            
-            .mobile-responsive-table .p-button {
-              font-size: 10px !important;
-              max-font-size: 10px !important;
-            }
-            
-            .mobile-responsive-table .p-inputtext {
-              font-size: 10px !important;
-              max-font-size: 10px !important;
-            }
-            
-            .mobile-responsive-table .p-dropdown {
-              font-size: 10px !important;
-              max-font-size: 10px !important;
-            }
-            
-            .mobile-responsive-table .p-paginator {
-              font-size: 10px !important;
-              max-font-size: 10px !important;
-            }
+            .mobile-responsive-table .p-datatable .p-column-header { font-size: ${mobileFontSizes.header} !important; max-font-size: ${mobileFontSizes.header} !important; }
+            .mobile-responsive-table .p-datatable .p-datatable-tbody > tr > td { font-size: ${mobileFontSizes.cell} !important; max-font-size: ${mobileFontSizes.cell} !important; }
+            .mobile-responsive-table .p-button { font-size: ${mobileFontSizes.button} !important; max-font-size: ${mobileFontSizes.button} !important; }
+            .mobile-responsive-table .p-inputtext { font-size: ${mobileFontSizes.input} !important; max-font-size: ${mobileFontSizes.input} !important; }
+            .mobile-responsive-table .p-dropdown { font-size: ${mobileFontSizes.input} !important; max-font-size: ${mobileFontSizes.input} !important; }
+            .mobile-responsive-table .p-paginator { font-size: ${mobileFontSizes.pagination} !important; max-font-size: ${mobileFontSizes.pagination} !important; }
           }
           
           /* Medium mobile devices */
