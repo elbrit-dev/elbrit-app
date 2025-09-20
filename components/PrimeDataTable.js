@@ -349,6 +349,7 @@ const PrimeDataTable = ({
   // Native PrimeReact editing props
   editMode = null, // "cell" | "row" for PrimeReact native editing
   editableColumns = [], // Array of column keys that should be editable (auto-handles editors)
+  useCustomRowEditor = false, // If true and editMode="row", opens custom dialog instead of native inline editing
   
   // Pagination
   pageSize = 10,
@@ -653,6 +654,11 @@ const PrimeDataTable = ({
   
   // Inline editing state
   const [localEditingRows, setLocalEditingRows] = useState(editingRows || {});
+  
+  // Custom row editor dialog state
+  const [showCustomRowEditor, setShowCustomRowEditor] = useState(false);
+  const [customRowEditData, setCustomRowEditData] = useState(null);
+  const [originalRowData, setOriginalRowData] = useState(null);
   
   // Context menu state
   const [localContextMenuSelection, setLocalContextMenuSelection] = useState(contextMenuSelection || null);
@@ -2594,6 +2600,52 @@ const PrimeDataTable = ({
     );
   }, [getEffectiveColumnType, finalTableData, getUniqueValues]);
 
+  // Custom row editor functions
+  const openCustomRowEditor = useCallback((rowData) => {
+    setOriginalRowData({ ...rowData });
+    setCustomRowEditData({ ...rowData });
+    setShowCustomRowEditor(true);
+  }, []);
+
+  const handleCustomRowSave = useCallback(() => {
+    if (!customRowEditData || !originalRowData) return;
+    
+    // Call the same handler as native row editing
+    if (typeof onRowEditSave === 'function') {
+      const mockEvent = {
+        newData: customRowEditData,
+        data: originalRowData,
+        index: finalTableData.findIndex(row => row[resolvedDataKey] === originalRowData[resolvedDataKey])
+      };
+      onRowEditSave(mockEvent);
+    }
+    
+    // Close dialog
+    setShowCustomRowEditor(false);
+    setCustomRowEditData(null);
+    setOriginalRowData(null);
+  }, [customRowEditData, originalRowData, onRowEditSave, finalTableData, resolvedDataKey]);
+
+  const handleCustomRowCancel = useCallback(() => {
+    setShowCustomRowEditor(false);
+    setCustomRowEditData(null);
+    setOriginalRowData(null);
+  }, []);
+
+  // Generate editable fields for custom editor
+  const customEditorFields = useMemo(() => {
+    if (!customRowEditData) return [];
+    
+    return defaultColumns
+      .filter(col => editableColumns.includes(col.key) || col.editable === true)
+      .map(col => ({
+        key: col.key,
+        title: col.title || col.key,
+        type: getEffectiveColumnType(col),
+        value: customRowEditData[col.key]
+      }));
+  }, [customRowEditData, defaultColumns, editableColumns, getEffectiveColumnType]);
+
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
     if (!enableColumnGrouping || !finalColumnStructure.hasGroups || !enableColumnFilter) {
@@ -3279,13 +3331,30 @@ const PrimeDataTable = ({
           });
         })()}
 
-        {/* PrimeReact Native Row Editor Column */}
-        {editMode === 'row' && (
+        {/* Row Editor Column - Native or Custom */}
+        {editMode === 'row' && !useCustomRowEditor && (
           <Column
             rowEditor
             header="Actions"
             headerStyle={{ width: '10rem', textAlign: 'center' }}
             bodyStyle={{ textAlign: 'center' }}
+          />
+        )}
+        
+        {/* Custom Row Editor Column */}
+        {editMode === 'row' && useCustomRowEditor && (
+          <Column
+            header="Actions"
+            headerStyle={{ width: '10rem', textAlign: 'center' }}
+            bodyStyle={{ textAlign: 'center' }}
+            body={(rowData) => (
+              <Button
+                icon="pi pi-pencil"
+                className="p-button-text p-button-sm"
+                onClick={() => openCustomRowEditor(rowData)}
+                tooltip="Edit Row"
+              />
+            )}
           />
         )}
 
@@ -3319,6 +3388,81 @@ const PrimeDataTable = ({
         />
       </Dialog>
 
+      {/* Custom Row Editor Dialog */}
+      {useCustomRowEditor && (
+        <Dialog
+          visible={showCustomRowEditor}
+          onHide={handleCustomRowCancel}
+          header="Edit Row"
+          style={{ width: '600px' }}
+          modal
+          className="p-fluid"
+        >
+          {customRowEditData && (
+            <div className="formgrid grid">
+              {customEditorFields.map((field) => {
+                const value = customRowEditData[field.key];
+                const onValueChange = (newValue) => {
+                  setCustomRowEditData(prev => ({ ...prev, [field.key]: newValue }));
+                };
+
+                return (
+                  <div key={field.key} className="field col-12 md:col-6">
+                    <label className="font-medium mb-2 block">{field.title}</label>
+                    {field.type === 'number' ? (
+                      <InputNumber 
+                        value={value} 
+                        onValueChange={(e) => onValueChange(e.value)}
+                        mode="decimal"
+                        minFractionDigits={field.key.toLowerCase().includes('value') ? 2 : 0}
+                        maxFractionDigits={field.key.toLowerCase().includes('value') ? 2 : 0}
+                        useGrouping={true}
+                      />
+                    ) : field.type === 'date' || field.type === 'datetime' ? (
+                      <Calendar 
+                        value={value ? new Date(value) : null} 
+                        onChange={(e) => onValueChange(e.value)} 
+                        dateFormat="yy-mm-dd" 
+                        showIcon 
+                      />
+                    ) : field.type === 'boolean' ? (
+                      <Checkbox 
+                        checked={!!value} 
+                        onChange={(e) => onValueChange(!!e.checked)} 
+                      />
+                    ) : field.type === 'dropdown' || field.type === 'select' ? (
+                      <Dropdown 
+                        value={value} 
+                        options={getUniqueValues(finalTableData, field.key).map(v => ({ label: String(v), value: v }))} 
+                        onChange={(e) => onValueChange(e.value)} 
+                        placeholder="Select..."
+                      />
+                    ) : (
+                      <InputText 
+                        value={value ?? ''} 
+                        onChange={(e) => onValueChange(e.target.value)} 
+                      />
+                    )}
+                  </div>
+                );
+              })}
+              
+              <div className="col-12 flex gap-2 justify-content-end mt-4">
+                <Button 
+                  label="Cancel" 
+                  className="p-button-text" 
+                  onClick={handleCustomRowCancel} 
+                />
+                <Button 
+                  label="Save" 
+                  icon="pi pi-check" 
+                  onClick={handleCustomRowSave} 
+                />
+              </div>
+            </div>
+          )}
+        </Dialog>
+      )}
 
       {/* Column Manager Dialog */}
       <Dialog

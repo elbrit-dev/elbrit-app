@@ -1390,6 +1390,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Array of column keys that should be editable (auto-creates appropriate editors based on data type)",
       defaultValue: []
     },
+    useCustomRowEditor: {
+      type: "boolean",
+      description: "If true and editMode='row', opens custom dialog form instead of native inline editing",
+      defaultValue: false
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",
