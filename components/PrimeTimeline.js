@@ -356,6 +356,42 @@ const PrimeTimeline = ({
     if (dialogMode === "twoCards") {
       return (
         <div style={wrapperStyle}>
+        {/* Header with Date and PDF Button */}
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center",
+          marginBottom: "1rem",
+          width: "100%"
+        }}>
+          {/* Date display */}
+          {dialogItem?.[dateField] ? (
+            <div style={{ 
+              fontSize: "0.875rem", 
+              color: "var(--text-color-secondary)",
+              fontWeight: 500
+            }}>
+              {dialogItem[dateField]}
+            </div>
+          ) : null}
+          
+          {/* PDF Button */}
+          {showPdfButton ? (
+            <Button
+              label={pdfButtonLabel}
+              severity="primary"
+              size="small"
+              icon="pi pi-file-pdf"
+              onClick={() => {
+                const resolvedData =
+                  typeof pdfData === "function"
+                    ? pdfData(dialogItem)
+                    : (pdfDataField ? getValue(dialogItem, pdfDataField) : pdfData);
+                if (onPdfView) onPdfView({ item: dialogItem, data: resolvedData });
+              }}
+            />
+          ) : null}
+        </div>
         <div style={{
           display: "grid",
           gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
@@ -469,6 +505,42 @@ const PrimeTimeline = ({
     } else if (dialogMode === "twoTables") {
       return (
         <div style={wrapperStyle}>
+          {/* Header with Date and PDF Button */}
+          <div style={{ 
+            display: "flex", 
+            justifyContent: "space-between", 
+            alignItems: "center",
+            marginBottom: "1rem",
+            width: "100%"
+          }}>
+            {/* Date display */}
+            {dialogItem?.[dateField] ? (
+              <div style={{ 
+                fontSize: "0.875rem", 
+                color: "var(--text-color-secondary)",
+                fontWeight: 500
+              }}>
+                {dialogItem[dateField]}
+              </div>
+            ) : null}
+            
+            {/* PDF Button */}
+            {showPdfButton ? (
+              <Button
+                label={pdfButtonLabel}
+                severity="primary"
+                size="small"
+                icon="pi pi-file-pdf"
+                onClick={() => {
+                  const resolvedData =
+                    typeof pdfData === "function"
+                      ? pdfData(dialogItem)
+                      : (pdfDataField ? getValue(dialogItem, pdfDataField) : pdfData);
+                  if (onPdfView) onPdfView({ item: dialogItem, data: resolvedData });
+                }}
+              />
+            ) : null}
+          </div>
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
