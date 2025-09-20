@@ -3008,7 +3008,7 @@ const PrimeDataTable = ({
 
   return (
     <div 
-      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''}`} 
+      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''} ${responsiveTableSize === 'small' ? 'size-small-dense' : ''}`} 
       style={{
         ...style,
         ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
@@ -3417,6 +3417,20 @@ const PrimeDataTable = ({
               gap: 2px !important;
             }
           }
+        `}</style>
+      )}
+
+      {/* Always-on small-size density tweaks (applies even on desktop when size='small') */}
+      {responsiveTableSize === 'small' && (
+        <style jsx>{`
+          .size-small-dense .p-datatable { font-size: 9px; }
+          .size-small-dense .p-datatable .p-datatable-header { font-size: 10px; padding: 6px 6px; }
+          .size-small-dense .p-datatable .p-column-header { font-size: 10px; padding: 6px 6px; }
+          .size-small-dense .p-datatable .p-datatable-tbody > tr > td { font-size: 9px; padding: 6px 6px; }
+          .size-small-dense .p-toolbar { padding: 6px; gap: 6px; }
+          .size-small-dense .p-button { font-size: 10px; padding: 4px 8px; min-height: 26px; }
+          .size-small-dense .p-inputtext, .size-small-dense .p-dropdown { font-size: 10px; min-height: 26px; padding: 4px 6px; }
+          .size-small-dense .p-paginator { font-size: 10px; }
         `}</style>
       )}
       
