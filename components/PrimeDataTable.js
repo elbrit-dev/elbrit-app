@@ -389,6 +389,9 @@ const PrimeDataTable = ({
     pagination: "10px",  // Maximum 10px for pagination (never larger)
     footer: "11px"       // Maximum 10px for footer (never larger)
   },
+  // NEW: Mobile design variant and visible columns
+  mobileVariant = "compact", // "default" | "compact" | "cards" (cards reserved)
+  mobileVisibleColumns = [], // keys to keep on mobile; others hidden
 
   // Event handlers
   onRowClick,
@@ -541,7 +544,7 @@ const PrimeDataTable = ({
   
   // NEW: CMS Persistence Props
   enablePivotPersistence = false, // minimal default: off
-  pivotConfigKey = "pivotConfig", // Key for storing in CMS (e.g., "dashboardPage_salesTable_pivotConfig")
+  pivotConfigKey = "", // empty by default; set when you want persistence
   onSavePivotConfig = null, // Callback to save config to CMS (deprecated - use direct integration)
   onLoadPivotConfig = null, // Callback to load config from CMS (deprecated - use direct integration)
   autoSavePivotConfig = false, // Auto-save changes to CMS (disabled by default for explicit control)
@@ -824,10 +827,11 @@ const PrimeDataTable = ({
   // NEW: Mobile responsive table size
   const responsiveTableSize = useMemo(() => {
     if (isMobile && enableMobileResponsive) {
-      return mobileTableSize;
+      // Force small size for compact variant
+      return mobileVariant === 'compact' ? 'small' : mobileTableSize;
     }
     return tableSize;
-  }, [isMobile, enableMobileResponsive, tableSize, mobileTableSize]);
+  }, [isMobile, enableMobileResponsive, tableSize, mobileTableSize, mobileVariant]);
 
   // NEW: Variant helpers
   const isRegisterVariant = useMemo(() => tableVariant === 'register', [tableVariant]);
@@ -862,7 +866,7 @@ const PrimeDataTable = ({
   // Load pivot configuration from CMS on component mount
   useEffect(() => {
     const loadPivotConfig = async () => {
-      if (!enablePivotPersistence || !finalLoadFromCMS || pivotConfigLoaded) return;
+      if (!enablePivotPersistence || !finalLoadFromCMS || pivotConfigLoaded || !pivotConfigKey) return;
       
       setIsLoadingPivotConfig(true);
       try {
@@ -938,7 +942,7 @@ const PrimeDataTable = ({
   // Save pivot configuration to CMS when it changes - HIBERNATION FIXED
   useEffect(() => {
     const savePivotConfig = async () => {
-      if (!isMountedRef.current || !enablePivotPersistence || !finalSaveToCMS || !autoSavePivotConfig || !pivotConfigLoaded || !isAdminUser()) return;
+      if (!isMountedRef.current || !enablePivotPersistence || !finalSaveToCMS || !autoSavePivotConfig || !pivotConfigLoaded || !isAdminUser() || !pivotConfigKey) return;
       
       setIsSavingPivotConfig(true);
       try {
@@ -2976,7 +2980,7 @@ const PrimeDataTable = ({
 
   return (
     <div 
-      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''}`} 
+      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''}`} 
       style={{
         ...style,
         ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
@@ -3039,6 +3043,25 @@ const PrimeDataTable = ({
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+          }
+          /* Compact variant tweaks */
+          .mobile-variant-compact .p-datatable .p-datatable-header {
+            padding: 4px 6px !important;
+          }
+          .mobile-variant-compact .p-datatable .p-column-header {
+            padding: 4px 4px !important;
+          }
+          .mobile-variant-compact .p-datatable .p-datatable-tbody > tr > td {
+            padding: 2px 2px !important;
+          }
+          .mobile-variant-compact .p-button {
+            padding: 2px 6px !important;
+            min-height: 24px !important;
+          }
+          .mobile-variant-compact .p-inputtext,
+          .mobile-variant-compact .p-dropdown {
+            padding: 2px 6px !important;
+            min-height: 24px !important;
           }
           
           .mobile-responsive-table .p-datatable .p-datatable-footer {
@@ -3220,6 +3243,10 @@ const PrimeDataTable = ({
             .mobile-responsive-table .p-toolbar {
               flex-direction: column !important;
               align-items: stretch !important;
+            }
+            .mobile-variant-compact .p-toolbar {
+              padding: 6px !important;
+              gap: 6px !important;
             }
             
             .mobile-responsive-table .p-toolbar .p-toolbar-group-left,

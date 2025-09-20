@@ -1193,6 +1193,17 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Size of the table",
       defaultValue: "normal"
     },
+    mobileVariant: {
+      type: "choice",
+      options: ["default", "compact", "cards"],
+      description: "Mobile design variant",
+      defaultValue: "compact"
+    },
+    mobileVisibleColumns: {
+      type: "object",
+      description: "Array of column keys to show on mobile; others are hidden",
+      defaultValue: []
+    },
     
     // NEW: Register layout / numbering / editor column
     tableVariant: {
@@ -1667,7 +1678,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     pivotConfigKey: {
       type: "string",
       description: "Key for storing pivot configuration in CMS (unique identifier)",
-      defaultValue: "pivotConfig"
+      defaultValue: ""
     },
     autoSavePivotConfig: {
       type: "boolean",
