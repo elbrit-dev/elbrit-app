@@ -111,6 +111,8 @@ export default function PlasmicLoaderPage(props) {
             setPlasmicAuthToken(erpnextData.token);
             localStorage.setItem('erpnextUser', JSON.stringify(erpnextData.user));
             localStorage.setItem('erpnextAuthToken', erpnextData.token);
+            const employeeId = erpnextData?.user?.customProperties?.employeeId || erpnextData?.user?.uid || erpnextData?.user?.employeeData?.name || '';
+            localStorage.setItem('employeeId', employeeId);
           } else {
             console.error('ERPNext auth refresh failed:', response.status, response.statusText);
           }

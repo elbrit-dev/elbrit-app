@@ -150,6 +150,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('userEmail');
         localStorage.removeItem('userDisplayName');
         localStorage.removeItem('userRole');
+        localStorage.removeItem('employeeId');
       }
     }
   };
@@ -258,6 +259,10 @@ export const AuthProvider = ({ children }) => {
                   const firstLetter = finalUser.displayName?.charAt(0)?.toUpperCase() || finalUser.email?.charAt(0)?.toUpperCase() || 'U';
                   const avatarSvg = generateAvatarSvg(firstLetter);
                   
+                  // Store employeeId for easy access
+                  const employeeId = finalUser?.customProperties?.employeeId || finalUser?.uid || finalUser?.employeeData?.name || '';
+                  localStorage.setItem('employeeId', employeeId);
+
                   // Store user details for easy access
                   localStorage.setItem('userEmail', finalUser.email);
                   localStorage.setItem('userDisplayName', finalUser.displayName);
@@ -266,6 +271,7 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userAvatar', avatarSvg);
                   localStorage.setItem('userInitial', firstLetter);
                   
+                  
                   console.log('💾 Auth data saved to localStorage:', {
                     authType: 'erpnext',
                     authProvider: provider,
@@ -273,9 +279,6 @@ export const AuthProvider = ({ children }) => {
                     userEmail: finalUser.email,
                     userRole: finalUser.role
                   });
-                  // Also store ERPNext identifiers
-                  localStorage.setItem('employeeId', finalUser.employeeId || '');
-                  localStorage.setItem('employeeName', finalUser.employeeName || finalUser.displayName || '');
                 } catch (storageError) {
                   console.warn('Failed to save auth data to localStorage:', storageError);
                 }
@@ -302,7 +305,6 @@ export const AuthProvider = ({ children }) => {
                 localStorage.removeItem('erpnextAuthToken');
                 localStorage.removeItem('erpnextUser');
                 localStorage.removeItem('employeeId');
-                localStorage.removeItem('employeeName');
               }
             }
                   } catch (error) {
@@ -326,7 +328,6 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userAvatar');
             localStorage.removeItem('userInitial');
             localStorage.removeItem('employeeId');
-            localStorage.removeItem('employeeName');
           }
         }
         } else {
@@ -348,12 +349,11 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userDisplayName');
             localStorage.removeItem('userRole');
-            localStorage.removeItem('employeeId');
-            localStorage.removeItem('employeeName');
             
             // Clear old data
             localStorage.removeItem('employeeData');
             localStorage.removeItem('phoneUserData');
+            localStorage.removeItem('employeeId');
             
             console.log('🧹 Cleared all auth data from localStorage');
           }
@@ -389,6 +389,8 @@ export const AuthProvider = ({ children }) => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('erpnextAuthToken', erpnextToken);
       localStorage.setItem('erpnextUser', JSON.stringify(erpnextUser));
+      const employeeId = erpnextUser?.customProperties?.employeeId || erpnextUser?.uid || erpnextUser?.employeeData?.name || '';
+      localStorage.setItem('employeeId', employeeId);
     }
   };
 
@@ -411,6 +413,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('erpnextUser');
       localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
       localStorage.removeItem('authProvider'); // Remove auth provider from storage
+      localStorage.removeItem('employeeId');
     }
   };
 

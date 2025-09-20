@@ -48,18 +48,7 @@ export default async function handler(req, res) {
         filters: JSON.stringify([
           ['cell_number', '=', cleanedPhoneNumber]
         ]),
-        fields: JSON.stringify([
-          'name',
-          'employee_name',
-          'first_name',
-          'cell_number',
-          'fsl_whatsapp_number',
-          'company_email',
-          'department__name',
-          'designation__name',
-          'date_of_joining',
-          'date_of_birth'
-        ])
+        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email'])
       });
 
       console.log('🔍 Searching Employee table for phone number:', phoneNumber);
@@ -123,18 +112,7 @@ export default async function handler(req, res) {
     const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
     const employeeSearchParams = new URLSearchParams({
       filters: JSON.stringify([['company_email', '=', searchValue]]),
-      fields: JSON.stringify([
-        'name',
-        'employee_name',
-        'first_name',
-        'cell_number',
-        'fsl_whatsapp_number',
-        'company_email',
-        'department__name',
-        'designation__name',
-        'date_of_joining',
-        'date_of_birth'
-      ])
+      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email'])
     });
 
     console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
@@ -164,18 +142,15 @@ export default async function handler(req, res) {
           uid: employee.name, // Use ERPNext document name as UID
           email: employee.company_email,
           phoneNumber: employee.cell_number || employee.fsl_whatsapp_number,
-          displayName: employee.employee_name || employee.first_name || employee.company_email?.split('@')[0] || 'User',
+          displayName: employee.first_name || employee.company_email?.split('@')[0] || 'User',
           role: 'admin', // Default role for now
           roleName: 'Admin',
           authProvider: authProvider || 'employee', // Use 'employee' for both providers
-          employeeId: employee.name,
-          employeeName: employee.employee_name || employee.first_name,
           customProperties: {
             organization: "Elbrit Life Sciences",
             accessLevel: "full",
             provider: authProvider || 'employee',
             employeeId: employee.name,
-            employeeName: employee.employee_name || employee.first_name,
             department: employee.department__name,
             designation: employee.designation__name,
             dateOfJoining: employee.date_of_joining,
