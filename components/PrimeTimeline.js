@@ -311,12 +311,12 @@ const PrimeTimeline = ({
       const content = item?.[oppositeField];
       return (
         <div style={{ 
-          textAlign: "center", 
+          textAlign: "start", 
           padding: "8px", 
           minHeight: "24px",
           display: "flex",
           alignItems: "center",
-          justifyContent: "center"
+          justifyContent: "start"
         }}>
           {content ? (
             <small className="text-color-secondary">{content}</small>
@@ -724,38 +724,30 @@ const PrimeTimeline = ({
           margin: 0 !important;
         }
 
-        /* Odd row order: [opposite][separator][content] */
+        /* Odd row order: [left-date][separator][right-content] */
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) { flex-direction: row !important; }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite {
+        
+        /* Even row order: [left-content][separator][right-date] */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) { flex-direction: row-reverse !important; }
+        
+        /* LEFT SIDE STYLING - applies to both left dates (odd) and left content (even) */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-opposite,
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
           text-align: right !important;
           display: flex !important;
           flex-direction: column !important;
-          justify-content: flex-end !important; /* vertical stack; align to bottom if needed */
-          align-items: flex-end !important; /* lock inner edge toward center */
+          justify-content: left !important; /* center align with marker */
+          align-items: flex-end !important; /* align toward center marker */
         }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content {
-          margin: 0 !important;
-          display: flex !important;
-          flex-direction: column !important;
-          justify-content: flex-start !important;
-          align-items: flex-start !important; /* lock inner edge toward center */
-        }
-
-        /* Even row order: [content][separator][opposite] */
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) { flex-direction: row-reverse !important; }
+        
+        /* RIGHT SIDE STYLING - applies to both right content (odd) and right dates (even) */
+        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content,
         .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-opposite {
           text-align: left !important;
           display: flex !important;
           flex-direction: column !important;
-          justify-content: flex-start !important;
-          align-items: flex-start !important; /* lock inner edge toward center */
-        }
-        .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
-          margin: 0 !important;
-          display: flex !important;
-          flex-direction: column !important;
-          justify-content: flex-end !important; /* vertical stack; align to bottom if needed */
-          align-items: flex-end !important; /* lock inner edge toward center */
+          justify-content: start !important; /* center align with marker */
+          align-items: flex-start !important; /* align toward center marker */
         }
 
         /* Base sizing/centering for sides */
