@@ -247,7 +247,7 @@ import { useAuth } from './AuthContext';
  *   data={salesData}
  *   enableMobileResponsive={true}
  *   mobileBreakpoint={768}
- *   mobileTableSize="small"
+ *   mobileTableSize="smaller"
  *   mobileFontSizes={{
  *     header: "10px",      // Maximum 10px for headers
  *     cell: "8px",         // Maximum 8px for table content
@@ -374,12 +374,12 @@ const PrimeDataTable = ({
   style = {},
 
 
-  tableSize = "normal", // small, normal, large
+  tableSize = "normal", // smaller, small, normal, large
 
   // NEW: Mobile responsive props
   enableMobileResponsive = false, // Enable mobile responsive styling
   mobileBreakpoint = 768, // Breakpoint for mobile styles (px)
-  mobileTableSize = "small", // Table size for mobile devices
+  mobileTableSize = "small", // Table size for mobile devices (smaller, small, normal, large)
   mobileFontSizes = {
     header: "10px",      // Maximum 10px for headers (never larger)
     cell: "8px",         // Maximum 8px for table content (never larger)
@@ -3008,7 +3008,7 @@ const PrimeDataTable = ({
 
   return (
     <div 
-      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''} ${responsiveTableSize === 'small' ? 'size-small-dense' : ''}`} 
+      className={`${className} ${isMobile && enableMobileResponsive ? 'mobile-responsive-table' : ''} ${isMobile && enableMobileResponsive && mobileVariant === 'compact' ? 'mobile-variant-compact' : ''} ${isMobile && enableMobileResponsive && mobileDensity === 'xs' ? 'mobile-density-xs' : ''} ${responsiveTableSize === 'small' ? 'size-small-dense' : ''} ${responsiveTableSize === 'smaller' ? 'size-smaller-dense' : ''}`} 
       style={{
         ...style,
         ...(isMobile && enableMobileResponsive ? mobileStyles.tableContainer : {})
@@ -3444,6 +3444,20 @@ const PrimeDataTable = ({
           .size-small-dense .p-button { font-size: 10px; padding: 4px 8px; min-height: 26px; }
           .size-small-dense .p-inputtext, .size-small-dense .p-dropdown { font-size: 10px; min-height: 26px; padding: 4px 6px; }
           .size-small-dense .p-paginator { font-size: 10px; }
+        `}</style>
+      )}
+
+      {/* Always-on smaller-size density tweaks (applies even on desktop when size='smaller') */}
+      {responsiveTableSize === 'smaller' && (
+        <style jsx>{`
+          .size-smaller-dense .p-datatable { font-size: 7px; }
+          .size-smaller-dense .p-datatable .p-datatable-header { font-size: 8px; padding: 4px 4px; }
+          .size-smaller-dense .p-datatable .p-column-header { font-size: 8px; padding: 4px 4px; }
+          .size-smaller-dense .p-datatable .p-datatable-tbody > tr > td { font-size: 7px; padding: 4px 4px; }
+          .size-smaller-dense .p-toolbar { padding: 4px; gap: 4px; }
+          .size-smaller-dense .p-button { font-size: 8px; padding: 2px 6px; min-height: 22px; }
+          .size-smaller-dense .p-inputtext, .size-smaller-dense .p-dropdown { font-size: 8px; min-height: 22px; padding: 2px 4px; }
+          .size-smaller-dense .p-paginator { font-size: 8px; }
         `}</style>
       )}
       
