@@ -273,6 +273,9 @@ export const AuthProvider = ({ children }) => {
                     userEmail: finalUser.email,
                     userRole: finalUser.role
                   });
+                  // Also store ERPNext identifiers
+                  localStorage.setItem('employeeId', finalUser.employeeId || '');
+                  localStorage.setItem('employeeName', finalUser.employeeName || finalUser.displayName || '');
                 } catch (storageError) {
                   console.warn('Failed to save auth data to localStorage:', storageError);
                 }
@@ -298,6 +301,8 @@ export const AuthProvider = ({ children }) => {
               if (typeof window !== 'undefined') {
                 localStorage.removeItem('erpnextAuthToken');
                 localStorage.removeItem('erpnextUser');
+                localStorage.removeItem('employeeId');
+                localStorage.removeItem('employeeName');
               }
             }
                   } catch (error) {
@@ -320,6 +325,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userInitial');
             localStorage.removeItem('userAvatar');
             localStorage.removeItem('userInitial');
+            localStorage.removeItem('employeeId');
+            localStorage.removeItem('employeeName');
           }
         }
         } else {
@@ -341,6 +348,8 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userEmail');
             localStorage.removeItem('userDisplayName');
             localStorage.removeItem('userRole');
+            localStorage.removeItem('employeeId');
+            localStorage.removeItem('employeeName');
             
             // Clear old data
             localStorage.removeItem('employeeData');
