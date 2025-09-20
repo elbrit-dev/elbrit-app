@@ -736,7 +736,7 @@ const PrimeTimeline = ({
           text-align: right !important;
           display: flex !important;
           flex-direction: column !important;
-          justify-content: left !important; /* center align with marker */
+          justify-content: right !important; /* center align with marker */
           align-items: flex-end !important; /* align toward center marker */
         }
         
