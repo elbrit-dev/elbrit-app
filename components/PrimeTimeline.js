@@ -189,42 +189,50 @@ const PrimeTimeline = ({
         {showSummary && summaryFields && summaryFields.length > 0 ? (
           <div style={{ marginTop: 8, marginBottom: 8 }}>
             {summaryTitle ? <div style={{ fontWeight: 600, marginBottom: 6 }}>{summaryTitle}</div> : null}
-            <div className="flex flex-column" style={{ gap: 6 }}>
-              {summaryFields.map((f, idx) => {
-                const fieldName = f?.field;
-                const isGrossPay = fieldName === leftTotalField;
-                const isTotalDeduction = fieldName === rightTotalField;
-                
-                return (
-                  <div 
-                    key={idx} 
-                    style={{ 
-                      display: "flex", 
-                      gap: 6, 
-                      alignItems: "baseline", 
-                      wordBreak: "break-word",
-                      ...(isGrossPay && { 
-                        backgroundColor: leftTotalColor, 
-                        padding: "4px 8px", 
-                        borderRadius: "4px",
-                        fontWeight: "bold"
-                      }),
-                      ...(isTotalDeduction && { 
-                        backgroundColor: rightTotalColor, 
-                        padding: "4px 8px", 
-                        borderRadius: "4px",
-                        fontWeight: "bold"
-                      })
-                    }}
-                  >
-                    <span style={{ fontWeight: 500 }}>{f?.label || f?.field}:</span>
-                    <span style={{ color: isGrossPay ? leftTotalTextColor : (isTotalDeduction ? rightTotalTextColor : undefined) }}>
-                      {String(getValue(item, f?.field))}
-                    </span>
-                  </div>
-                );
+            <DataTable
+              value={summaryFields.map((f) => ({
+                label: f?.label || f?.field,
+                value: String(getValue(item, f?.field)),
+                field: f?.field,
+                _isGrossPay: f?.field === leftTotalField,
+                _isTotalDeduction: f?.field === rightTotalField
+              }))}
+              size="small"
+              showGridlines={true}
+              style={{ 
+                fontSize: "0.75rem",
+                width: "100%"
+              }}
+              rowStyle={(rowData) => ({
+                ...(rowData._isGrossPay && { 
+                  backgroundColor: leftTotalColor,
+                  fontWeight: 'bold'
+                }),
+                ...(rowData._isTotalDeduction && { 
+                  backgroundColor: rightTotalColor,
+                  fontWeight: 'bold'
+                })
               })}
-            </div>
+            >
+              <Column 
+                field="label" 
+                header="Field" 
+                style={{ textAlign: "left", fontWeight: 500 }}
+              />
+              <Column 
+                field="value" 
+                header="Value" 
+                style={{ textAlign: "right" }}
+                body={(rowData) => (
+                  <span style={{ 
+                    color: rowData._isGrossPay ? leftTotalTextColor : 
+                           (rowData._isTotalDeduction ? rightTotalTextColor : undefined) 
+                  }}>
+                    {rowData.value}
+                  </span>
+                )}
+              />
+            </DataTable>
           </div>
         ) : null}
         {img ? (
@@ -356,42 +364,17 @@ const PrimeTimeline = ({
     if (dialogMode === "twoCards") {
       return (
         <div style={wrapperStyle}>
-        {/* Header with Date and PDF Button */}
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          marginBottom: "1rem",
-          width: "100%"
-        }}>
-          {/* Date display */}
-          {dialogItem?.[dateField] ? (
-            <div style={{ 
-              fontSize: "0.875rem", 
-              color: "var(--text-color-secondary)",
-              fontWeight: 500
-            }}>
-              {dialogItem[dateField]}
-            </div>
-          ) : null}
-          
-          {/* PDF Button */}
-          {showPdfButton ? (
-            <Button
-              label={pdfButtonLabel}
-              severity="primary"
-              size="small"
-              icon="pi pi-file-pdf"
-              onClick={() => {
-                const resolvedData =
-                  typeof pdfData === "function"
-                    ? pdfData(dialogItem)
-                    : (pdfDataField ? getValue(dialogItem, pdfDataField) : pdfData);
-                if (onPdfView) onPdfView({ item: dialogItem, data: resolvedData });
-              }}
-            />
-          ) : null}
-        </div>
+        {/* Header with Date only */}
+        {dialogItem?.[dateField] ? (
+          <div style={{ 
+            fontSize: "0.875rem", 
+            color: "var(--text-color-secondary)",
+            fontWeight: 500,
+            marginBottom: "1rem"
+          }}>
+            {dialogItem[dateField]}
+          </div>
+        ) : null}
         <div style={{
           display: "grid",
           gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
@@ -500,36 +483,19 @@ const PrimeTimeline = ({
               </div>
             </div>
           ) : null}
-        </div>
-      );
-    } else if (dialogMode === "twoTables") {
-      return (
-        <div style={wrapperStyle}>
-          {/* Header with Date and PDF Button */}
-          <div style={{ 
-            display: "flex", 
-            justifyContent: "space-between", 
-            alignItems: "center",
-            marginBottom: "1rem",
-            width: "100%"
-          }}>
-            {/* Date display */}
-            {dialogItem?.[dateField] ? (
-              <div style={{ 
-                fontSize: "0.875rem", 
-                color: "var(--text-color-secondary)",
-                fontWeight: 500
-              }}>
-                {dialogItem[dateField]}
-              </div>
-            ) : null}
-            
-            {/* PDF Button */}
-            {showPdfButton ? (
+          
+          {/* PDF Button at the bottom */}
+          {showPdfButton ? (
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              marginTop: "1.5rem",
+              width: "100%"
+            }}>
               <Button
                 label={pdfButtonLabel}
                 severity="primary"
-                size="small"
+                size="normal"
                 icon="pi pi-file-pdf"
                 onClick={() => {
                   const resolvedData =
@@ -539,8 +505,24 @@ const PrimeTimeline = ({
                   if (onPdfView) onPdfView({ item: dialogItem, data: resolvedData });
                 }}
               />
-            ) : null}
-          </div>
+            </div>
+          ) : null}
+        </div>
+      );
+    } else if (dialogMode === "twoTables") {
+      return (
+        <div style={wrapperStyle}>
+          {/* Header with Date only */}
+          {dialogItem?.[dateField] ? (
+            <div style={{ 
+              fontSize: "0.875rem", 
+              color: "var(--text-color-secondary)",
+              fontWeight: 500,
+              marginBottom: "1rem"
+            }}>
+              {dialogItem[dateField]}
+            </div>
+          ) : null}
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", // Side-by-side on desktop, stacked on mobile
@@ -684,6 +666,30 @@ const PrimeTimeline = ({
                   <span style={{ color: rightTotalTextColor }}>{String(getValue(dialogItem, rightTotalField))}</span>
                 </div>
               </div>
+            </div>
+          ) : null}
+          
+          {/* PDF Button at the bottom */}
+          {showPdfButton ? (
+            <div style={{ 
+              display: "flex", 
+              justifyContent: "center", 
+              marginTop: "1.5rem",
+              width: "100%"
+            }}>
+              <Button
+                label={pdfButtonLabel}
+                severity="primary"
+                size="normal"
+                icon="pi pi-file-pdf"
+                onClick={() => {
+                  const resolvedData =
+                    typeof pdfData === "function"
+                      ? pdfData(dialogItem)
+                      : (pdfDataField ? getValue(dialogItem, pdfDataField) : pdfData);
+                  if (onPdfView) onPdfView({ item: dialogItem, data: resolvedData });
+                }}
+              />
             </div>
           ) : null}
         </div>

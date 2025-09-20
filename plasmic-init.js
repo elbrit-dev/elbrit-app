@@ -1441,6 +1441,29 @@ PLASMIC.registerComponent(PrimeDataTable, {
       ]
     },
     
+    // Cell editing events
+    onCellEditComplete: {
+      type: "eventHandler",
+      description: "Called when cell edit is completed (cell mode)",
+      argTypes: [
+        { name: "event", type: "object", description: "Cell edit completion event with field, newValue, rowData, rowIndex" }
+      ]
+    },
+    onCellEditInit: {
+      type: "eventHandler", 
+      description: "Called when cell edit is initiated (cell mode)",
+      argTypes: [
+        { name: "event", type: "object", description: "Cell edit init event" }
+      ]
+    },
+    onCellEditCancel: {
+      type: "eventHandler",
+      description: "Called when cell edit is cancelled (cell mode)", 
+      argTypes: [
+        { name: "event", type: "object", description: "Cell edit cancel event" }
+      ]
+    },
+    
     // Context menu
     enableContextMenu: {
       type: "boolean",
