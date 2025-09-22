@@ -3297,6 +3297,10 @@ PLASMIC.registerComponent(PrimeTimeline, {
     pdfButtonLabel: { type: "string", defaultValue: "View as PDF", description: "Label for the PDF button" },
     pdfData: { type: "object", defaultValue: null, description: "Static data or function(item) -> data passed on PDF view" },
     pdfDataField: { type: "string", defaultValue: "", description: "Field path on item to pass as data when PDF button clicked" },
+    pdfButtonSeverity: { type: "string", defaultValue: "primary", description: "PDF button severity (primary, secondary, success, info, warning, danger)" },
+    pdfButtonSize: { type: "string", defaultValue: "small", description: "PDF button size (small, normal, large)" },
+    pdfButtonStyle: { type: "object", defaultValue: { color: "#ffffff" }, description: "Custom inline styles for PDF button" },
+    pdfButtonClassName: { type: "string", defaultValue: "", description: "Custom CSS class for PDF button" },
 
     // Styling
     className: { type: "string", defaultValue: "" },
@@ -3385,7 +3389,11 @@ PLASMIC.registerComponent(PrimeTimeline, {
       type: "eventHandler",
       description: "Called right before dialog is shown (when enabledDialog is true and no link)",
       argTypes: [ { name: "item", type: "object" } ]
-    }
+    },
+
+    // Styling props
+    className: { type: "string", defaultValue: "", description: "CSS class name for the timeline wrapper" },
+    style: { type: "object", defaultValue: {}, description: "Inline styles for the timeline wrapper" }
   },
   importPath: "./components/PrimeTimeline"
 });
