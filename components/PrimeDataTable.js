@@ -2836,10 +2836,10 @@ const PrimeDataTable = ({
     return (
       <div className="forms-container" style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '1rem', 
         padding: '1rem',
-        maxWidth: '1400px',
+        maxWidth: '1200px',
         margin: '0 auto'
       }}>
         <style jsx>{`
@@ -2856,7 +2856,7 @@ const PrimeDataTable = ({
           }
           @media (min-width: 769px) and (max-width: 1024px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
@@ -2864,10 +2864,10 @@ const PrimeDataTable = ({
           }
           @media (min-width: 1025px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
-              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
             }
           }
         `}</style>
@@ -2879,7 +2879,7 @@ const PrimeDataTable = ({
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0', 
               borderRadius: '8px', 
-              padding: '1rem',
+              padding: '0.75rem',
               boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
               transition: 'all 0.3s ease',
               position: 'relative',
@@ -2897,8 +2897,8 @@ const PrimeDataTable = ({
             {/* Form Header */}
             <div style={{ 
               borderBottom: '2px solid #3b82f6', 
-              paddingBottom: '0.75rem', 
-              marginBottom: '1rem',
+              paddingBottom: '0.5rem', 
+              marginBottom: '0.75rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
@@ -2936,8 +2936,8 @@ const PrimeDataTable = ({
             {/* Form Fields Grid */}
             <div className="form-fields-grid" style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
-              gap: '0.75rem'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
+              gap: '0.5rem'
             }}>
               {defaultColumns.slice(1, 9).map((column) => {
                 const value = item[column.key];
