@@ -3301,6 +3301,11 @@ PLASMIC.registerComponent(PrimeTimeline, {
     pdfButtonSize: { type: "string", defaultValue: "small", description: "PDF button size (small, normal, large)" },
     pdfButtonStyle: { type: "object", defaultValue: { color: "#ffffff" }, description: "Custom inline styles for PDF button" },
     pdfButtonClassName: { type: "string", defaultValue: "", description: "Custom CSS class for PDF button" },
+    pdfButtonPadding: { type: "string", defaultValue: "0.5rem 1rem", description: "Custom padding for PDF button (e.g., '0.5rem 1rem', '8px 16px')" },
+    pdfButtonFontSize: { type: "string", defaultValue: "0.875rem", description: "Font size for PDF button text (e.g., '14px', '0.875rem', '1rem')" },
+    pdfButtonBorderRadius: { type: "string", defaultValue: "6px", description: "Border radius for PDF button (e.g., '4px', '8px', '50%')" },
+    pdfButtonWidth: { type: "string", defaultValue: "auto", description: "Width of PDF button (e.g., 'auto', '100px', '100%')" },
+    pdfButtonHeight: { type: "string", defaultValue: "auto", description: "Height of PDF button (e.g., 'auto', '40px', '3rem')" },
 
     // Styling
     className: { type: "string", defaultValue: "" },

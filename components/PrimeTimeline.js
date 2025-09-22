@@ -51,6 +51,11 @@ const PrimeTimeline = ({
   pdfButtonSize = "small",
   pdfButtonStyle = { color: "#ffffff" },
   pdfButtonClassName = "",
+  pdfButtonPadding = "0.5rem 1rem",
+  pdfButtonFontSize = "0.875rem",
+  pdfButtonBorderRadius = "6px",
+  pdfButtonWidth = "auto",
+  pdfButtonHeight = "auto",
 
   // Styling
   className = "",
@@ -283,7 +288,14 @@ const PrimeTimeline = ({
               severity={pdfButtonSeverity}
               size={pdfButtonSize}
               icon="pi pi-file-pdf"
-              style={pdfButtonStyle}
+              style={{
+                ...pdfButtonStyle,
+                padding: pdfButtonPadding,
+                fontSize: pdfButtonFontSize,
+                borderRadius: pdfButtonBorderRadius,
+                width: pdfButtonWidth,
+                height: pdfButtonHeight
+              }}
               className={pdfButtonClassName}
               onClick={() => {
                 const resolvedData =
