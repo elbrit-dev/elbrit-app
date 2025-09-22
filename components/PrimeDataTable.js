@@ -2671,8 +2671,29 @@ const PrimeDataTable = ({
           @media (max-width: 768px) {
             .cards-container {
               grid-template-columns: 1fr !important;
-              padding: 0.5rem !important;
-              gap: 0.75rem !important;
+              padding: 0.25rem !important;
+              gap: 0.5rem !important;
+              max-width: 100% !important;
+            }
+            .card-item {
+              padding: 0.75rem !important;
+              margin: 0 !important;
+              max-width: 100% !important;
+            }
+            .card-item h3 {
+              font-size: 0.875rem !important;
+              margin-bottom: 0.5rem !important;
+            }
+            .card-item label {
+              font-size: 0.7rem !important;
+            }
+            .card-item .card-content div {
+              font-size: 0.7rem !important;
+              padding: 0.125rem 0.25rem !important;
+            }
+            .card-item button {
+              padding: 0.5rem 1rem !important;
+              font-size: 0.75rem !important;
             }
           }
           @media (min-width: 769px) and (max-width: 1024px) {
@@ -2836,27 +2857,50 @@ const PrimeDataTable = ({
     return (
       <div className="forms-container" style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
         gap: '1rem', 
         padding: '1rem',
-        maxWidth: '1200px',
+        maxWidth: '1400px',
         margin: '0 auto'
       }}>
         <style jsx>{`
           @media (max-width: 768px) {
             .forms-container {
               grid-template-columns: 1fr !important;
-              padding: 0.5rem !important;
-              gap: 0.75rem !important;
+              padding: 0.25rem !important;
+              gap: 0.5rem !important;
+              max-width: 100% !important;
+            }
+            .form-item {
+              padding: 0.75rem !important;
+              margin: 0 !important;
+              max-width: 100% !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: 1fr !important;
-              gap: 0.5rem !important;
+              gap: 0.25rem !important;
+            }
+            .form-item h4 {
+              font-size: 0.875rem !important;
+              margin-bottom: 0.5rem !important;
+            }
+            .form-field label {
+              font-size: 0.7rem !important;
+              margin-bottom: 0.125rem !important;
+            }
+            .form-field div {
+              padding: 0.375rem 0.5rem !important;
+              font-size: 0.7rem !important;
+              min-height: 1.75rem !important;
+            }
+            .form-item button {
+              padding: 0.5rem 1rem !important;
+              font-size: 0.75rem !important;
             }
           }
           @media (min-width: 769px) and (max-width: 1024px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
@@ -2864,10 +2908,10 @@ const PrimeDataTable = ({
           }
           @media (min-width: 1025px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
-              grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
             }
           }
         `}</style>
@@ -2879,7 +2923,7 @@ const PrimeDataTable = ({
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0', 
               borderRadius: '8px', 
-              padding: '0.75rem',
+              padding: '1rem',
               boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
               transition: 'all 0.3s ease',
               position: 'relative',
@@ -2897,8 +2941,8 @@ const PrimeDataTable = ({
             {/* Form Header */}
             <div style={{ 
               borderBottom: '2px solid #3b82f6', 
-              paddingBottom: '0.5rem', 
-              marginBottom: '0.75rem',
+              paddingBottom: '0.75rem', 
+              marginBottom: '1rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
@@ -2936,8 +2980,8 @@ const PrimeDataTable = ({
             {/* Form Fields Grid */}
             <div className="form-fields-grid" style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', 
-              gap: '0.5rem'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+              gap: '0.75rem'
             }}>
               {defaultColumns.slice(1, 9).map((column) => {
                 const value = item[column.key];
