@@ -14,6 +14,10 @@ import { Column } from "primereact/column";
  * that renders styled markers, headers, dates, descriptions, and an optional
  * "Read more" action. Pass an array of event objects via the `events` prop and
  * configure which fields to use via the mapping props.
+ * 
+ * The component supports both dialog and drawer modes for detailed views. When
+ * `useEmptyDrawer` is set to true, the drawer will render empty content that can
+ * be used as a slot in Plasmic Studio for custom content design.
  */
 const PrimeTimeline = ({
   // Data
@@ -63,6 +67,7 @@ const PrimeTimeline = ({
   pdfButtonBorderRadius = "6px",
   pdfButtonWidth = "auto",
   pdfButtonHeight = "auto",
+  useEmptyDrawer = false, // when true, drawer content will be empty for Plasmic slot usage
 
   // Styling
   className = "",
@@ -379,6 +384,26 @@ const PrimeTimeline = ({
 
   const renderDialogContent = () => {
     if (!dialogItem) return null;
+
+    // If useEmptyDrawer is true, return an empty div that can be used as a slot in Plasmic
+    if (useEmptyDrawer) {
+      return (
+        <div 
+          style={{ 
+            width: "100%", 
+            height: "100%", 
+            minHeight: "200px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: "var(--text-color-secondary)",
+            fontSize: "0.875rem"
+          }}
+        >
+          {/* Empty slot for Plasmic Studio - content can be added here */}
+        </div>
+      );
+    }
 
     const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
     const drawerPos = getDrawerPosition();

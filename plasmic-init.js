@@ -3313,6 +3313,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     pdfButtonBorderRadius: { type: "string", defaultValue: "6px", description: "Border radius for PDF button (e.g., '4px', '8px', '50%')" },
     pdfButtonWidth: { type: "string", defaultValue: "auto", description: "Width of PDF button (e.g., 'auto', '100px', '100%')" },
     pdfButtonHeight: { type: "string", defaultValue: "auto", description: "Height of PDF button (e.g., 'auto', '40px', '3rem')" },
+    useEmptyDrawer: { type: "boolean", defaultValue: false, description: "When true, drawer content will be empty for Plasmic slot usage" },
 
     // Styling
     className: { type: "string", defaultValue: "" },
