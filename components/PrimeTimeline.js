@@ -874,6 +874,50 @@ const PrimeTimeline = ({
           padding: 0 !important;
           margin: 0 !important;
         }
+
+        /* MOBILE RESPONSIVE FIXES */
+        @media (max-width: 768px) {
+          .prime-timeline-centered {
+            padding: 10px !important;
+            max-width: 100% !important;
+          }
+          
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event {
+            margin-bottom: 1.5rem !important;
+          }
+          
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-separator {
+            margin: 0 15px !important;
+          }
+          
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-content {
+            max-width: 280px !important;
+          }
+          
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-opposite {
+            max-width: 120px !important;
+          }
+          
+          /* Mobile: Fix left content alignment - ensure it starts from the left edge properly */
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(even) .p-timeline-event-content {
+            align-items: flex-start !important;
+            text-align: left !important;
+            justify-content: flex-start !important;
+          }
+          
+          /* Mobile: Fix right content alignment */
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event:nth-child(odd) .p-timeline-event-content {
+            align-items: flex-start !important;
+            text-align: left !important;
+            justify-content: flex-start !important;
+          }
+          
+          /* Mobile: Fix date alignment */
+          .prime-timeline-centered .p-timeline-vertical .p-timeline-event .p-timeline-event-opposite {
+            justify-content: flex-start !important;
+            align-items: flex-start !important;
+          }
+        }
       `}</style>
       <div 
         className={className} 
