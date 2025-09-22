@@ -16,7 +16,6 @@ const ContextMenu = dynamic(() => import('primereact/contextmenu').then(m => m.C
 const Dropdown = dynamic(() => import('primereact/dropdown').then(m => m.Dropdown), { ssr: false });
 const Calendar = dynamic(() => import('primereact/calendar').then(m => m.Calendar), { ssr: false });
 const InputNumber = dynamic(() => import('primereact/inputnumber').then(m => m.InputNumber), { ssr: false });
-const Paginator = dynamic(() => import('primereact/paginator').then(m => m.Paginator), { ssr: false });
 import { classNames } from 'primereact/utils';
 import Image from 'next/image';
 
@@ -352,8 +351,8 @@ const PrimeDataTable = ({
   editableColumns = [], // Array of column keys that should be editable (auto-handles editors)
   useCustomRowEditor = false, // If true and editMode="row", opens custom dialog instead of native inline editing
   
-  // Display layout options
-  displayMode = "table", // "table" | "cards" | "form" - Layout presentation mode
+  // Layout/View Mode props
+  viewMode = "table", // "table" | "cards" | "form" - Different layout presentations
   
   // Pagination
   pageSize = 10,
@@ -2650,313 +2649,153 @@ const PrimeDataTable = ({
       }));
   }, [customRowEditData, defaultColumns, editableColumns, getEffectiveColumnType]);
 
-  // Card/Form rendering functions
-  const renderCardView = useCallback(() => {
-    if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return (
-        <div className="flex align-items-center justify-content-center" style={{ minHeight: '300px' }}>
-          <div className="text-center">
-            <i className="pi pi-inbox text-6xl text-400 mb-3"></i>
-            <div className="text-900 font-semibold text-xl mb-2">No data available</div>
-            <div className="text-600">Add some records to see them in card view</div>
-          </div>
-        </div>
-      );
-    }
-
+  // Render Cards View
+  const renderCardsView = () => {
+    const allData = Array.isArray(finalTableData) ? finalTableData : [];
+    // Apply pagination for cards
+    const startIndex = (localCurrentPage - 1) * localPageSize;
+    const endIndex = startIndex + localPageSize;
+    const displayData = enablePagination ? allData.slice(startIndex, endIndex) : allData;
+    
     return (
-      <div className="grid p-3">
-        {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4 xl:col-3 p-2">
-            <div 
-              className="card p-0 border-round-xl shadow-3 h-full transition-all transition-duration-300 hover:shadow-4 cursor-pointer"
-              style={{
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                border: '1px solid rgba(255,255,255,0.1)'
-              }}
-            >
-              {/* Card Header with Gradient */}
-              <div className="p-4 border-bottom-1" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
-                <div className="flex justify-content-between align-items-start">
-                  <div className="flex-1">
-                    <h5 className="m-0 text-white font-bold line-height-3 mb-2">
-                      {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`).substring(0, 30)}
-                      {String(rowData[defaultColumns[0]?.key] || '').length > 30 && '...'}
-                    </h5>
-                    <div className="flex align-items-center gap-2">
-                      <i className="pi pi-building text-white opacity-80"></i>
-                      <span className="text-white opacity-90 text-sm">
-                        {String(rowData[defaultColumns[1]?.key] || 'N/A').substring(0, 20)}
-                        {String(rowData[defaultColumns[1]?.key] || '').length > 20 && '...'}
-                      </span>
-                    </div>
-                  </div>
-                  {editMode === 'row' && (
-                    <Button
-                      icon="pi pi-pencil"
-                      className="p-button-rounded p-button-text hover:bg-white-alpha-20"
-                      onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
-                      tooltip="Edit Record"
-                      style={{ 
-                        minWidth: 'auto',
-                        color: 'white',
-                        border: '1px solid rgba(255,255,255,0.3)'
-                      }}
-                    />
-                  )}
+      <div className="cards-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', padding: '1rem' }}>
+        {displayData.map((item, index) => (
+          <div key={item[resolvedDataKey] || index} className="p-card p-3" style={{ 
+            border: '1px solid #e1e5e9', 
+            borderRadius: '8px', 
+            backgroundColor: '#ffffff',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            transition: 'all 0.2s ease'
+          }}>
+            {defaultColumns.slice(0, 6).map((column) => (
+              <div key={column.key} className="field mb-2">
+                <label className="font-medium text-sm text-gray-600 block">{column.title}</label>
+                <div className="text-base mt-1">
+                  {safeCell(item[column.key])}
                 </div>
               </div>
-              
-              {/* Card Body with White Background */}
-              <div className="p-4 bg-white border-round-bottom-xl">
-                <div className="grid">
-                  {defaultColumns.slice(2).map((column, colIndex) => {
-                    const value = rowData[column.key];
-                    const isEditable = editableColumns.includes(column.key) || column.editable === true;
-                    const colors = [
-                      'text-blue-600', 'text-green-600', 'text-orange-600', 'text-purple-600'
-                    ];
-                    const bgColors = [
-                      'bg-blue-50', 'bg-green-50', 'bg-orange-50', 'bg-purple-50'
-                    ];
-                    
-                    return (
-                      <div key={column.key} className="col-6 mb-3">
-                        <div className={`text-center p-3 border-round-lg ${bgColors[colIndex % 4]}`}>
-                          <div className={`text-2xl font-bold mb-2 ${colors[colIndex % 4]}`}>
-                            {typeof value === 'number' ? value.toLocaleString() : (value || '0')}
-                          </div>
-                          <div className="text-600 text-sm font-semibold uppercase letter-spacing-1">
-                            {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
-                          </div>
-                          {isEditable && (
-                            <div className="mt-2">
-                              <span className="bg-primary text-white px-2 py-1 border-round text-xs font-bold">
-                                <i className="pi pi-pencil mr-1"></i>EDITABLE
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Card Footer */}
-                <div className="pt-3 border-top-1 surface-border mt-3">
-                  <div className="flex justify-content-between align-items-center">
-                    <span className="text-600 text-sm">
-                      <i className="pi pi-calendar mr-2"></i>
-                      {new Date().toLocaleDateString()}
-                    </span>
-                    <span className="bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold">
-                      Record #{index + 1}
-                    </span>
-                  </div>
-                </div>
+            ))}
+            
+            {/* Action buttons for cards */}
+            {(editMode === 'row' && useCustomRowEditor) && (
+              <div className="flex gap-2 mt-3 pt-2 border-top">
+                <Button
+                  icon="pi pi-pencil"
+                  label="Edit"
+                  className="p-button-sm p-button-outlined"
+                  onClick={() => openCustomRowEditor(item)}
+                />
               </div>
-            </div>
+            )}
           </div>
         ))}
       </div>
     );
-  }, [finalTableData, defaultColumns, editableColumns, editMode, useCustomRowEditor, openCustomRowEditor, resolvedDataKey]);
+  };
 
-  const renderFormView = useCallback(() => {
-    if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return (
-        <div className="flex align-items-center justify-content-center" style={{ minHeight: '300px' }}>
-          <div className="text-center">
-            <i className="pi pi-file text-6xl text-400 mb-3"></i>
-            <div className="text-900 font-semibold text-xl mb-2">No data available</div>
-            <div className="text-600">Add some records to see them in form view</div>
-          </div>
-        </div>
-      );
-    }
-
+  // Render Form View (like your second image - clean forms)
+  const renderFormView = () => {
+    const allData = Array.isArray(finalTableData) ? finalTableData : [];
+    // Apply pagination for forms
+    const startIndex = (localCurrentPage - 1) * localPageSize;
+    const endIndex = startIndex + localPageSize;
+    const displayData = enablePagination ? allData.slice(startIndex, endIndex) : allData;
+    
     return (
-      <div className="p-3">
-        {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="mb-5">
-            <div 
-              className="card p-0 border-round-xl shadow-4 overflow-hidden"
-              style={{ 
-                background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
-                border: '1px solid #dee2e6'
-              }}
-            >
-              {/* Form Header with Gradient Background */}
-              <div 
-                className="p-5 text-white relative"
-                style={{
-                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                  borderBottom: '3px solid rgba(255,255,255,0.2)'
-                }}
-              >
-                <div className="flex justify-content-between align-items-start">
-                  <div className="flex-1">
-                    <h3 className="m-0 text-white font-bold mb-3 text-3xl">
-                      {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`)}
-                    </h3>
-                    <div className="flex align-items-center gap-3 mb-2">
-                      <i className="pi pi-building text-white opacity-90 text-xl"></i>
-                      <span className="text-white opacity-95 text-lg font-medium">
-                        {rowData[defaultColumns[1]?.key] || 'N/A'}
-                      </span>
-                    </div>
-                    <div className="flex align-items-center gap-2">
-                      <i className="pi pi-calendar text-white opacity-80"></i>
-                      <span className="text-white opacity-90 text-sm">
-                        Last updated: {new Date().toLocaleDateString()}
-                      </span>
-                    </div>
-                  </div>
-                  {editMode === 'row' && (
-                    <Button
-                      label="Edit Record"
-                      icon="pi pi-pencil"
-                      className="p-button-lg"
-                      onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
-                      style={{ 
-                        background: 'rgba(255,255,255,0.2)',
-                        border: '2px solid rgba(255,255,255,0.3)',
-                        color: 'white'
-                      }}
-                    />
-                  )}
-                </div>
-                
-                {/* Decorative Elements */}
-                <div 
-                  className="absolute"
-                  style={{
-                    top: '20px',
-                    right: '20px',
-                    width: '100px',
-                    height: '100px',
-                    background: 'rgba(255,255,255,0.1)',
-                    borderRadius: '50%',
-                    zIndex: 1
-                  }}
-                ></div>
-                <div 
-                  className="absolute"
-                  style={{
-                    bottom: '-30px',
-                    right: '-30px',
-                    width: '150px',
-                    height: '150px',
-                    background: 'rgba(255,255,255,0.05)',
-                    borderRadius: '50%',
-                    zIndex: 1
-                  }}
-                ></div>
-              </div>
-              
-              {/* Form Fields with White Background */}
-              <div className="p-6 bg-white">
-                <div className="grid">
-                  {defaultColumns.slice(2).map((column, colIndex) => {
-                    const value = rowData[column.key];
-                    const isEditable = editableColumns.includes(column.key) || column.editable === true;
-                    const formattedValue = typeof value === 'number' ? value.toLocaleString() : (value || 'N/A');
-                    
-                    const gradients = [
-                      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-                      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-                      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-                      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
-                      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
-                    ];
-                    
-                    return (
-                      <div key={column.key} className="col-12 md:col-6 lg:col-4 mb-4">
-                        <div 
-                          className="card p-4 border-round-xl shadow-2 h-full transition-all transition-duration-300 hover:shadow-3"
-                          style={{ 
-                            background: gradients[colIndex % gradients.length],
-                            border: 'none'
-                          }}
-                        >
-                          <div className="text-center">
-                            <div className="text-white opacity-90 text-sm font-bold uppercase letter-spacing-1 mb-3">
-                              {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
-                            </div>
-                            <div className="text-white text-4xl font-bold mb-3">
-                              {formattedValue}
-                            </div>
-                            {isEditable && (
-                              <div className="mt-3">
-                                <span className="bg-white text-gray-700 px-3 py-2 border-round-lg text-sm font-bold shadow-2">
-                                  <i className="pi pi-pencil mr-2"></i>EDITABLE
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                
-                {/* Analytics Section */}
-                <div className="mt-6 pt-4 border-top-1 surface-border">
-                  <h5 className="text-900 font-bold mb-4">
-                    <i className="pi pi-chart-bar mr-2 text-primary"></i>
-                    Record Analytics
-                  </h5>
-                  <div className="grid">
-                    <div className="col-12 md:col-3 text-center">
-                      <div 
-                        className="card p-4 border-round-lg shadow-1"
-                        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
-                      >
-                        <div className="text-white text-3xl font-bold">{index + 1}</div>
-                        <div className="text-white opacity-90 text-sm uppercase">Record Number</div>
-                      </div>
-                    </div>
-                    <div className="col-12 md:col-3 text-center">
-                      <div 
-                        className="card p-4 border-round-lg shadow-1"
-                        style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}
-                      >
-                        <div className="text-white text-3xl font-bold">
-                          {defaultColumns.filter(col => editableColumns.includes(col.key)).length}
-                        </div>
-                        <div className="text-white opacity-90 text-sm uppercase">Editable Fields</div>
-                      </div>
-                    </div>
-                    <div className="col-12 md:col-3 text-center">
-                      <div 
-                        className="card p-4 border-round-lg shadow-1"
-                        style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}
-                      >
-                        <div className="text-white text-3xl font-bold">{defaultColumns.length}</div>
-                        <div className="text-white opacity-90 text-sm uppercase">Total Fields</div>
-                      </div>
-                    </div>
-                    <div className="col-12 md:col-3 text-center">
-                      <div 
-                        className="card p-4 border-round-lg shadow-1"
-                        style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}
-                      >
-                        <div className="text-white text-sm font-bold">
-                          {new Date().toLocaleDateString()}
-                        </div>
-                        <div className="text-white opacity-90 text-sm uppercase">Last Updated</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+      <div className="form-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '2rem', padding: '2rem' }}>
+        {displayData.map((item, index) => (
+          <div key={item[resolvedDataKey] || index} className="form-card" style={{
+            backgroundColor: '#ffffff',
+            border: '1px solid #e1e5e9',
+            borderRadius: '12px',
+            padding: '1.5rem',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
+          }}>
+            <div className="form-header mb-4 pb-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
+              <h3 className="text-lg font-semibold m-0" style={{ color: '#1f2937' }}>
+                {item[defaultColumns[0]?.key] || `Record ${index + 1}`}
+              </h3>
             </div>
+            
+            <div className="formgrid grid">
+              {defaultColumns.map((column, colIndex) => (
+                <div key={column.key} className="field col-12 md:col-6">
+                  <label className="font-medium text-sm block mb-2" style={{ color: '#374151' }}>
+                    {column.title}
+                  </label>
+                  <div className="p-inputtext p-component" style={{
+                    padding: '0.75rem',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: '#f9fafb',
+                    fontSize: '0.875rem',
+                    color: '#111827'
+                  }}>
+                    {safeCell(item[column.key])}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Action buttons for forms */}
+            {(editMode === 'row' && useCustomRowEditor) && (
+              <div className="flex gap-2 mt-4 pt-3" style={{ borderTop: '1px solid #f0f0f0' }}>
+                <Button
+                  icon="pi pi-pencil"
+                  label="Edit Record"
+                  className="p-button-sm"
+                  style={{
+                    backgroundColor: '#f97316',
+                    borderColor: '#f97316',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px'
+                  }}
+                  onClick={() => openCustomRowEditor(item)}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>
     );
-  }, [finalTableData, defaultColumns, editableColumns, editMode, useCustomRowEditor, openCustomRowEditor, resolvedDataKey]);
+  };
+
+  // Simplified toolbar for card/form views (search only)
+  const renderSimplifiedToolbar = () => {
+    if (viewMode === 'table') return null;
+    
+    return (
+      <div className="simplified-toolbar mb-4 p-3" style={{
+        backgroundColor: '#ffffff',
+        border: '1px solid #e1e5e9',
+        borderRadius: '8px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+      }}>
+        <div className="flex align-items-center gap-3">
+          <i className="pi pi-search text-gray-500"></i>
+          <InputText
+            value={globalFilterValue}
+            onChange={(e) => setGlobalFilterValue(e.target.value)}
+            placeholder="Search records..."
+            className="flex-1"
+            style={{
+              border: '1px solid #d1d5db',
+              borderRadius: '6px',
+              padding: '0.75rem'
+            }}
+          />
+          {globalFilterValue && (
+            <Button
+              icon="pi pi-times"
+              className="p-button-text p-button-sm"
+              onClick={() => setGlobalFilterValue('')}
+              tooltip="Clear search"
+            />
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
@@ -3218,16 +3057,55 @@ const PrimeDataTable = ({
       
 
       
-      {/* Toolbar */}
+      {/* Conditional Toolbar based on viewMode */}
+      {viewMode === 'table' ? (
+        <>
+          {/* Full Toolbar for Table View */}
       <Toolbar
         left={leftToolbarTemplate}
         right={rightToolbarTemplate}
         className="mb-4"
-        style={{}}
+            style={{}}
       />
-
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
+        </>
+      ) : (
+        /* Simplified Toolbar for Card/Form Views */
+        renderSimplifiedToolbar()
+      )}
+
+      {/* Conditional Content based on viewMode */}
+      {viewMode === 'cards' && (
+        <>
+          {renderCardsView()}
+          {enablePagination && (
+            <Paginator
+              first={(localCurrentPage - 1) * localPageSize}
+              rows={localPageSize}
+              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
+              rowsPerPageOptions={pageSizeOptions}
+              onPageChange={handlePageChange}
+              className="mt-4"
+            />
+          )}
+        </>
+      )}
+      {viewMode === 'form' && (
+        <>
+          {renderFormView()}
+          {enablePagination && (
+            <Paginator
+              first={(localCurrentPage - 1) * localPageSize}
+              rows={localPageSize}
+              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
+              rowsPerPageOptions={pageSizeOptions}
+              onPageChange={handlePageChange}
+              className="mt-4"
+            />
+          )}
+        </>
+      )}
       
       {/* Mobile Responsive CSS - Removed, using PrimeReact native responsiveLayout */}
       
@@ -3237,16 +3115,15 @@ const PrimeDataTable = ({
       
 
 
-
-
-      {/* Display Mode: Table */}
-      {displayMode === "table" && (
-        <DataTable
-          key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
-          value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
-          loading={isLoading}
-          editMode={editMode}
-          dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
+      
+      {/* DataTable - Only render for table view */}
+      {viewMode === 'table' && (
+      <DataTable
+        key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
+        value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
+        loading={isLoading}
+        editMode={editMode}
+        dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
         filters={filters}
         filterDisplay={
           enableColumnFilter 
@@ -3679,48 +3556,10 @@ const PrimeDataTable = ({
             frozen={enableFrozenColumns ? "right" : undefined}
           />
         )}
-        </DataTable>
+      </DataTable>
       )}
 
-      {/* Display Mode: Cards */}
-      {displayMode === "cards" && (
-        <div>
-          {/* Cards View */}
-          {renderCardView()}
-          
-          {/* Pagination for cards */}
-          {enablePagination && (
-            <Paginator
-              first={(localCurrentPage - 1) * localPageSize}
-              rows={localPageSize}
-              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
-              rowsPerPageOptions={pageSizeOptions}
-              onPageChange={handlePageChange}
-              className="mt-4"
-            />
-          )}
-        </div>
-      )}
 
-      {/* Display Mode: Form */}
-      {displayMode === "form" && (
-        <div>
-          {/* Form View */}
-          {renderFormView()}
-          
-          {/* Pagination for forms */}
-          {enablePagination && (
-            <Paginator
-              first={(localCurrentPage - 1) * localPageSize}
-              rows={localPageSize}
-              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
-              rowsPerPageOptions={pageSizeOptions}
-              onPageChange={handlePageChange}
-              className="mt-4"
-            />
-          )}
-        </div>
-      )}
 
       {/* Image Modal */}
       <Dialog
