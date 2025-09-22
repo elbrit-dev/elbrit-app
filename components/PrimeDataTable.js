@@ -16,6 +16,7 @@ const ContextMenu = dynamic(() => import('primereact/contextmenu').then(m => m.C
 const Dropdown = dynamic(() => import('primereact/dropdown').then(m => m.Dropdown), { ssr: false });
 const Calendar = dynamic(() => import('primereact/calendar').then(m => m.Calendar), { ssr: false });
 const InputNumber = dynamic(() => import('primereact/inputnumber').then(m => m.InputNumber), { ssr: false });
+const Paginator = dynamic(() => import('primereact/paginator').then(m => m.Paginator), { ssr: false });
 import { classNames } from 'primereact/utils';
 import Image from 'next/image';
 
@@ -350,6 +351,9 @@ const PrimeDataTable = ({
   editMode = null, // "cell" | "row" for PrimeReact native editing
   editableColumns = [], // Array of column keys that should be editable (auto-handles editors)
   useCustomRowEditor = false, // If true and editMode="row", opens custom dialog instead of native inline editing
+  
+  // Display layout options
+  displayMode = "table", // "table" | "cards" | "form" - Layout presentation mode
   
   // Pagination
   pageSize = 10,
@@ -2646,6 +2650,110 @@ const PrimeDataTable = ({
       }));
   }, [customRowEditData, defaultColumns, editableColumns, getEffectiveColumnType]);
 
+  // Card/Form rendering functions
+  const renderCardView = useCallback(() => {
+    if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
+      return <div className="text-center p-4">No data available</div>;
+    }
+
+    return (
+      <div className="grid">
+        {finalTableData.map((rowData, index) => (
+          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4">
+            <div className="card p-3 mb-3 shadow-2">
+              {/* Card Header */}
+              <div className="flex justify-content-between align-items-center mb-3">
+                <h6 className="m-0 text-primary">
+                  {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
+                </h6>
+                {editMode === 'row' && (
+                  <Button
+                    icon="pi pi-pencil"
+                    className="p-button-text p-button-sm"
+                    onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
+                    tooltip="Edit"
+                  />
+                )}
+              </div>
+              
+              {/* Card Body */}
+              <div className="grid">
+                {defaultColumns.slice(1).map((column) => {
+                  const value = rowData[column.key];
+                  const isEditable = editableColumns.includes(column.key) || column.editable === true;
+                  
+                  return (
+                    <div key={column.key} className="col-12">
+                      <div className="flex justify-content-between align-items-center py-2 border-bottom-1 surface-border">
+                        <span className="font-medium text-600">{column.title}:</span>
+                        <span className={`${isEditable ? 'text-primary font-semibold' : 'text-900'}`}>
+                          {safeCell(value)}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }, [finalTableData, defaultColumns, editableColumns, editMode, useCustomRowEditor, openCustomRowEditor, resolvedDataKey]);
+
+  const renderFormView = useCallback(() => {
+    if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
+      return <div className="text-center p-4">No data available</div>;
+    }
+
+    return (
+      <div className="p-4">
+        {finalTableData.map((rowData, index) => (
+          <div key={rowData[resolvedDataKey] || index} className="card p-4 mb-4 shadow-2">
+            {/* Form Header */}
+            <div className="flex justify-content-between align-items-center mb-4 pb-3 border-bottom-2 surface-border">
+              <h5 className="m-0 text-primary">
+                {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
+              </h5>
+              {editMode === 'row' && (
+                <Button
+                  label="Edit"
+                  icon="pi pi-pencil"
+                  className="p-button-outlined"
+                  onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
+                />
+              )}
+            </div>
+            
+            {/* Form Fields */}
+            <div className="formgrid grid">
+              {defaultColumns.slice(1).map((column) => {
+                const value = rowData[column.key];
+                const isEditable = editableColumns.includes(column.key) || column.editable === true;
+                
+                return (
+                  <div key={column.key} className="field col-12 md:col-6">
+                    <label className="font-medium text-700 mb-2 block">{column.title}</label>
+                    <div className={`p-3 surface-100 border-round ${isEditable ? 'border-primary-500 border-2' : 'border-300 border-1'}`}>
+                      <span className={`${isEditable ? 'text-primary font-semibold' : 'text-900'}`}>
+                        {safeCell(value)}
+                      </span>
+                      {isEditable && (
+                        <small className="block text-primary mt-1">
+                          <i className="pi pi-pencil mr-1"></i>Editable
+                        </small>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }, [finalTableData, defaultColumns, editableColumns, editMode, useCustomRowEditor, openCustomRowEditor, resolvedDataKey]);
+
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
     if (!enableColumnGrouping || !finalColumnStructure.hasGroups || !enableColumnFilter) {
@@ -2927,13 +3035,14 @@ const PrimeDataTable = ({
 
 
 
-      {/* DataTable */}
-      <DataTable
-        key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
-        value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
-        loading={isLoading}
-        editMode={editMode}
-        dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
+      {/* Display Mode: Table */}
+      {displayMode === "table" && (
+        <DataTable
+          key={`datatable-${Array.isArray(finalTableData) ? finalTableData.length : 0}-${isPivotEnabled ? 'pivot' : 'normal'}`} // HYDRATION FIX: Force re-render on data structure changes
+          value={Array.isArray(finalTableData) ? finalTableData : []} // CRITICAL: Final safety check before DataTable
+          loading={isLoading}
+          editMode={editMode}
+          dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
         filters={filters}
         filterDisplay={
           enableColumnFilter 
@@ -3366,9 +3475,64 @@ const PrimeDataTable = ({
             frozen={enableFrozenColumns ? "right" : undefined}
           />
         )}
-      </DataTable>
+        </DataTable>
+      )}
 
+      {/* Display Mode: Cards */}
+      {displayMode === "cards" && (
+        <div>
+          {/* Toolbar for cards */}
+          <Toolbar
+            left={leftToolbarTemplate}
+            right={rightToolbarTemplate}
+            className="mb-4"
+            style={{}}
+          />
+          
+          {/* Cards View */}
+          {renderCardView()}
+          
+          {/* Pagination for cards */}
+          {enablePagination && (
+            <Paginator
+              first={(localCurrentPage - 1) * localPageSize}
+              rows={localPageSize}
+              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
+              rowsPerPageOptions={pageSizeOptions}
+              onPageChange={handlePageChange}
+              className="mt-4"
+            />
+          )}
+        </div>
+      )}
 
+      {/* Display Mode: Form */}
+      {displayMode === "form" && (
+        <div>
+          {/* Toolbar for forms */}
+          <Toolbar
+            left={leftToolbarTemplate}
+            right={rightToolbarTemplate}
+            className="mb-4"
+            style={{}}
+          />
+          
+          {/* Form View */}
+          {renderFormView()}
+          
+          {/* Pagination for forms */}
+          {enablePagination && (
+            <Paginator
+              first={(localCurrentPage - 1) * localPageSize}
+              rows={localPageSize}
+              totalRecords={Array.isArray(finalTableData) ? finalTableData.length : 0}
+              rowsPerPageOptions={pageSizeOptions}
+              onPageChange={handlePageChange}
+              className="mt-4"
+            />
+          )}
+        </div>
+      )}
 
       {/* Image Modal */}
       <Dialog

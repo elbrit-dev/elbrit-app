@@ -68,6 +68,7 @@ const PrimeTimeline = ({
   pdfButtonWidth = "auto",
   pdfButtonHeight = "auto",
   useEmptyDrawer = false, // when true, drawer content will be empty for Plasmic slot usage
+  drawerContent = null, // Plasmic slot for custom drawer content when useEmptyDrawer is true
 
   // Styling
   className = "",
@@ -385,7 +386,7 @@ const PrimeTimeline = ({
   const renderDialogContent = () => {
     if (!dialogItem) return null;
 
-    // If useEmptyDrawer is true, return an empty div that can be used as a slot in Plasmic
+    // If useEmptyDrawer is true, render the drawerContent slot
     if (useEmptyDrawer) {
       return (
         <div 
@@ -393,14 +394,21 @@ const PrimeTimeline = ({
             width: "100%", 
             height: "100%", 
             minHeight: "200px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "var(--text-color-secondary)",
-            fontSize: "0.875rem"
+            padding: "1rem"
           }}
         >
-          {/* Empty slot for Plasmic Studio - content can be added here */}
+          {drawerContent || (
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "var(--text-color-secondary)",
+              fontSize: "0.875rem",
+              textAlign: "center"
+            }}>
+              Empty drawer - add content via drawerContent slot
+            </div>
+          )}
         </div>
       );
     }

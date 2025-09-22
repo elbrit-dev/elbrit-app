@@ -1395,6 +1395,12 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "If true and editMode='row', opens custom dialog form instead of native inline editing",
       defaultValue: false
     },
+    displayMode: {
+      type: "choice",
+      options: ["table", "cards", "form"],
+      description: "Layout presentation mode: table (traditional), cards (compact cards), form (detailed forms)",
+      defaultValue: "table"
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",
@@ -3314,6 +3320,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
     pdfButtonWidth: { type: "string", defaultValue: "auto", description: "Width of PDF button (e.g., 'auto', '100px', '100%')" },
     pdfButtonHeight: { type: "string", defaultValue: "auto", description: "Height of PDF button (e.g., 'auto', '40px', '3rem')" },
     useEmptyDrawer: { type: "boolean", defaultValue: false, description: "When true, drawer content will be empty for Plasmic slot usage" },
+    drawerContent: { type: "slot", description: "Custom content for drawer when useEmptyDrawer is true" },
 
     // Styling
     className: { type: "string", defaultValue: "" },
