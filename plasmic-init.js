@@ -3394,12 +3394,10 @@ PLASMIC.registerComponent(PrimeTimeline, {
       type: "eventHandler",
       description: "Called right before dialog is shown (when enabledDialog is true and no link)",
       argTypes: [ { name: "item", type: "object" } ]
-    },
-
-    // Styling props
-    className: { type: "string", defaultValue: "", description: "CSS class name for the timeline wrapper" },
-    style: { type: "object", defaultValue: {}, description: "Inline styles for the timeline wrapper" }
+    }
   },
-  importPath: "./components/PrimeTimeline"
+  importPath: "./components/PrimeTimeline",
+  classNameProp: "className",
+  defaultStyles: {}
 });
 

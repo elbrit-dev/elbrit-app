@@ -119,7 +119,10 @@ const PrimeTimeline = ({
   onPdfView,
   onItemClick,
   onImageClick,
-  onDialogOpen
+  onDialogOpen,
+  
+  // Spread operator to catch any additional props
+  ...props
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
@@ -872,7 +875,10 @@ const PrimeTimeline = ({
           margin: 0 !important;
         }
       `}</style>
-      <div className={className} style={{ ...style, width: containerWidth, height: containerHeight }}>
+      <div 
+        className={className} 
+        style={{ ...style, width: containerWidth, height: containerHeight }}
+      >
         <div style={{ 
           position: "relative",
           width: "100%",
