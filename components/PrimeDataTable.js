@@ -2653,58 +2653,107 @@ const PrimeDataTable = ({
   // Card/Form rendering functions
   const renderCardView = useCallback(() => {
     if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return <div className="text-center p-4 text-600">No data available</div>;
+      return (
+        <div className="flex align-items-center justify-content-center" style={{ minHeight: '300px' }}>
+          <div className="text-center">
+            <i className="pi pi-inbox text-6xl text-400 mb-3"></i>
+            <div className="text-900 font-semibold text-xl mb-2">No data available</div>
+            <div className="text-600">Add some records to see them in card view</div>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div className="grid">
+      <div className="grid p-3">
         {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4 xl:col-3">
-            <div className="card p-4 mb-4 shadow-2 border-round-md h-full">
-              {/* Card Header */}
-              <div className="flex justify-content-between align-items-start mb-3 pb-3 border-bottom-1 surface-border">
-                <div className="flex-1">
-                  <h6 className="m-0 text-900 font-bold line-height-3">
-                    {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`).substring(0, 25)}
-                    {String(rowData[defaultColumns[0]?.key] || '').length > 25 && '...'}
-                  </h6>
-                  <small className="text-500 block mt-1">
-                    {rowData[defaultColumns[1]?.key] || 'N/A'}
-                  </small>
+          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4 xl:col-3 p-2">
+            <div 
+              className="card p-0 border-round-xl shadow-3 h-full transition-all transition-duration-300 hover:shadow-4 cursor-pointer"
+              style={{
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                border: '1px solid rgba(255,255,255,0.1)'
+              }}
+            >
+              {/* Card Header with Gradient */}
+              <div className="p-4 border-bottom-1" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+                <div className="flex justify-content-between align-items-start">
+                  <div className="flex-1">
+                    <h5 className="m-0 text-white font-bold line-height-3 mb-2">
+                      {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`).substring(0, 30)}
+                      {String(rowData[defaultColumns[0]?.key] || '').length > 30 && '...'}
+                    </h5>
+                    <div className="flex align-items-center gap-2">
+                      <i className="pi pi-building text-white opacity-80"></i>
+                      <span className="text-white opacity-90 text-sm">
+                        {String(rowData[defaultColumns[1]?.key] || 'N/A').substring(0, 20)}
+                        {String(rowData[defaultColumns[1]?.key] || '').length > 20 && '...'}
+                      </span>
+                    </div>
+                  </div>
+                  {editMode === 'row' && (
+                    <Button
+                      icon="pi pi-pencil"
+                      className="p-button-rounded p-button-text hover:bg-white-alpha-20"
+                      onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
+                      tooltip="Edit Record"
+                      style={{ 
+                        minWidth: 'auto',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.3)'
+                      }}
+                    />
+                  )}
                 </div>
-                {editMode === 'row' && (
-                  <Button
-                    icon="pi pi-pencil"
-                    className="p-button-text p-button-sm p-button-rounded"
-                    onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
-                    tooltip="Edit"
-                    style={{ minWidth: 'auto' }}
-                  />
-                )}
               </div>
               
-              {/* Card Body - Key Metrics */}
-              <div className="grid">
-                {defaultColumns.slice(2).map((column) => {
-                  const value = rowData[column.key];
-                  const isEditable = editableColumns.includes(column.key) || column.editable === true;
-                  
-                  return (
-                    <div key={column.key} className="col-6 mb-3">
-                      <div className="text-center">
-                        <div className={`text-2xl font-bold mb-1 ${isEditable ? 'text-primary' : 'text-900'}`}>
-                          {typeof value === 'number' ? value.toLocaleString() : (value || '0')}
+              {/* Card Body with White Background */}
+              <div className="p-4 bg-white border-round-bottom-xl">
+                <div className="grid">
+                  {defaultColumns.slice(2).map((column, colIndex) => {
+                    const value = rowData[column.key];
+                    const isEditable = editableColumns.includes(column.key) || column.editable === true;
+                    const colors = [
+                      'text-blue-600', 'text-green-600', 'text-orange-600', 'text-purple-600'
+                    ];
+                    const bgColors = [
+                      'bg-blue-50', 'bg-green-50', 'bg-orange-50', 'bg-purple-50'
+                    ];
+                    
+                    return (
+                      <div key={column.key} className="col-6 mb-3">
+                        <div className={`text-center p-3 border-round-lg ${bgColors[colIndex % 4]}`}>
+                          <div className={`text-2xl font-bold mb-2 ${colors[colIndex % 4]}`}>
+                            {typeof value === 'number' ? value.toLocaleString() : (value || '0')}
+                          </div>
+                          <div className="text-600 text-sm font-semibold uppercase letter-spacing-1">
+                            {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
+                          </div>
+                          {isEditable && (
+                            <div className="mt-2">
+                              <span className="bg-primary text-white px-2 py-1 border-round text-xs font-bold">
+                                <i className="pi pi-pencil mr-1"></i>EDITABLE
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <div className="text-xs text-600 uppercase font-medium">
-                          {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
-                        </div>
-                        {isEditable && (
-                          <i className="pi pi-pencil text-xs text-primary mt-1"></i>
-                        )}
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
+                
+                {/* Card Footer */}
+                <div className="pt-3 border-top-1 surface-border mt-3">
+                  <div className="flex justify-content-between align-items-center">
+                    <span className="text-600 text-sm">
+                      <i className="pi pi-calendar mr-2"></i>
+                      {new Date().toLocaleDateString()}
+                    </span>
+                    <span className="bg-primary-100 text-primary px-2 py-1 border-round text-xs font-bold">
+                      Record #{index + 1}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2715,82 +2764,191 @@ const PrimeDataTable = ({
 
   const renderFormView = useCallback(() => {
     if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return <div className="text-center p-4 text-600">No data available</div>;
+      return (
+        <div className="flex align-items-center justify-content-center" style={{ minHeight: '300px' }}>
+          <div className="text-center">
+            <i className="pi pi-file text-6xl text-400 mb-3"></i>
+            <div className="text-900 font-semibold text-xl mb-2">No data available</div>
+            <div className="text-600">Add some records to see them in form view</div>
+          </div>
+        </div>
+      );
     }
 
     return (
-      <div>
+      <div className="p-3">
         {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="card p-5 mb-4 shadow-2 border-round-lg">
-            {/* Form Header */}
-            <div className="flex justify-content-between align-items-start mb-4 pb-4 border-bottom-2 surface-border">
-              <div className="flex-1">
-                <h4 className="m-0 text-900 font-bold mb-2">
-                  {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
-                </h4>
-                <div className="flex align-items-center gap-2">
-                  <i className="pi pi-building text-primary"></i>
-                  <span className="text-600">{rowData[defaultColumns[1]?.key] || 'N/A'}</span>
-                </div>
-              </div>
-              {editMode === 'row' && (
-                <Button
-                  label="Edit Record"
-                  icon="pi pi-pencil"
-                  className="p-button-outlined p-button-primary"
-                  onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
-                />
-              )}
-            </div>
-            
-            {/* Form Fields */}
-            <div className="formgrid grid">
-              {defaultColumns.slice(2).map((column) => {
-                const value = rowData[column.key];
-                const isEditable = editableColumns.includes(column.key) || column.editable === true;
-                const formattedValue = typeof value === 'number' ? value.toLocaleString() : (value || 'N/A');
-                
-                return (
-                  <div key={column.key} className="field col-12 md:col-6 lg:col-4">
-                    <label className="font-semibold text-800 mb-2 block">
-                      {column.title?.replace(/total_sec_|_/gi, ' ').replace(/\b\w/g, l => l.toUpperCase()).trim() || column.key}
-                    </label>
-                    <div className={`relative ${isEditable ? 'p-inputgroup' : ''}`}>
-                      <div className={`
-                        p-3 border-round-md text-lg font-medium
-                        ${isEditable ? 'surface-0 border-primary-500 border-2 text-primary' : 'surface-100 border-300 border-1 text-900'}
-                      `}>
-                        {formattedValue}
-                      </div>
-                      {isEditable && (
-                        <div className="absolute top-0 right-0 mt-1 mr-2">
-                          <span className="bg-primary text-white px-2 py-1 border-round text-xs font-bold">
-                            <i className="pi pi-pencil mr-1"></i>EDITABLE
-                          </span>
-                        </div>
-                      )}
+          <div key={rowData[resolvedDataKey] || index} className="mb-5">
+            <div 
+              className="card p-0 border-round-xl shadow-4 overflow-hidden"
+              style={{ 
+                background: 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)',
+                border: '1px solid #dee2e6'
+              }}
+            >
+              {/* Form Header with Gradient Background */}
+              <div 
+                className="p-5 text-white relative"
+                style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderBottom: '3px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                <div className="flex justify-content-between align-items-start">
+                  <div className="flex-1">
+                    <h3 className="m-0 text-white font-bold mb-3 text-3xl">
+                      {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`)}
+                    </h3>
+                    <div className="flex align-items-center gap-3 mb-2">
+                      <i className="pi pi-building text-white opacity-90 text-xl"></i>
+                      <span className="text-white opacity-95 text-lg font-medium">
+                        {rowData[defaultColumns[1]?.key] || 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex align-items-center gap-2">
+                      <i className="pi pi-calendar text-white opacity-80"></i>
+                      <span className="text-white opacity-90 text-sm">
+                        Last updated: {new Date().toLocaleDateString()}
+                      </span>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-            
-            {/* Summary Stats */}
-            <div className="mt-4 pt-4 border-top-1 surface-border">
-              <div className="grid">
-                <div className="col-12 md:col-4 text-center">
-                  <div className="text-600 text-sm">Total Records</div>
-                  <div className="text-2xl font-bold text-primary">{index + 1}</div>
+                  {editMode === 'row' && (
+                    <Button
+                      label="Edit Record"
+                      icon="pi pi-pencil"
+                      className="p-button-lg"
+                      onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
+                      style={{ 
+                        background: 'rgba(255,255,255,0.2)',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        color: 'white'
+                      }}
+                    />
+                  )}
                 </div>
-                <div className="col-12 md:col-4 text-center">
-                  <div className="text-600 text-sm">Editable Fields</div>
-                  <div className="text-2xl font-bold text-orange-500">
-                    {defaultColumns.filter(col => editableColumns.includes(col.key)).length}
+                
+                {/* Decorative Elements */}
+                <div 
+                  className="absolute"
+                  style={{
+                    top: '20px',
+                    right: '20px',
+                    width: '100px',
+                    height: '100px',
+                    background: 'rgba(255,255,255,0.1)',
+                    borderRadius: '50%',
+                    zIndex: 1
+                  }}
+                ></div>
+                <div 
+                  className="absolute"
+                  style={{
+                    bottom: '-30px',
+                    right: '-30px',
+                    width: '150px',
+                    height: '150px',
+                    background: 'rgba(255,255,255,0.05)',
+                    borderRadius: '50%',
+                    zIndex: 1
+                  }}
+                ></div>
+              </div>
+              
+              {/* Form Fields with White Background */}
+              <div className="p-6 bg-white">
+                <div className="grid">
+                  {defaultColumns.slice(2).map((column, colIndex) => {
+                    const value = rowData[column.key];
+                    const isEditable = editableColumns.includes(column.key) || column.editable === true;
+                    const formattedValue = typeof value === 'number' ? value.toLocaleString() : (value || 'N/A');
+                    
+                    const gradients = [
+                      'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+                      'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+                      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+                      'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)'
+                    ];
+                    
+                    return (
+                      <div key={column.key} className="col-12 md:col-6 lg:col-4 mb-4">
+                        <div 
+                          className="card p-4 border-round-xl shadow-2 h-full transition-all transition-duration-300 hover:shadow-3"
+                          style={{ 
+                            background: gradients[colIndex % gradients.length],
+                            border: 'none'
+                          }}
+                        >
+                          <div className="text-center">
+                            <div className="text-white opacity-90 text-sm font-bold uppercase letter-spacing-1 mb-3">
+                              {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
+                            </div>
+                            <div className="text-white text-4xl font-bold mb-3">
+                              {formattedValue}
+                            </div>
+                            {isEditable && (
+                              <div className="mt-3">
+                                <span className="bg-white text-gray-700 px-3 py-2 border-round-lg text-sm font-bold shadow-2">
+                                  <i className="pi pi-pencil mr-2"></i>EDITABLE
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Analytics Section */}
+                <div className="mt-6 pt-4 border-top-1 surface-border">
+                  <h5 className="text-900 font-bold mb-4">
+                    <i className="pi pi-chart-bar mr-2 text-primary"></i>
+                    Record Analytics
+                  </h5>
+                  <div className="grid">
+                    <div className="col-12 md:col-3 text-center">
+                      <div 
+                        className="card p-4 border-round-lg shadow-1"
+                        style={{ background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}
+                      >
+                        <div className="text-white text-3xl font-bold">{index + 1}</div>
+                        <div className="text-white opacity-90 text-sm uppercase">Record Number</div>
+                      </div>
+                    </div>
+                    <div className="col-12 md:col-3 text-center">
+                      <div 
+                        className="card p-4 border-round-lg shadow-1"
+                        style={{ background: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' }}
+                      >
+                        <div className="text-white text-3xl font-bold">
+                          {defaultColumns.filter(col => editableColumns.includes(col.key)).length}
+                        </div>
+                        <div className="text-white opacity-90 text-sm uppercase">Editable Fields</div>
+                      </div>
+                    </div>
+                    <div className="col-12 md:col-3 text-center">
+                      <div 
+                        className="card p-4 border-round-lg shadow-1"
+                        style={{ background: 'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)' }}
+                      >
+                        <div className="text-white text-3xl font-bold">{defaultColumns.length}</div>
+                        <div className="text-white opacity-90 text-sm uppercase">Total Fields</div>
+                      </div>
+                    </div>
+                    <div className="col-12 md:col-3 text-center">
+                      <div 
+                        className="card p-4 border-round-lg shadow-1"
+                        style={{ background: 'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)' }}
+                      >
+                        <div className="text-white text-sm font-bold">
+                          {new Date().toLocaleDateString()}
+                        </div>
+                        <div className="text-white opacity-90 text-sm uppercase">Last Updated</div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="col-12 md:col-4 text-center">
-                  <div className="text-600 text-sm">Last Updated</div>
-                  <div className="text-sm text-600">{new Date().toLocaleDateString()}</div>
                 </div>
               </div>
             </div>
