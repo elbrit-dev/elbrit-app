@@ -43,6 +43,13 @@ const PrimeTimeline = ({
   showOpposite = true, // show date on the opposite side (vertical only)
   showReadMore = true,
   readMoreLabel = "Read more",
+  readMoreFontSize = "0.875rem",
+  readMorePadding = "0.25rem 0.5rem",
+  readMoreStyle = {},
+  readMoreClassName = "",
+  readMoreBorderRadius = "4px",
+  readMoreWidth = "auto",
+  readMoreHeight = "auto",
   showPdfButton = true,
   pdfButtonLabel = "View as PDF",
   pdfData = null,
@@ -268,6 +275,15 @@ const PrimeTimeline = ({
               label={readMoreLabel}
               text
               size="small"
+              style={{
+                ...readMoreStyle,
+                padding: readMorePadding,
+                fontSize: readMoreFontSize,
+                borderRadius: readMoreBorderRadius,
+                width: readMoreWidth,
+                height: readMoreHeight
+              }}
+              className={readMoreClassName}
               onClick={() => {
                 if (onReadMore) {
                   onReadMore({ item, href });
