@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
@@ -390,31 +391,33 @@ const PrimeTimeline = ({
     // If useEmptyDrawer is true, render the drawerContent slot with item data
     if (useEmptyDrawer) {
       return (
-        <div 
-          style={{ 
-            width: "100%", 
-            height: "100%", 
-            minHeight: "200px",
-            padding: "1rem"
-          }}
-        >
-          {renderDrawerContent ? (
-            renderDrawerContent({ item: dialogItem, data: dialogItem })
-          ) : drawerContent ? (
-            drawerContent
-          ) : (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-color-secondary)",
-              fontSize: "0.875rem",
-              textAlign: "center"
-            }}>
-              Empty drawer - add content via drawerContent slot
-            </div>
-          )}
-        </div>
+        <DataProvider name="item" data={dialogItem}>
+          <div 
+            style={{ 
+              width: "100%", 
+              height: "100%", 
+              minHeight: "200px",
+              padding: "1rem"
+            }}
+          >
+            {renderDrawerContent ? (
+              renderDrawerContent({ item: dialogItem, data: dialogItem })
+            ) : drawerContent ? (
+              drawerContent
+            ) : (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-color-secondary)",
+                fontSize: "0.875rem",
+                textAlign: "center"
+              }}>
+                Empty drawer - add content via drawerContent slot
+              </div>
+            )}
+          </div>
+        </DataProvider>
       );
     }
 

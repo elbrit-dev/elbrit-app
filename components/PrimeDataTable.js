@@ -2661,10 +2661,31 @@ const PrimeDataTable = ({
     return (
       <div className="cards-container" style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
-        gap: '1.5rem', 
-        padding: '1.5rem'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
+        gap: '1rem', 
+        padding: '1rem',
+        maxWidth: '1400px',
+        margin: '0 auto'
       }}>
+        <style jsx>{`
+          @media (max-width: 768px) {
+            .cards-container {
+              grid-template-columns: 1fr !important;
+              padding: 0.5rem !important;
+              gap: 0.75rem !important;
+            }
+          }
+          @media (min-width: 769px) and (max-width: 1024px) {
+            .cards-container {
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
+            }
+          }
+          @media (min-width: 1025px) {
+            .cards-container {
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+            }
+          }
+        `}</style>
         {displayData.map((item, index) => (
           <div 
             key={item[resolvedDataKey] || index} 
@@ -2672,12 +2693,13 @@ const PrimeDataTable = ({
             style={{ 
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0', 
-              borderRadius: '12px', 
-              padding: '1.5rem',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              borderRadius: '8px', 
+              padding: '1rem',
+              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
               transition: 'all 0.3s ease',
               position: 'relative',
-              overflow: 'hidden'
+              overflow: 'hidden',
+              maxWidth: '100%'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-2px)';
@@ -2691,18 +2713,23 @@ const PrimeDataTable = ({
             {/* Card Header */}
             <div style={{ 
               borderBottom: '1px solid #f1f5f9', 
-              paddingBottom: '1rem', 
-              marginBottom: '1rem',
+              paddingBottom: '0.75rem', 
+              marginBottom: '0.75rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
               <h3 style={{ 
                 margin: 0, 
-                fontSize: '1.125rem', 
+                fontSize: '1rem', 
                 fontWeight: '600', 
                 color: '#1e293b',
-                lineHeight: '1.5'
+                lineHeight: '1.4',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+                marginRight: '0.5rem'
               }}>
                 {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
               </h3>
@@ -2729,31 +2756,38 @@ const PrimeDataTable = ({
                 
                 return (
                   <div key={column.key} style={{ 
-                    marginBottom: '0.75rem',
+                    marginBottom: '0.5rem',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.5rem 0'
+                    padding: '0.25rem 0'
                   }}>
                     <label style={{ 
-                      fontSize: '0.875rem', 
+                      fontSize: '0.75rem', 
                       fontWeight: '500', 
                       color: '#64748b',
                       flex: '1',
-                      marginRight: '1rem'
+                      marginRight: '0.5rem',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {column.title}:
                     </label>
                     <div style={{ 
-                      fontSize: '0.875rem',
+                      fontSize: '0.75rem',
                       fontWeight: isNumber ? '600' : '400',
                       color: isNumber ? '#1e293b' : '#475569',
                       textAlign: 'right',
-                      padding: '0.25rem 0.5rem',
+                      padding: '0.125rem 0.375rem',
                       backgroundColor: isHighValue ? '#f0f9ff' : 'transparent',
-                      borderRadius: '4px',
+                      borderRadius: '3px',
                       border: isHighValue ? '1px solid #e0f2fe' : 'none',
-                      fontFamily: isNumber ? 'monospace' : 'inherit'
+                      fontFamily: isNumber ? 'monospace' : 'inherit',
+                      minWidth: '60px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                     </div>
@@ -2802,12 +2836,31 @@ const PrimeDataTable = ({
     return (
       <div className="forms-container" style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
-        gap: '2rem', 
-        padding: '2rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+        gap: '1rem', 
+        padding: '1rem',
         maxWidth: '1400px',
         margin: '0 auto'
       }}>
+        <style jsx>{`
+          @media (max-width: 768px) {
+            .forms-container {
+              grid-template-columns: 1fr !important;
+              padding: 0.5rem !important;
+              gap: 0.75rem !important;
+            }
+          }
+          @media (min-width: 769px) and (max-width: 1024px) {
+            .forms-container {
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+            }
+          }
+          @media (min-width: 1025px) {
+            .forms-container {
+              grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+            }
+          }
+        `}</style>
         {displayData.map((item, index) => (
           <div 
             key={item[resolvedDataKey] || index} 
@@ -2815,11 +2868,12 @@ const PrimeDataTable = ({
             style={{ 
               backgroundColor: '#ffffff',
               border: '1px solid #e2e8f0', 
-              borderRadius: '16px', 
-              padding: '2rem',
-              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              borderRadius: '8px', 
+              padding: '1rem',
+              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
               transition: 'all 0.3s ease',
-              position: 'relative'
+              position: 'relative',
+              maxWidth: '100%'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.transform = 'translateY(-4px)';
@@ -2833,19 +2887,24 @@ const PrimeDataTable = ({
             {/* Form Header */}
             <div style={{ 
               borderBottom: '2px solid #3b82f6', 
-              paddingBottom: '1rem', 
-              marginBottom: '1.5rem',
+              paddingBottom: '0.75rem', 
+              marginBottom: '1rem',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
               <h4 style={{ 
                 margin: 0, 
-                fontSize: '1.25rem', 
+                fontSize: '1rem', 
                 fontWeight: '700', 
                 color: '#1e293b',
                 textTransform: 'uppercase',
-                letterSpacing: '0.05em'
+                letterSpacing: '0.05em',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+                marginRight: '0.5rem'
               }}>
                 {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
               </h4>
@@ -2867,8 +2926,8 @@ const PrimeDataTable = ({
             {/* Form Fields Grid */}
             <div style={{ 
               display: 'grid', 
-              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-              gap: '1.5rem'
+              gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
+              gap: '0.75rem'
             }}>
               {defaultColumns.slice(1, 9).map((column) => {
                 const value = item[column.key];
@@ -2878,29 +2937,35 @@ const PrimeDataTable = ({
                 return (
                   <div key={column.key} className="form-field">
                     <label style={{ 
-                      fontSize: '0.875rem', 
+                      fontSize: '0.75rem', 
                       fontWeight: '600', 
                       color: '#374151',
                       display: 'block',
-                      marginBottom: '0.5rem',
-                      textTransform: 'capitalize'
+                      marginBottom: '0.25rem',
+                      textTransform: 'capitalize',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {column.title}
                     </label>
                     <div style={{ 
-                      padding: '0.75rem 1rem', 
+                      padding: '0.5rem 0.75rem', 
                       border: '1px solid #d1d5db', 
-                      borderRadius: '8px',
+                      borderRadius: '6px',
                       backgroundColor: isHighValue ? '#f0f9ff' : '#f9fafb',
-                      minHeight: '2.75rem',
+                      minHeight: '2rem',
                       display: 'flex',
                       alignItems: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: '0.75rem',
                       fontWeight: isNumber ? '600' : '400',
                       color: isNumber ? '#1f2937' : '#4b5563',
                       fontFamily: isNumber ? 'monospace' : 'inherit',
-                      borderLeft: isHighValue ? '4px solid #3b82f6' : '4px solid transparent',
-                      transition: 'all 0.2s ease'
+                      borderLeft: isHighValue ? '3px solid #3b82f6' : '3px solid transparent',
+                      transition: 'all 0.2s ease',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}>
                       {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                     </div>

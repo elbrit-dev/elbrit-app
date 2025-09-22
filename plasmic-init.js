@@ -3412,6 +3412,7 @@ PLASMIC.registerComponent(PrimeTimeline, {
   },
   importPath: "./components/PrimeTimeline",
   classNameProp: "className",
-  defaultStyles: {}
+  defaultStyles: {},
+  providesData: true
 });
 
