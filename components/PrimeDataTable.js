@@ -2659,31 +2659,128 @@ const PrimeDataTable = ({
     const displayData = enablePagination ? allData.slice(startIndex, endIndex) : allData;
     
     return (
-      <div className="cards-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1rem', padding: '1rem' }}>
+      <div className="cards-container" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', 
+        gap: '1.5rem', 
+        padding: '1.5rem'
+      }}>
         {displayData.map((item, index) => (
-          <div key={item[resolvedDataKey] || index} className="p-card p-3" style={{ 
-            border: '1px solid #e1e5e9', 
-            borderRadius: '8px', 
-            backgroundColor: '#ffffff',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
-            transition: 'all 0.2s ease'
-          }}>
-            {defaultColumns.slice(0, 6).map((column) => (
-              <div key={column.key} className="field mb-2">
-                <label className="font-medium text-sm text-gray-600 block">{column.title}</label>
-                <div className="text-base mt-1">
-                  {safeCell(item[column.key])}
-                </div>
-              </div>
-            ))}
-            
-            {/* Action buttons for cards */}
-            {(editMode === 'row' && useCustomRowEditor) && (
-              <div className="flex gap-2 mt-3 pt-2 border-top">
+          <div 
+            key={item[resolvedDataKey] || index} 
+            className="card-item" 
+            style={{ 
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0', 
+              borderRadius: '12px', 
+              padding: '1.5rem',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.3s ease',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+            }}
+          >
+            {/* Card Header */}
+            <div style={{ 
+              borderBottom: '1px solid #f1f5f9', 
+              paddingBottom: '1rem', 
+              marginBottom: '1rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h3 style={{ 
+                margin: 0, 
+                fontSize: '1.125rem', 
+                fontWeight: '600', 
+                color: '#1e293b',
+                lineHeight: '1.5'
+              }}>
+                {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+              </h3>
+              {(editMode === 'row' && useCustomRowEditor) && (
                 <Button
                   icon="pi pi-pencil"
-                  label="Edit"
-                  className="p-button-sm p-button-outlined"
+                  className="p-button-text p-button-sm p-button-rounded"
+                  onClick={() => openCustomRowEditor(item)}
+                  tooltip="Edit Record"
+                  style={{ 
+                    color: '#3b82f6',
+                    padding: '0.5rem'
+                  }}
+                />
+              )}
+            </div>
+            
+            {/* Card Content */}
+            <div className="card-content">
+              {defaultColumns.slice(1, 7).map((column) => {
+                const value = item[column.key];
+                const isNumber = typeof value === 'number';
+                const isHighValue = isNumber && value > 1000;
+                
+                return (
+                  <div key={column.key} style={{ 
+                    marginBottom: '0.75rem',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '0.5rem 0'
+                  }}>
+                    <label style={{ 
+                      fontSize: '0.875rem', 
+                      fontWeight: '500', 
+                      color: '#64748b',
+                      flex: '1',
+                      marginRight: '1rem'
+                    }}>
+                      {column.title}:
+                    </label>
+                    <div style={{ 
+                      fontSize: '0.875rem',
+                      fontWeight: isNumber ? '600' : '400',
+                      color: isNumber ? '#1e293b' : '#475569',
+                      textAlign: 'right',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: isHighValue ? '#f0f9ff' : 'transparent',
+                      borderRadius: '4px',
+                      border: isHighValue ? '1px solid #e0f2fe' : 'none',
+                      fontFamily: isNumber ? 'monospace' : 'inherit'
+                    }}>
+                      {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {/* Card Footer with Action */}
+            {(editMode === 'row' && useCustomRowEditor) && (
+              <div style={{ 
+                borderTop: '1px solid #f1f5f9', 
+                paddingTop: '1rem', 
+                marginTop: '1rem',
+                textAlign: 'center'
+              }}>
+                <Button
+                  icon="pi pi-pencil"
+                  label="Edit Record"
+                  className="p-button-sm"
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#3b82f6',
+                    padding: '0.5rem 1rem',
+                    borderRadius: '6px',
+                    fontSize: '0.875rem'
+                  }}
                   onClick={() => openCustomRowEditor(item)}
                 />
               </div>
@@ -2703,53 +2800,136 @@ const PrimeDataTable = ({
     const displayData = enablePagination ? allData.slice(startIndex, endIndex) : allData;
     
     return (
-      <div className="form-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))', gap: '2rem', padding: '2rem' }}>
+      <div className="forms-container" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(450px, 1fr))', 
+        gap: '2rem', 
+        padding: '2rem',
+        maxWidth: '1400px',
+        margin: '0 auto'
+      }}>
         {displayData.map((item, index) => (
-          <div key={item[resolvedDataKey] || index} className="form-card" style={{
-            backgroundColor: '#ffffff',
-            border: '1px solid #e1e5e9',
-            borderRadius: '12px',
-            padding: '1.5rem',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.07)'
-          }}>
-            <div className="form-header mb-4 pb-3" style={{ borderBottom: '1px solid #f0f0f0' }}>
-              <h3 className="text-lg font-semibold m-0" style={{ color: '#1f2937' }}>
-                {item[defaultColumns[0]?.key] || `Record ${index + 1}`}
-              </h3>
+          <div 
+            key={item[resolvedDataKey] || index} 
+            className="form-item" 
+            style={{ 
+              backgroundColor: '#ffffff',
+              border: '1px solid #e2e8f0', 
+              borderRadius: '16px', 
+              padding: '2rem',
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.3s ease',
+              position: 'relative'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'translateY(-4px)';
+              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+            }}
+          >
+            {/* Form Header */}
+            <div style={{ 
+              borderBottom: '2px solid #3b82f6', 
+              paddingBottom: '1rem', 
+              marginBottom: '1.5rem',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h4 style={{ 
+                margin: 0, 
+                fontSize: '1.25rem', 
+                fontWeight: '700', 
+                color: '#1e293b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em'
+              }}>
+                {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+              </h4>
+              
+              {(editMode === 'row' && useCustomRowEditor) && (
+                <Button
+                  icon="pi pi-pencil"
+                  className="p-button-text p-button-sm p-button-rounded"
+                  onClick={() => openCustomRowEditor(item)}
+                  tooltip="Edit Record"
+                  style={{ 
+                    color: '#3b82f6',
+                    padding: '0.5rem'
+                  }}
+                />
+              )}
             </div>
             
-            <div className="formgrid grid">
-              {defaultColumns.map((column, colIndex) => (
-                <div key={column.key} className="field col-12 md:col-6">
-                  <label className="font-medium text-sm block mb-2" style={{ color: '#374151' }}>
-                    {column.title}
-                  </label>
-                  <div className="p-inputtext p-component" style={{
-                    padding: '0.75rem',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    backgroundColor: '#f9fafb',
-                    fontSize: '0.875rem',
-                    color: '#111827'
-                  }}>
-                    {safeCell(item[column.key])}
+            {/* Form Fields Grid */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '1.5rem'
+            }}>
+              {defaultColumns.slice(1, 9).map((column) => {
+                const value = item[column.key];
+                const isNumber = typeof value === 'number';
+                const isHighValue = isNumber && value > 1000;
+                
+                return (
+                  <div key={column.key} className="form-field">
+                    <label style={{ 
+                      fontSize: '0.875rem', 
+                      fontWeight: '600', 
+                      color: '#374151',
+                      display: 'block',
+                      marginBottom: '0.5rem',
+                      textTransform: 'capitalize'
+                    }}>
+                      {column.title}
+                    </label>
+                    <div style={{ 
+                      padding: '0.75rem 1rem', 
+                      border: '1px solid #d1d5db', 
+                      borderRadius: '8px',
+                      backgroundColor: isHighValue ? '#f0f9ff' : '#f9fafb',
+                      minHeight: '2.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      fontSize: '0.875rem',
+                      fontWeight: isNumber ? '600' : '400',
+                      color: isNumber ? '#1f2937' : '#4b5563',
+                      fontFamily: isNumber ? 'monospace' : 'inherit',
+                      borderLeft: isHighValue ? '4px solid #3b82f6' : '4px solid transparent',
+                      transition: 'all 0.2s ease'
+                    }}>
+                      {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
-            {/* Action buttons for forms */}
+            {/* Form Footer */}
             {(editMode === 'row' && useCustomRowEditor) && (
-              <div className="flex gap-2 mt-4 pt-3" style={{ borderTop: '1px solid #f0f0f0' }}>
+              <div style={{ 
+                borderTop: '1px solid #f1f5f9', 
+                paddingTop: '1.5rem', 
+                marginTop: '2rem',
+                textAlign: 'center'
+              }}>
                 <Button
                   icon="pi pi-pencil"
                   label="Edit Record"
                   className="p-button-sm"
                   style={{
-                    backgroundColor: '#f97316',
-                    borderColor: '#f97316',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '6px'
+                    backgroundColor: '#3b82f6',
+                    borderColor: '#3b82f6',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '8px',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em'
                   }}
                   onClick={() => openCustomRowEditor(item)}
                 />
@@ -2766,34 +2946,87 @@ const PrimeDataTable = ({
     if (viewMode === 'table') return null;
     
     return (
-      <div className="simplified-toolbar mb-4 p-3" style={{
+      <div className="simplified-toolbar" style={{
         backgroundColor: '#ffffff',
-        border: '1px solid #e1e5e9',
-        borderRadius: '8px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+        border: '1px solid #e2e8f0',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        marginBottom: '2rem',
+        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+        maxWidth: '600px',
+        margin: '0 auto 2rem auto'
       }}>
-        <div className="flex align-items-center gap-3">
-          <i className="pi pi-search text-gray-500"></i>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          position: 'relative'
+        }}>
+          <div style={{
+            position: 'absolute',
+            left: '1rem',
+            zIndex: 1,
+            color: '#6b7280'
+          }}>
+            <i className="pi pi-search" style={{ fontSize: '1rem' }}></i>
+          </div>
+          
           <InputText
             value={globalFilterValue}
             onChange={(e) => setGlobalFilterValue(e.target.value)}
-            placeholder="Search records..."
-            className="flex-1"
+            placeholder={`Search ${viewMode === 'cards' ? 'cards' : 'records'}...`}
             style={{
-              border: '1px solid #d1d5db',
-              borderRadius: '6px',
-              padding: '0.75rem'
+              width: '100%',
+              border: '2px solid #e5e7eb',
+              borderRadius: '10px',
+              padding: '0.75rem 1rem 0.75rem 3rem',
+              fontSize: '1rem',
+              transition: 'all 0.2s ease',
+              backgroundColor: '#f9fafb'
+            }}
+            onFocus={(e) => {
+              e.target.style.borderColor = '#3b82f6';
+              e.target.style.backgroundColor = '#ffffff';
+              e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+            }}
+            onBlur={(e) => {
+              e.target.style.borderColor = '#e5e7eb';
+              e.target.style.backgroundColor = '#f9fafb';
+              e.target.style.boxShadow = 'none';
             }}
           />
+          
           {globalFilterValue && (
             <Button
               icon="pi pi-times"
-              className="p-button-text p-button-sm"
+              className="p-button-text p-button-sm p-button-rounded"
               onClick={() => setGlobalFilterValue('')}
               tooltip="Clear search"
+              style={{
+                color: '#6b7280',
+                padding: '0.5rem',
+                minWidth: 'auto',
+                width: '2.5rem',
+                height: '2.5rem'
+              }}
             />
           )}
         </div>
+        
+        {/* Search Results Counter */}
+        {globalFilterValue && (
+          <div style={{
+            marginTop: '1rem',
+            padding: '0.5rem 1rem',
+            backgroundColor: '#eff6ff',
+            borderRadius: '6px',
+            fontSize: '0.875rem',
+            color: '#1e40af',
+            textAlign: 'center'
+          }}>
+            {Array.isArray(finalTableData) ? finalTableData.length : 0} result(s) found
+          </div>
+        )}
       </div>
     );
   };

@@ -14,7 +14,6 @@ const PrimeDataTab = dynamic(() => import("./components/pimereact"), { ssr: fals
 const LinkComponent = dynamic(() => import("./components/LinkComponent"), { ssr: false, loading: () => null });
 const TagFilterPrimeReact = dynamic(() => import("./components/TagFilterPrimeReact"), { ssr: false, loading: () => null });
 const PrimeTimeline = dynamic(() => import("./components/PrimeTimeline"), { ssr: false, loading: () => null });
-const TimelineItemData = dynamic(() => import("./components/PrimeTimeline").then(m => m.TimelineItemData), { ssr: false, loading: () => null });
 const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
 const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
 const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), { ssr: false, loading: () => null });
@@ -3413,27 +3412,6 @@ PLASMIC.registerComponent(PrimeTimeline, {
   },
   importPath: "./components/PrimeTimeline",
   classNameProp: "className",
-  defaultStyles: {}
-});
-
-// Register TimelineItemData component for accessing timeline data in drawer slots
-PLASMIC.registerComponent(TimelineItemData, {
-  name: "TimelineItemData",
-  displayName: "Timeline Item Data",
-  description: "Component to display timeline item data fields. Use inside PrimeTimeline drawer slots.",
-  props: {
-    field: {
-      type: "string",
-      description: "Field name to display from timeline item (supports dot notation like 'earnings.0.amount')",
-      defaultValue: "title"
-    },
-    fallback: {
-      type: "string", 
-      description: "Text to display if field is empty or not found",
-      defaultValue: ""
-    }
-  },
-  importPath: "./components/PrimeTimeline",
   defaultStyles: {}
 });
 
