@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, createContext, useContext } from "react";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
@@ -6,6 +6,38 @@ import { Sidebar } from "primereact/sidebar";
 import { Image } from "primereact/image";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
+
+// Context for timeline item data
+const TimelineItemContext = createContext(null);
+
+// Provider component to make timeline item data available to drawer content
+const TimelineItemProvider = ({ item, children }) => {
+  return (
+    <TimelineItemContext.Provider value={item}>
+      {children}
+    </TimelineItemContext.Provider>
+  );
+};
+
+// Hook to access timeline item data in drawer content
+export const useTimelineItem = () => {
+  return useContext(TimelineItemContext);
+};
+
+// Simple component to display timeline item data - can be registered as a separate component
+export const TimelineItemData = ({ field, fallback = "" }) => {
+  const item = useTimelineItem();
+  if (!item) return fallback;
+  
+  // Support dot notation for nested fields
+  const getValue = (obj, path) => {
+    if (!path) return obj;
+    return path.split('.').reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  };
+  
+  const value = getValue(item, field);
+  return value != null ? String(value) : fallback;
+};
 
 /**
  * PrimeTimeline
@@ -390,31 +422,33 @@ const PrimeTimeline = ({
     // If useEmptyDrawer is true, render the drawerContent slot with item data
     if (useEmptyDrawer) {
       return (
-        <div 
-          style={{ 
-            width: "100%", 
-            height: "100%", 
-            minHeight: "200px",
-            padding: "1rem"
-          }}
-        >
-          {renderDrawerContent ? (
-            renderDrawerContent({ item: dialogItem, data: dialogItem })
-          ) : drawerContent ? (
-            drawerContent
-          ) : (
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "var(--text-color-secondary)",
-              fontSize: "0.875rem",
-              textAlign: "center"
-            }}>
-              Empty drawer - add content via drawerContent slot
-            </div>
-          )}
-        </div>
+        <TimelineItemProvider item={dialogItem}>
+          <div 
+            style={{ 
+              width: "100%", 
+              height: "100%", 
+              minHeight: "200px",
+              padding: "1rem"
+            }}
+          >
+            {renderDrawerContent ? (
+              renderDrawerContent({ item: dialogItem, data: dialogItem })
+            ) : drawerContent ? (
+              drawerContent
+            ) : (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--text-color-secondary)",
+                fontSize: "0.875rem",
+                textAlign: "center"
+              }}>
+                Empty drawer - add content via drawerContent slot
+              </div>
+            )}
+          </div>
+        </TimelineItemProvider>
       );
     }
 

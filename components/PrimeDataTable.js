@@ -16,6 +16,7 @@ const ContextMenu = dynamic(() => import('primereact/contextmenu').then(m => m.C
 const Dropdown = dynamic(() => import('primereact/dropdown').then(m => m.Dropdown), { ssr: false });
 const Calendar = dynamic(() => import('primereact/calendar').then(m => m.Calendar), { ssr: false });
 const InputNumber = dynamic(() => import('primereact/inputnumber').then(m => m.InputNumber), { ssr: false });
+const Paginator = dynamic(() => import('primereact/paginator').then(m => m.Paginator), { ssr: false });
 import { classNames } from 'primereact/utils';
 import Image from 'next/image';
 
