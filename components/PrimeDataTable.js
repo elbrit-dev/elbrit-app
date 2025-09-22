@@ -2849,15 +2849,25 @@ const PrimeDataTable = ({
               padding: 0.5rem !important;
               gap: 0.75rem !important;
             }
+            .form-item .form-fields-grid {
+              grid-template-columns: 1fr !important;
+              gap: 0.5rem !important;
+            }
           }
           @media (min-width: 769px) and (max-width: 1024px) {
             .forms-container {
               grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
             }
+            .form-item .form-fields-grid {
+              grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
+            }
           }
           @media (min-width: 1025px) {
             .forms-container {
               grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+            }
+            .form-item .form-fields-grid {
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
             }
           }
         `}</style>
@@ -2924,7 +2934,7 @@ const PrimeDataTable = ({
             </div>
             
             {/* Form Fields Grid */}
-            <div style={{ 
+            <div className="form-fields-grid" style={{ 
               display: 'grid', 
               gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', 
               gap: '0.75rem'
