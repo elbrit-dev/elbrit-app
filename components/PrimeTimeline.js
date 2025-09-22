@@ -69,6 +69,7 @@ const PrimeTimeline = ({
   pdfButtonHeight = "auto",
   useEmptyDrawer = false, // when true, drawer content will be empty for Plasmic slot usage
   drawerContent = null, // Plasmic slot for custom drawer content when useEmptyDrawer is true
+  renderDrawerContent = null, // Function to render custom drawer content with item access
 
   // Styling
   className = "",
@@ -386,7 +387,7 @@ const PrimeTimeline = ({
   const renderDialogContent = () => {
     if (!dialogItem) return null;
 
-    // If useEmptyDrawer is true, render the drawerContent slot
+    // If useEmptyDrawer is true, render the drawerContent slot with item data
     if (useEmptyDrawer) {
       return (
         <div 
@@ -397,7 +398,11 @@ const PrimeTimeline = ({
             padding: "1rem"
           }}
         >
-          {drawerContent || (
+          {renderDrawerContent ? (
+            renderDrawerContent({ item: dialogItem, data: dialogItem })
+          ) : drawerContent ? (
+            drawerContent
+          ) : (
             <div style={{
               display: "flex",
               alignItems: "center",

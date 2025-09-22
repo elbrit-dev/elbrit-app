@@ -2653,42 +2653,54 @@ const PrimeDataTable = ({
   // Card/Form rendering functions
   const renderCardView = useCallback(() => {
     if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return <div className="text-center p-4">No data available</div>;
+      return <div className="text-center p-4 text-600">No data available</div>;
     }
 
     return (
       <div className="grid">
         {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4">
-            <div className="card p-3 mb-3 shadow-2">
+          <div key={rowData[resolvedDataKey] || index} className="col-12 md:col-6 lg:col-4 xl:col-3">
+            <div className="card p-4 mb-4 shadow-2 border-round-md h-full">
               {/* Card Header */}
-              <div className="flex justify-content-between align-items-center mb-3">
-                <h6 className="m-0 text-primary">
-                  {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
-                </h6>
+              <div className="flex justify-content-between align-items-start mb-3 pb-3 border-bottom-1 surface-border">
+                <div className="flex-1">
+                  <h6 className="m-0 text-900 font-bold line-height-3">
+                    {String(rowData[defaultColumns[0]?.key] || `Record ${index + 1}`).substring(0, 25)}
+                    {String(rowData[defaultColumns[0]?.key] || '').length > 25 && '...'}
+                  </h6>
+                  <small className="text-500 block mt-1">
+                    {rowData[defaultColumns[1]?.key] || 'N/A'}
+                  </small>
+                </div>
                 {editMode === 'row' && (
                   <Button
                     icon="pi pi-pencil"
-                    className="p-button-text p-button-sm"
+                    className="p-button-text p-button-sm p-button-rounded"
                     onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
                     tooltip="Edit"
+                    style={{ minWidth: 'auto' }}
                   />
                 )}
               </div>
               
-              {/* Card Body */}
+              {/* Card Body - Key Metrics */}
               <div className="grid">
-                {defaultColumns.slice(1).map((column) => {
+                {defaultColumns.slice(2).map((column) => {
                   const value = rowData[column.key];
                   const isEditable = editableColumns.includes(column.key) || column.editable === true;
                   
                   return (
-                    <div key={column.key} className="col-12">
-                      <div className="flex justify-content-between align-items-center py-2 border-bottom-1 surface-border">
-                        <span className="font-medium text-600">{column.title}:</span>
-                        <span className={`${isEditable ? 'text-primary font-semibold' : 'text-900'}`}>
-                          {safeCell(value)}
-                        </span>
+                    <div key={column.key} className="col-6 mb-3">
+                      <div className="text-center">
+                        <div className={`text-2xl font-bold mb-1 ${isEditable ? 'text-primary' : 'text-900'}`}>
+                          {typeof value === 'number' ? value.toLocaleString() : (value || '0')}
+                        </div>
+                        <div className="text-xs text-600 uppercase font-medium">
+                          {column.title?.replace(/total_sec_|_/gi, ' ').trim() || column.key}
+                        </div>
+                        {isEditable && (
+                          <i className="pi pi-pencil text-xs text-primary mt-1"></i>
+                        )}
                       </div>
                     </div>
                   );
@@ -2703,23 +2715,29 @@ const PrimeDataTable = ({
 
   const renderFormView = useCallback(() => {
     if (!Array.isArray(finalTableData) || finalTableData.length === 0) {
-      return <div className="text-center p-4">No data available</div>;
+      return <div className="text-center p-4 text-600">No data available</div>;
     }
 
     return (
-      <div className="p-4">
+      <div>
         {finalTableData.map((rowData, index) => (
-          <div key={rowData[resolvedDataKey] || index} className="card p-4 mb-4 shadow-2">
+          <div key={rowData[resolvedDataKey] || index} className="card p-5 mb-4 shadow-2 border-round-lg">
             {/* Form Header */}
-            <div className="flex justify-content-between align-items-center mb-4 pb-3 border-bottom-2 surface-border">
-              <h5 className="m-0 text-primary">
-                {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
-              </h5>
+            <div className="flex justify-content-between align-items-start mb-4 pb-4 border-bottom-2 surface-border">
+              <div className="flex-1">
+                <h4 className="m-0 text-900 font-bold mb-2">
+                  {rowData[defaultColumns[0]?.key] || `Record ${index + 1}`}
+                </h4>
+                <div className="flex align-items-center gap-2">
+                  <i className="pi pi-building text-primary"></i>
+                  <span className="text-600">{rowData[defaultColumns[1]?.key] || 'N/A'}</span>
+                </div>
+              </div>
               {editMode === 'row' && (
                 <Button
-                  label="Edit"
+                  label="Edit Record"
                   icon="pi pi-pencil"
-                  className="p-button-outlined"
+                  className="p-button-outlined p-button-primary"
                   onClick={() => useCustomRowEditor ? openCustomRowEditor(rowData) : null}
                 />
               )}
@@ -2727,26 +2745,54 @@ const PrimeDataTable = ({
             
             {/* Form Fields */}
             <div className="formgrid grid">
-              {defaultColumns.slice(1).map((column) => {
+              {defaultColumns.slice(2).map((column) => {
                 const value = rowData[column.key];
                 const isEditable = editableColumns.includes(column.key) || column.editable === true;
+                const formattedValue = typeof value === 'number' ? value.toLocaleString() : (value || 'N/A');
                 
                 return (
-                  <div key={column.key} className="field col-12 md:col-6">
-                    <label className="font-medium text-700 mb-2 block">{column.title}</label>
-                    <div className={`p-3 surface-100 border-round ${isEditable ? 'border-primary-500 border-2' : 'border-300 border-1'}`}>
-                      <span className={`${isEditable ? 'text-primary font-semibold' : 'text-900'}`}>
-                        {safeCell(value)}
-                      </span>
+                  <div key={column.key} className="field col-12 md:col-6 lg:col-4">
+                    <label className="font-semibold text-800 mb-2 block">
+                      {column.title?.replace(/total_sec_|_/gi, ' ').replace(/\b\w/g, l => l.toUpperCase()).trim() || column.key}
+                    </label>
+                    <div className={`relative ${isEditable ? 'p-inputgroup' : ''}`}>
+                      <div className={`
+                        p-3 border-round-md text-lg font-medium
+                        ${isEditable ? 'surface-0 border-primary-500 border-2 text-primary' : 'surface-100 border-300 border-1 text-900'}
+                      `}>
+                        {formattedValue}
+                      </div>
                       {isEditable && (
-                        <small className="block text-primary mt-1">
-                          <i className="pi pi-pencil mr-1"></i>Editable
-                        </small>
+                        <div className="absolute top-0 right-0 mt-1 mr-2">
+                          <span className="bg-primary text-white px-2 py-1 border-round text-xs font-bold">
+                            <i className="pi pi-pencil mr-1"></i>EDITABLE
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
                 );
               })}
+            </div>
+            
+            {/* Summary Stats */}
+            <div className="mt-4 pt-4 border-top-1 surface-border">
+              <div className="grid">
+                <div className="col-12 md:col-4 text-center">
+                  <div className="text-600 text-sm">Total Records</div>
+                  <div className="text-2xl font-bold text-primary">{index + 1}</div>
+                </div>
+                <div className="col-12 md:col-4 text-center">
+                  <div className="text-600 text-sm">Editable Fields</div>
+                  <div className="text-2xl font-bold text-orange-500">
+                    {defaultColumns.filter(col => editableColumns.includes(col.key)).length}
+                  </div>
+                </div>
+                <div className="col-12 md:col-4 text-center">
+                  <div className="text-600 text-sm">Last Updated</div>
+                  <div className="text-sm text-600">{new Date().toLocaleDateString()}</div>
+                </div>
+              </div>
             </div>
           </div>
         ))}
@@ -3481,14 +3527,6 @@ const PrimeDataTable = ({
       {/* Display Mode: Cards */}
       {displayMode === "cards" && (
         <div>
-          {/* Toolbar for cards */}
-          <Toolbar
-            left={leftToolbarTemplate}
-            right={rightToolbarTemplate}
-            className="mb-4"
-            style={{}}
-          />
-          
           {/* Cards View */}
           {renderCardView()}
           
@@ -3509,14 +3547,6 @@ const PrimeDataTable = ({
       {/* Display Mode: Form */}
       {displayMode === "form" && (
         <div>
-          {/* Toolbar for forms */}
-          <Toolbar
-            left={leftToolbarTemplate}
-            right={rightToolbarTemplate}
-            className="mb-4"
-            style={{}}
-          />
-          
           {/* Form View */}
           {renderFormView()}
           
