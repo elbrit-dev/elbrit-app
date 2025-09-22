@@ -2857,7 +2857,7 @@ const PrimeDataTable = ({
     return (
       <div className="forms-container" style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+        gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', 
         gap: '1rem', 
         padding: '1rem',
         maxWidth: '1400px',
@@ -2872,35 +2872,37 @@ const PrimeDataTable = ({
               max-width: 100% !important;
             }
             .form-item {
-              padding: 0.75rem !important;
+              padding: 0.5rem !important;
               margin: 0 !important;
               max-width: 100% !important;
+              width: 100% !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: 1fr !important;
               gap: 0.25rem !important;
             }
             .form-item h4 {
-              font-size: 0.875rem !important;
-              margin-bottom: 0.5rem !important;
+              font-size: 0.8rem !important;
+              margin-bottom: 0.375rem !important;
+              padding-bottom: 0.5rem !important;
             }
             .form-field label {
-              font-size: 0.7rem !important;
+              font-size: 0.65rem !important;
               margin-bottom: 0.125rem !important;
             }
             .form-field div {
-              padding: 0.375rem 0.5rem !important;
-              font-size: 0.7rem !important;
-              min-height: 1.75rem !important;
+              padding: 0.25rem 0.375rem !important;
+              font-size: 0.65rem !important;
+              min-height: 1.5rem !important;
             }
             .form-item button {
-              padding: 0.5rem 1rem !important;
-              font-size: 0.75rem !important;
+              padding: 0.375rem 0.75rem !important;
+              font-size: 0.7rem !important;
             }
           }
           @media (min-width: 769px) and (max-width: 1024px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)) !important;
@@ -2908,7 +2910,7 @@ const PrimeDataTable = ({
           }
           @media (min-width: 1025px) {
             .forms-container {
-              grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)) !important;
+              grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
             }
             .form-item .form-fields-grid {
               grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;

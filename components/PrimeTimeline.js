@@ -387,31 +387,33 @@ const PrimeTimeline = ({
   const renderDialogContent = () => {
     if (!dialogItem) return null;
 
-    // If useEmptyDrawer is true, render the drawerContent slot and provide currentItem context
+    // If useEmptyDrawer is true, render the drawerContent slot with data context
     if (useEmptyDrawer) {
       return (
         <DataProvider name="currentItem" data={dialogItem}>
-          <div 
-            style={{ 
-              width: "100%", 
-              height: "100%", 
-              minHeight: "200px",
-              padding: "1rem"
-            }}
-          >
-            {drawerContent || (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                color: "var(--text-color-secondary)",
-                fontSize: "0.875rem",
-                textAlign: "center"
-              }}>
-                Empty drawer - design via drawerContent slot. Use data: currentItem
-              </div>
-            )}
-          </div>
+          <DataProvider name="allEvents" data={events}>
+            <div 
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                minHeight: "200px",
+                padding: "1rem"
+              }}
+            >
+              {drawerContent || (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--text-color-secondary)",
+                  fontSize: "0.875rem",
+                  textAlign: "center"
+                }}>
+                  Empty drawer - design via drawerContent slot. Use data: currentItem (clicked item) or allEvents (all timeline data)
+                </div>
+              )}
+            </div>
+          </DataProvider>
         </DataProvider>
       );
     }

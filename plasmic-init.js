@@ -3320,7 +3320,10 @@ PLASMIC.registerComponent(PrimeTimeline, {
     pdfButtonWidth: { type: "string", defaultValue: "auto", description: "Width of PDF button (e.g., 'auto', '100px', '100%')" },
     pdfButtonHeight: { type: "string", defaultValue: "auto", description: "Height of PDF button (e.g., 'auto', '40px', '3rem')" },
     useEmptyDrawer: { type: "boolean", defaultValue: false, description: "When true, drawer content will be empty for Plasmic slot usage" },
-    drawerContent: { type: "slot", description: "Custom content for drawer when useEmptyDrawer is true; access the clicked item via data key 'currentItem'" },
+    drawerContent: { 
+      type: "slot", 
+      description: "Custom content for drawer when useEmptyDrawer is true. Access data via 'currentItem' (clicked timeline item) or 'allEvents' (all timeline data)" 
+    },
 
     // Styling
     className: { type: "string", defaultValue: "" },
