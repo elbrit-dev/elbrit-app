@@ -1401,6 +1401,32 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Layout presentation: table (default DataTable), cards (grid of cards), form (form-style cards)",
       defaultValue: "table"
     },
+    
+    // Toolbar Size Control Props
+    toolbarSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Controls the size of toolbar components (small, normal, large)",
+      defaultValue: "normal"
+    },
+    leftToolbarSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Override toolbar size for left section (search, filters, etc.)",
+      defaultValue: "normal"
+    },
+    rightToolbarSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Override toolbar size for right section (bulk actions, export, etc.)",
+      defaultValue: "normal"
+    },
+    mobileToolbarSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Toolbar size for mobile screens (≤768px). 'small' is recommended for better mobile UX.",
+      defaultValue: "small"
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",

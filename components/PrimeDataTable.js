@@ -355,6 +355,12 @@ const PrimeDataTable = ({
   // Layout/View Mode props
   viewMode = "table", // "table" | "cards" | "form" - Different layout presentations
   
+  // Toolbar Size Control Props
+  toolbarSize = "normal", // "small" | "normal" | "large" - Controls overall toolbar size
+  leftToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for left section
+  rightToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for right section
+  mobileToolbarSize = "small", // "small" | "normal" | "large" - Size for mobile screens (≤768px)
+  
   // Pagination
   pageSize = 10,
   currentPage = 1,
@@ -2516,7 +2522,14 @@ const PrimeDataTable = ({
       if (onRowToggle) {
         onRowToggle({ data: {} });
       }
-    }
+    },
+    // Size control with mobile responsiveness
+    (() => {
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        return mobileToolbarSize;
+      }
+      return leftToolbarSize || toolbarSize;
+    })()
   );
 
   const rightToolbarTemplate = createRightToolbarTemplate(
@@ -2538,7 +2551,14 @@ const PrimeDataTable = ({
     handleExport,
     enableRefresh,
     handleRefresh,
-    isRefreshing
+    isRefreshing,
+    // Size control with mobile responsiveness
+    (() => {
+      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
+        return mobileToolbarSize;
+      }
+      return rightToolbarSize || toolbarSize;
+    })()
   );
 
   // Auto-create editors for editable columns based on data type
@@ -2713,56 +2733,97 @@ const PrimeDataTable = ({
             className="card-item" 
             style={{ 
               backgroundColor: '#ffffff',
-              border: '1px solid #e2e8f0', 
-              borderRadius: '8px', 
-              padding: '1rem',
-              boxShadow: '0 2px 4px -1px rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06)',
-              transition: 'all 0.3s ease',
+              border: '1px solid #e5e7eb', 
+              borderRadius: '16px', 
+              padding: '1.25rem',
+              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative',
               overflow: 'hidden',
-              maxWidth: '100%'
+              maxWidth: '100%',
+              cursor: 'pointer',
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)';
+              e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
+              e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
+              e.currentTarget.style.borderColor = '#3b82f6';
+              e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+              e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
             }}
           >
             {/* Card Header */}
             <div style={{ 
-              borderBottom: '1px solid #f1f5f9', 
-              paddingBottom: '0.75rem', 
-              marginBottom: '0.75rem',
+              borderBottom: '2px solid #e2e8f0', 
+              paddingBottom: '1rem', 
+              marginBottom: '1rem',
               display: 'flex',
               justifyContent: 'space-between',
-              alignItems: 'center'
+              alignItems: 'center',
+              position: 'relative'
             }}>
+              {/* Status Indicator */}
+              <div style={{
+                position: 'absolute',
+                top: '-0.5rem',
+                left: '0',
+                width: '4px',
+                height: '2rem',
+                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                borderRadius: '2px'
+              }} />
+              
               <h3 style={{ 
                 margin: 0, 
-                fontSize: '1rem', 
-                fontWeight: '600', 
+                fontSize: '1.1rem', 
+                fontWeight: '700', 
                 color: '#1e293b',
-                lineHeight: '1.4',
+                lineHeight: '1.3',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
                 flex: 1,
-                marginRight: '0.5rem'
+                marginRight: '0.75rem',
+                marginLeft: '0.75rem',
+                textTransform: 'uppercase',
+                letterSpacing: '0.025em'
               }}>
                 {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
               </h3>
+              
               {(editMode === 'row' && useCustomRowEditor) && (
                 <Button
                   icon="pi pi-pencil"
                   className="p-button-text p-button-sm p-button-rounded"
-                  onClick={() => openCustomRowEditor(item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCustomRowEditor(item);
+                  }}
                   tooltip="Edit Record"
                   style={{ 
                     color: '#3b82f6',
-                    padding: '0.5rem'
+                    padding: '0.5rem',
+                    borderRadius: '50%',
+                    width: '2.5rem',
+                    height: '2.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                    e.currentTarget.style.transform = 'scale(1.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                    e.currentTarget.style.transform = 'scale(1)';
                   }}
                 />
               )}
@@ -2777,38 +2838,55 @@ const PrimeDataTable = ({
                 
                 return (
                   <div key={column.key} style={{ 
-                    marginBottom: '0.5rem',
+                    marginBottom: '0.75rem',
                     display: 'flex',
                     justifyContent: 'space-between',
                     alignItems: 'center',
-                    padding: '0.25rem 0'
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#f8fafc',
+                    borderRadius: '8px',
+                    border: '1px solid #e2e8f0',
+                    transition: 'all 0.2s ease',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f1f5f9';
+                    e.currentTarget.style.borderColor = '#cbd5e1';
+                    e.currentTarget.style.transform = 'translateX(2px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.transform = 'translateX(0)';
                   }}>
                     <label style={{ 
-                      fontSize: '0.75rem', 
-                      fontWeight: '500', 
-                      color: '#64748b',
+                      fontSize: '0.8rem', 
+                      fontWeight: '600', 
+                      color: '#475569',
                       flex: '1',
-                      marginRight: '0.5rem',
+                      marginRight: '0.75rem',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      textTransform: 'capitalize'
                     }}>
-                      {column.title}:
+                      {column.title}
                     </label>
                     <div style={{ 
-                      fontSize: '0.75rem',
-                      fontWeight: isNumber ? '600' : '400',
-                      color: isNumber ? '#1e293b' : '#475569',
+                      fontSize: '0.8rem',
+                      fontWeight: isNumber ? '700' : '500',
+                      color: isNumber ? '#1e293b' : '#374151',
                       textAlign: 'right',
-                      padding: '0.125rem 0.375rem',
-                      backgroundColor: isHighValue ? '#f0f9ff' : 'transparent',
-                      borderRadius: '3px',
-                      border: isHighValue ? '1px solid #e0f2fe' : 'none',
+                      padding: '0.25rem 0.5rem',
+                      backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                      borderRadius: '6px',
+                      border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                       fontFamily: isNumber ? 'monospace' : 'inherit',
-                      minWidth: '60px',
+                      minWidth: '70px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
                     }}>
                       {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                     </div>
@@ -2820,23 +2898,42 @@ const PrimeDataTable = ({
             {/* Card Footer with Action */}
             {(editMode === 'row' && useCustomRowEditor) && (
               <div style={{ 
-                borderTop: '1px solid #f1f5f9', 
-                paddingTop: '1rem', 
-                marginTop: '1rem',
-                textAlign: 'center'
+                borderTop: '2px solid #e2e8f0', 
+                paddingTop: '1.25rem', 
+                marginTop: '1.25rem',
+                textAlign: 'center',
+                position: 'relative'
               }}>
                 <Button
                   icon="pi pi-pencil"
                   label="Edit Record"
                   className="p-button-sm"
                   style={{
-                    backgroundColor: '#3b82f6',
-                    borderColor: '#3b82f6',
-                    padding: '0.5rem 1rem',
-                    borderRadius: '6px',
-                    fontSize: '0.875rem'
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)',
+                    border: 'none',
+                    padding: '0.75rem 1.5rem',
+                    borderRadius: '12px',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.025em',
+                    boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2)',
+                    transition: 'all 0.3s ease',
+                    position: 'relative',
+                    overflow: 'hidden'
                   }}
-                  onClick={() => openCustomRowEditor(item)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openCustomRowEditor(item);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
+                    e.currentTarget.style.boxShadow = '0 8px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                    e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2)';
+                  }}
                 />
               </div>
             )}

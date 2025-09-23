@@ -336,7 +336,34 @@ export const createLeftToolbarTemplate = (
   globalFilterPlaceholder, 
   globalFilterValue, 
   handleSearch, 
-  clearAllFilters
+  clearAllFilters,
+  // Additional parameters for expanded functionality
+  enableRowExpansion,
+  showExpandAllButtons,
+  expandAllLabel,
+  collapseAllLabel,
+  expansionButtonClassName,
+  expansionButtonStyle,
+  handleExpandAll,
+  handleCollapseAll,
+  enableColumnGrouping,
+  hasGroups,
+  showGroupingButtons,
+  groupingButtons,
+  handleGroupingAction,
+  enableColumnManagement,
+  setShowColumnManager,
+  showColumnManager,
+  enableColumnFilter,
+  enablePivotUI,
+  isPivotEnabled,
+  setShowPivotConfig,
+  showPivotConfig,
+  enableCalculatedFields,
+  setShowCalculatedFieldsManager,
+  showCalculatedFieldsManager,
+  // Size control
+  size = "normal"
 ) => {
   return () => (
     <div>
@@ -347,6 +374,7 @@ export const createLeftToolbarTemplate = (
             placeholder={globalFilterPlaceholder}
             value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
+            size={size}
           />
         </IconField>
       )}
@@ -356,7 +384,8 @@ export const createLeftToolbarTemplate = (
           icon="pi pi-filter-slash"
           label="Clear"
           onClick={clearAllFilters}
-          className="p-button-outlined p-button-danger p-button-sm"
+          className="p-button-outlined p-button-danger"
+          size={size}
         />
       )}
     </div>
@@ -382,7 +411,9 @@ export const createRightToolbarTemplate = (
   handleExport,
   enableRefresh,
   handleRefresh,
-  isRefreshing
+  isRefreshing,
+  // Size control
+  size = "normal"
 ) => {
   return () => (
     <div>
@@ -396,7 +427,7 @@ export const createRightToolbarTemplate = (
               key={index}
               label={action.title}
               onClick={() => handleBulkAction(action)}
-              className="p-button-sm"
+              size={size}
             />
           ))}
         </div>
@@ -407,7 +438,8 @@ export const createRightToolbarTemplate = (
           icon={isLoadingPivotConfig ? "pi pi-spin pi-spinner" : "pi pi-chart-bar"}
           label={isLoadingPivotConfig ? "Loading..." : "Pivot"}
           onClick={() => setShowPivotConfig(!showPivotConfig)}
-          className={`p-button-outlined p-button-sm ${isPivotEnabled ? 'p-button-success' : ''}`}
+          className={`p-button-outlined ${isPivotEnabled ? 'p-button-success' : ''}`}
+          size={size}
           tooltip={isLoadingPivotConfig ? "Loading pivot configuration..." : "Configure pivot table"}
           tooltipOptions={{ position: 'top' }}
           disabled={isLoadingPivotConfig}
@@ -419,7 +451,8 @@ export const createRightToolbarTemplate = (
           icon="pi pi-columns"
           label="Columns"
           onClick={() => setShowColumnManager(!showColumnManager)}
-          className="p-button-outlined p-button-sm"
+          className="p-button-outlined"
+          size={size}
         />
       )}
 
@@ -428,7 +461,8 @@ export const createRightToolbarTemplate = (
           icon="pi pi-filter-slash"
           label="Clear Filters"
           onClick={clearAllFilters}
-          className="p-button-outlined p-button-warning p-button-sm"
+          className="p-button-outlined p-button-warning"
+          size={size}
           tooltip="Clear all column filters and search"
           tooltipOptions={{ position: 'top' }}
         />
@@ -439,7 +473,8 @@ export const createRightToolbarTemplate = (
           icon="pi pi-download"
           label="Export"
           onClick={handleExport}
-          className="p-button-outlined p-button-sm"
+          className="p-button-outlined"
+          size={size}
         />
       )}
 
@@ -449,7 +484,8 @@ export const createRightToolbarTemplate = (
           label="Refresh"
           onClick={handleRefresh}
           disabled={isRefreshing}
-          className="p-button-outlined p-button-sm"
+          className="p-button-outlined"
+          size={size}
           loading={isRefreshing}
         />
       )}
