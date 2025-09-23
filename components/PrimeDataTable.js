@@ -2835,7 +2835,7 @@ const PrimeDataTable = ({
                     border: '1px solid #e5e7eb',
                     transition: 'all 0.2s ease',
                     position: 'relative',
-                    minHeight: '80px',
+                    minHeight: '70px',
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                     overflow: 'hidden'
                   }}
@@ -2883,19 +2883,22 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '0.9rem',
+                              fontSize: '0.8rem',
                               fontWeight: '700',
                               fontFamily: 'monospace'
                             }}
                             inputStyle={{
                               textAlign: 'center',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              fontSize: '0.9rem',
-                              minHeight: '2.5rem'
+                              fontSize: '0.8rem',
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         ) : columnType === 'date' ? (
@@ -2916,13 +2919,16 @@ const PrimeDataTable = ({
                             }}
                             inputStyle={{
                               textAlign: 'center',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              fontSize: '0.9rem',
-                              minHeight: '2.5rem'
+                              fontSize: '0.8rem',
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         ) : columnType === 'boolean' ? (
@@ -2961,14 +2967,17 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '0.9rem',
+                              fontSize: '0.8rem',
                               fontWeight: '500',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              minHeight: '2.5rem'
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         )}
@@ -2976,10 +2985,10 @@ const PrimeDataTable = ({
                     ) : (
                       /* Read-only display */
                       <div style={{ 
-                        fontSize: '0.9rem',
+                        fontSize: '0.8rem',
                         fontWeight: isNumber ? '700' : '500',
                         color: isNumber ? '#1e293b' : '#374151',
-                        padding: '0.5rem',
+                        padding: '0.375rem',
                         backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                         borderRadius: '6px',
                         border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
@@ -2994,7 +3003,7 @@ const PrimeDataTable = ({
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         maxWidth: '100%',
-                        minHeight: '2.5rem'
+                        minHeight: '2rem'
                       }}>
                         {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                       </div>
@@ -3266,19 +3275,22 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '0.9rem',
+                              fontSize: '0.8rem',
                               fontWeight: '700',
                               fontFamily: 'monospace'
                             }}
                             inputStyle={{
                               textAlign: 'center',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              fontSize: '0.9rem',
-                              minHeight: '2.5rem'
+                              fontSize: '0.8rem',
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         ) : columnType === 'date' ? (
@@ -3299,13 +3311,16 @@ const PrimeDataTable = ({
                             }}
                             inputStyle={{
                               textAlign: 'center',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              fontSize: '0.9rem',
-                              minHeight: '2.5rem'
+                              fontSize: '0.8rem',
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         ) : columnType === 'boolean' ? (
@@ -3344,14 +3359,17 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '0.9rem',
+                              fontSize: '0.8rem',
                               fontWeight: '500',
-                              padding: '0.5rem',
+                              padding: '0.375rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
                               boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                              minHeight: '2.5rem'
+                              minHeight: '2rem',
+                              maxWidth: '100%',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis'
                             }}
                           />
                         )}
@@ -3359,15 +3377,15 @@ const PrimeDataTable = ({
                     ) : (
                       /* Read-only display */
                       <div style={{ 
-                        padding: '0.5rem',
+                        padding: '0.375rem',
                         border: '1px solid #d1d5db', 
                         borderRadius: '6px',
                         backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
-                        minHeight: '2.5rem',
+                        minHeight: '2rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.9rem',
+                        fontSize: '0.8rem',
                         fontWeight: isNumber ? '700' : '500',
                         color: isNumber ? '#1e293b' : '#374151',
                         fontFamily: isNumber ? 'monospace' : 'inherit',
