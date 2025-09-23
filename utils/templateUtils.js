@@ -374,7 +374,6 @@ export const createLeftToolbarTemplate = (
             placeholder={globalFilterPlaceholder}
             value={globalFilterValue}
             onChange={(e) => handleSearch(e.target.value)}
-            size={size}
           />
         </IconField>
       )}
@@ -385,7 +384,6 @@ export const createLeftToolbarTemplate = (
           label="Clear"
           onClick={clearAllFilters}
           className="p-button-outlined p-button-danger"
-          size={size}
         />
       )}
     </div>
@@ -427,7 +425,6 @@ export const createRightToolbarTemplate = (
               key={index}
               label={action.title}
               onClick={() => handleBulkAction(action)}
-              size={size}
             />
           ))}
         </div>

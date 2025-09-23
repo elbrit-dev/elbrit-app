@@ -359,7 +359,6 @@ const PrimeDataTable = ({
   toolbarSize = "normal", // "small" | "normal" | "large" - Controls overall toolbar size
   leftToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for left section
   rightToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for right section
-  mobileToolbarSize = "small", // "small" | "normal" | "large" - Size for mobile screens (≤768px)
   
   // Pagination
   pageSize = 10,
@@ -2523,13 +2522,8 @@ const PrimeDataTable = ({
         onRowToggle({ data: {} });
       }
     },
-    // Size control with mobile responsiveness
-    (() => {
-      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-        return mobileToolbarSize;
-      }
-      return leftToolbarSize || toolbarSize;
-    })()
+    // Size control
+    leftToolbarSize || toolbarSize
   );
 
   const rightToolbarTemplate = createRightToolbarTemplate(
@@ -2552,13 +2546,8 @@ const PrimeDataTable = ({
     enableRefresh,
     handleRefresh,
     isRefreshing,
-    // Size control with mobile responsiveness
-    (() => {
-      if (typeof window !== 'undefined' && window.innerWidth <= 768) {
-        return mobileToolbarSize;
-      }
-      return rightToolbarSize || toolbarSize;
-    })()
+    // Size control
+    rightToolbarSize || toolbarSize
   );
 
   // Auto-create editors for editable columns based on data type
@@ -3164,7 +3153,7 @@ const PrimeDataTable = ({
     if (viewMode === 'table') return null;
     
     return (
-      <div className="simplified-toolbar" style={{
+      <div className={`simplified-toolbar simplified-toolbar-${leftToolbarSize || toolbarSize}`} style={{
         backgroundColor: '#ffffff',
         border: '1px solid #e2e8f0',
         borderRadius: '12px',
@@ -3509,6 +3498,97 @@ const PrimeDataTable = ({
       
 
       
+      {/* Custom Toolbar Sizing CSS */}
+      <style jsx>{`
+        /* Small Size */
+        .toolbar-small .p-inputtext {
+          padding: 0.25rem 0.5rem !important;
+          font-size: 0.75rem !important;
+          height: 2rem !important;
+        }
+        .toolbar-small .p-button {
+          padding: 0.25rem 0.5rem !important;
+          font-size: 0.75rem !important;
+          height: 2rem !important;
+        }
+        .toolbar-small .p-button-icon {
+          font-size: 0.75rem !important;
+        }
+        .toolbar-small .p-button-label {
+          font-size: 0.75rem !important;
+        }
+        
+        /* Normal Size */
+        .toolbar-normal .p-inputtext {
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.875rem !important;
+          height: 2.5rem !important;
+        }
+        .toolbar-normal .p-button {
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.875rem !important;
+          height: 2.5rem !important;
+        }
+        .toolbar-normal .p-button-icon {
+          font-size: 0.875rem !important;
+        }
+        .toolbar-normal .p-button-label {
+          font-size: 0.875rem !important;
+        }
+        
+        /* Large Size */
+        .toolbar-large .p-inputtext {
+          padding: 0.75rem 1rem !important;
+          font-size: 1rem !important;
+          height: 3rem !important;
+        }
+        .toolbar-large .p-button {
+          padding: 0.75rem 1rem !important;
+          font-size: 1rem !important;
+          height: 3rem !important;
+        }
+        .toolbar-large .p-button-icon {
+          font-size: 1rem !important;
+        }
+        .toolbar-large .p-button-label {
+          font-size: 1rem !important;
+        }
+        
+        /* Simplified Toolbar Sizing */
+        .simplified-toolbar-small .p-inputtext {
+          padding: 0.25rem 0.5rem !important;
+          font-size: 0.75rem !important;
+          height: 2rem !important;
+        }
+        .simplified-toolbar-small .p-button {
+          padding: 0.25rem 0.5rem !important;
+          font-size: 0.75rem !important;
+          height: 2rem !important;
+        }
+        
+        .simplified-toolbar-normal .p-inputtext {
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.875rem !important;
+          height: 2.5rem !important;
+        }
+        .simplified-toolbar-normal .p-button {
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.875rem !important;
+          height: 2.5rem !important;
+        }
+        
+        .simplified-toolbar-large .p-inputtext {
+          padding: 0.75rem 1rem !important;
+          font-size: 1rem !important;
+          height: 3rem !important;
+        }
+        .simplified-toolbar-large .p-button {
+          padding: 0.75rem 1rem !important;
+          font-size: 1rem !important;
+          height: 3rem !important;
+        }
+      `}</style>
+
       {/* Conditional Toolbar based on viewMode */}
       {viewMode === 'table' ? (
         <>
@@ -3516,7 +3596,7 @@ const PrimeDataTable = ({
       <Toolbar
         left={leftToolbarTemplate}
         right={rightToolbarTemplate}
-        className="mb-4"
+        className={`mb-4 toolbar-${leftToolbarSize || toolbarSize}`}
             style={{}}
       />
       {/* Common Filter Toolbar for Column Grouping */}

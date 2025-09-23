@@ -1421,12 +1421,6 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Override toolbar size for right section (bulk actions, export, etc.)",
       defaultValue: "normal"
     },
-    mobileToolbarSize: {
-      type: "choice",
-      options: ["small", "normal", "large"],
-      description: "Toolbar size for mobile screens (≤768px). 'small' is recommended for better mobile UX.",
-      defaultValue: "small"
-    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",
