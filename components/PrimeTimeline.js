@@ -18,7 +18,9 @@ import { Column } from "primereact/column";
  * 
  * The component supports both dialog and drawer modes for detailed views. When
  * `useEmptyDrawer` is set to true, the drawer will render empty content that can
- * be used as a slot in Plasmic Studio for custom content design.
+ * be used as a slot in Plasmic Studio for custom content design. The "Read more"
+ * button will automatically open the drawer with the clicked item's data available
+ * in the slot via the 'currentItem' data context.
  */
 const PrimeTimeline = ({
   // Data
@@ -292,7 +294,12 @@ const PrimeTimeline = ({
               }}
               className={readMoreClassName}
               onClick={() => {
-                if (onReadMore) {
+                // If useEmptyDrawer is true, always open drawer with the clicked item
+                if (useEmptyDrawer && enableDialog) {
+                  setDialogItem(item);
+                  setDialogVisible(true);
+                  if (onDialogOpen) onDialogOpen({ item });
+                } else if (onReadMore) {
                   onReadMore({ item, href });
                 } else if (href) {
                   if (readMoreTarget === "_blank") {
