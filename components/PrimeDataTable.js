@@ -2727,80 +2727,51 @@ const PrimeDataTable = ({
             key={item[resolvedDataKey] || index} 
             className="card-item" 
             style={{ 
-              background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #e0f2fe 100%)',
-              border: '2px solid transparent',
-              borderRadius: '20px', 
-              padding: '1.5rem',
-              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
-              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              backgroundColor: '#ffffff',
+              border: '1px solid #e5e7eb',
+              borderRadius: '12px', 
+              padding: '1.25rem',
+              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)',
+              transition: 'all 0.2s ease',
               position: 'relative',
               overflow: 'hidden',
               maxWidth: '100%',
-              cursor: 'pointer',
-              backdropFilter: 'blur(10px)',
-              borderImage: 'linear-gradient(145deg, #3b82f6, #8b5cf6, #06b6d4) 1'
+              cursor: 'pointer'
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.borderColor = '#3b82f6';
-              e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06)';
+              e.currentTarget.style.boxShadow = '0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.borderColor = 'transparent';
-              e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)';
+              e.currentTarget.style.borderColor = '#e5e7eb';
+              e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06)';
             }}
           >
-            {/* Card Header with Modern Design */}
+            {/* Card Header - Professional Design */}
             <div style={{ 
-              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)',
-              borderRadius: '16px',
-              padding: '1.25rem',
-              marginBottom: '1.5rem',
-              position: 'relative',
-              overflow: 'hidden'
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              padding: '1rem',
+              marginBottom: '1rem',
+              position: 'relative'
             }}>
-              {/* Decorative Elements */}
-              <div style={{
-                position: 'absolute',
-                top: '-20px',
-                right: '-20px',
-                width: '80px',
-                height: '80px',
-                background: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '50%',
-                opacity: 0.6
-              }} />
-              <div style={{
-                position: 'absolute',
-                bottom: '-30px',
-                left: '-30px',
-                width: '60px',
-                height: '60px',
-                background: 'rgba(255, 255, 255, 0.08)',
-                borderRadius: '50%',
-                opacity: 0.4
-              }} />
-              
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center',
-                position: 'relative',
-                zIndex: 1
+                alignItems: 'center'
               }}>
                 <h3 style={{ 
                   margin: 0, 
-                  fontSize: '1.25rem', 
-                  fontWeight: '800', 
-                  color: '#ffffff',
-                  lineHeight: '1.2',
+                  fontSize: '1.1rem', 
+                  fontWeight: '600', 
+                  color: '#1f2937',
+                  lineHeight: '1.3',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                   flex: 1,
-                  marginRight: '1rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                  marginRight: '1rem'
                 }}>
                   {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
                 </h3>
@@ -2808,33 +2779,32 @@ const PrimeDataTable = ({
                 {(editMode === 'row' && useCustomRowEditor) && (
                   <Button
                     icon="pi pi-pencil"
-                    className="p-button-text p-button-sm p-button-rounded"
+                    className="p-button-text p-button-sm"
                     onClick={(e) => {
                       e.stopPropagation();
                       openCustomRowEditor(item);
                     }}
                     tooltip="Edit Record"
                     style={{ 
-                      color: '#ffffff',
+                      color: '#6b7280',
                       padding: '0.5rem',
-                      borderRadius: '50%',
-                      width: '2.75rem',
-                      height: '2.75rem',
+                      borderRadius: '6px',
+                      width: '2.5rem',
+                      height: '2.5rem',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      transition: 'all 0.3s ease',
-                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                      border: '1px solid rgba(255, 255, 255, 0.3)',
-                      backdropFilter: 'blur(10px)'
+                      transition: 'all 0.2s ease',
+                      backgroundColor: 'transparent',
+                      border: '1px solid #d1d5db'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      e.currentTarget.style.borderColor = '#9ca3af';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                      e.currentTarget.style.boxShadow = 'none';
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.borderColor = '#d1d5db';
                     }}
                   />
                 )}
@@ -2859,36 +2829,32 @@ const PrimeDataTable = ({
                   <div key={column.key} style={{ 
                     display: 'flex',
                     flexDirection: 'column',
-                    padding: '1rem',
-                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                    borderRadius: '16px',
-                    border: '2px solid #e2e8f0',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    padding: '0.75rem',
+                    backgroundColor: '#ffffff',
+                    borderRadius: '8px',
+                    border: '1px solid #e5e7eb',
+                    transition: 'all 0.2s ease',
                     position: 'relative',
-                    minHeight: '90px',
-                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    minHeight: '80px',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                     overflow: 'hidden'
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
                   }}>
                     <label style={{ 
                       fontSize: '0.75rem', 
-                      fontWeight: '700', 
-                      color: '#374151',
+                      fontWeight: '600', 
+                      color: '#6b7280',
                       marginBottom: '0.5rem',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.025em',
                       textAlign: 'center',
-                      background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -3040,14 +3006,13 @@ const PrimeDataTable = ({
             
             {/* Card Footer with Action */}
             <div style={{ 
-              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-              borderRadius: '16px',
-              padding: '1.25rem', 
-              marginTop: '1.25rem',
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '1rem', 
+              marginTop: '1rem',
               textAlign: 'center',
-              position: 'relative',
-              border: '1px solid #fecaca',
-              overflow: 'hidden'
+              position: 'relative'
             }}>
               {/* Decorative Pattern */}
               <div style={{
@@ -3066,21 +3031,16 @@ const PrimeDataTable = ({
                 label="Delete Record"
                 className="p-button-sm"
                 style={{
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  backgroundColor: '#dc2626',
                   color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '16px',
-                  padding: '0.875rem 2rem',
-                  fontWeight: '700',
-                  fontSize: '0.9rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                  position: 'relative',
-                  zIndex: 1,
-                  backdropFilter: 'blur(10px)',
-                  minWidth: '160px'
+                  border: '1px solid #dc2626',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  fontWeight: '500',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                  minWidth: '120px'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3090,12 +3050,12 @@ const PrimeDataTable = ({
                   }
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.backgroundColor = '#b91c1c';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
                 }}
               />
             </div>
@@ -3265,24 +3225,20 @@ const PrimeDataTable = ({
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.borderColor = '#3b82f6';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)';
+                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
+                    e.currentTarget.style.borderColor = '#e5e7eb';
+                    e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
                   }}>
                     <label style={{ 
                       fontSize: '0.75rem', 
-                      fontWeight: '700', 
-                      color: '#374151',
+                      fontWeight: '600', 
+                      color: '#6b7280',
                       marginBottom: '0.5rem',
                       textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
+                      letterSpacing: '0.025em',
                       textAlign: 'center',
-                      background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
-                      WebkitBackgroundClip: 'text',
-                      WebkitTextFillColor: 'transparent',
-                      backgroundClip: 'text',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap',
@@ -3434,14 +3390,13 @@ const PrimeDataTable = ({
             
             {/* Form Footer */}
             <div style={{ 
-              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
-              borderRadius: '16px',
-              padding: '1.25rem', 
-              marginTop: '1.25rem',
+              backgroundColor: '#f9fafb',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              padding: '1rem', 
+              marginTop: '1rem',
               textAlign: 'center',
-              position: 'relative',
-              border: '1px solid #fecaca',
-              overflow: 'hidden'
+              position: 'relative'
             }}>
               {/* Decorative Pattern */}
               <div style={{
@@ -3460,21 +3415,16 @@ const PrimeDataTable = ({
                 label="Delete Record"
                 className="p-button-sm"
                 style={{
-                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  backgroundColor: '#dc2626',
                   color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '16px',
-                  padding: '0.875rem 2rem',
-                  fontWeight: '700',
-                  fontSize: '0.9rem',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)',
-                  position: 'relative',
-                  zIndex: 1,
-                  backdropFilter: 'blur(10px)',
-                  minWidth: '160px'
+                  border: '1px solid #dc2626',
+                  borderRadius: '6px',
+                  padding: '0.5rem 1rem',
+                  fontWeight: '500',
+                  fontSize: '0.875rem',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
+                  minWidth: '120px'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3484,12 +3434,12 @@ const PrimeDataTable = ({
                   }
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
-                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.backgroundColor = '#b91c1c';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.15)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
+                  e.currentTarget.style.backgroundColor = '#dc2626';
+                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
                 }}
               />
             </div>
@@ -3816,6 +3766,33 @@ const PrimeDataTable = ({
           font-size: 1rem !important;
         }
         
+        /* Edit Mode Overflow Handling */
+        .p-datatable-overflow-hidden {
+          overflow: hidden !important;
+        }
+        
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr > td {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+          max-width: 200px !important;
+        }
+        
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td {
+          overflow: visible !important;
+          white-space: normal !important;
+          max-width: none !important;
+        }
+        
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-inputtext,
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-inputnumber,
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-calendar,
+        .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-dropdown {
+          width: 100% !important;
+          min-width: 120px !important;
+          max-width: 250px !important;
+        }
+        
       `}</style>
 
       {/* Conditional Toolbar based on viewMode */}
@@ -4023,6 +4000,10 @@ const PrimeDataTable = ({
         showFilterMatchModes={showFilterMatchModes}
         headerColumnGroup={enableColumnGrouping ? (headerColumnGroup || generateColumnGroups()) : undefined}
         footerColumnGroup={enableColumnGrouping ? (footerColumnGroup || generateFooterGroups()) : undefined}
+        style={{
+          overflow: 'hidden'
+        }}
+        className="p-datatable-overflow-hidden"
 
       >
         {enableRowSelection && (
