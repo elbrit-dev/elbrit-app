@@ -2727,101 +2727,118 @@ const PrimeDataTable = ({
             key={item[resolvedDataKey] || index} 
             className="card-item" 
             style={{ 
-              backgroundColor: '#ffffff',
-              border: '1px solid #e5e7eb', 
-              borderRadius: '16px', 
-              padding: '1.25rem',
-              boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)',
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              background: 'linear-gradient(145deg, #ffffff 0%, #f8fafc 50%, #e0f2fe 100%)',
+              border: '2px solid transparent',
+              borderRadius: '20px', 
+              padding: '1.5rem',
+              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)',
+              transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               position: 'relative',
               overflow: 'hidden',
               maxWidth: '100%',
               cursor: 'pointer',
-              background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)'
+              backdropFilter: 'blur(10px)',
+              borderImage: 'linear-gradient(145deg, #3b82f6, #8b5cf6, #06b6d4) 1'
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-8px) scale(1.02)';
-              e.currentTarget.style.boxShadow = '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)';
               e.currentTarget.style.borderColor = '#3b82f6';
-              e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%)';
+              e.currentTarget.style.boxShadow = '0 12px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.06)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0) scale(1)';
-              e.currentTarget.style.boxShadow = '0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06)';
-              e.currentTarget.style.borderColor = '#e5e7eb';
-              e.currentTarget.style.background = 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)';
+              e.currentTarget.style.borderColor = 'transparent';
+              e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08)';
             }}
           >
-            {/* Card Header */}
+            {/* Card Header with Modern Design */}
             <div style={{ 
-              borderBottom: '2px solid #e2e8f0', 
-              paddingBottom: '1rem', 
-              marginBottom: '1rem',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              position: 'relative'
+              background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #06b6d4 100%)',
+              borderRadius: '16px',
+              padding: '1.25rem',
+              marginBottom: '1.5rem',
+              position: 'relative',
+              overflow: 'hidden'
             }}>
-              {/* Status Indicator */}
+              {/* Decorative Elements */}
               <div style={{
                 position: 'absolute',
-                top: '-0.5rem',
-                left: '0',
-                width: '4px',
-                height: '2rem',
-                background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
-                borderRadius: '2px'
+                top: '-20px',
+                right: '-20px',
+                width: '80px',
+                height: '80px',
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '50%',
+                opacity: 0.6
+              }} />
+              <div style={{
+                position: 'absolute',
+                bottom: '-30px',
+                left: '-30px',
+                width: '60px',
+                height: '60px',
+                background: 'rgba(255, 255, 255, 0.08)',
+                borderRadius: '50%',
+                opacity: 0.4
               }} />
               
-              <h3 style={{ 
-                margin: 0, 
-                fontSize: '1.1rem', 
-                fontWeight: '700', 
-                color: '#1e293b',
-                lineHeight: '1.3',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-                marginRight: '0.75rem',
-                marginLeft: '0.75rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.025em'
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                position: 'relative',
+                zIndex: 1
               }}>
-                {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
-              </h3>
-              
-              {(editMode === 'row' && useCustomRowEditor) && (
-                <Button
-                  icon="pi pi-pencil"
-                  className="p-button-text p-button-sm p-button-rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openCustomRowEditor(item);
-                  }}
-                  tooltip="Edit Record"
-                  style={{ 
-                    color: '#3b82f6',
-                    padding: '0.5rem',
-                    borderRadius: '50%',
-                    width: '2.5rem',
-                    height: '2.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                    e.currentTarget.style.transform = 'scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                    e.currentTarget.style.transform = 'scale(1)';
-                  }}
-                />
-              )}
+                <h3 style={{ 
+                  margin: 0, 
+                  fontSize: '1.25rem', 
+                  fontWeight: '800', 
+                  color: '#ffffff',
+                  lineHeight: '1.2',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  marginRight: '1rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                }}>
+                  {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+                </h3>
+                
+                {(editMode === 'row' && useCustomRowEditor) && (
+                  <Button
+                    icon="pi pi-pencil"
+                    className="p-button-text p-button-sm p-button-rounded"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openCustomRowEditor(item);
+                    }}
+                    tooltip="Edit Record"
+                    style={{ 
+                      color: '#ffffff',
+                      padding: '0.5rem',
+                      borderRadius: '50%',
+                      width: '2.75rem',
+                      height: '2.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      backdropFilter: 'blur(10px)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  />
+                )}
+              </div>
             </div>
             
             {/* Card Content - 2x2 Grid Layout with Inline Editing */}
@@ -2842,33 +2859,40 @@ const PrimeDataTable = ({
                   <div key={column.key} style={{ 
                     display: 'flex',
                     flexDirection: 'column',
-                    padding: '0.75rem',
-                    backgroundColor: '#f8fafc',
-                    borderRadius: '10px',
-                    border: '1px solid #e2e8f0',
-                    transition: 'all 0.2s ease',
+                    padding: '1rem',
+                    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                    borderRadius: '16px',
+                    border: '2px solid #e2e8f0',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                     position: 'relative',
-                    minHeight: '80px'
+                    minHeight: '90px',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+                    overflow: 'hidden'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                    e.currentTarget.style.borderColor = '#cbd5e1';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
                     e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
                   }}>
                     <label style={{ 
                       fontSize: '0.75rem', 
-                      fontWeight: '600', 
-                      color: '#64748b',
+                      fontWeight: '700', 
+                      color: '#374151',
                       marginBottom: '0.5rem',
-                      textTransform: 'capitalize',
-                      letterSpacing: '0.025em'
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%'
                     }}>
                       {column.title}
                     </label>
@@ -2893,7 +2917,7 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '1rem',
+                              fontSize: '0.9rem',
                               fontWeight: '700',
                               fontFamily: 'monospace'
                             }}
@@ -2903,7 +2927,9 @@ const PrimeDataTable = ({
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              fontSize: '0.9rem',
+                              minHeight: '2.5rem'
                             }}
                           />
                         ) : columnType === 'date' ? (
@@ -2928,7 +2954,9 @@ const PrimeDataTable = ({
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              fontSize: '0.9rem',
+                              minHeight: '2.5rem'
                             }}
                           />
                         ) : columnType === 'boolean' ? (
@@ -2967,13 +2995,14 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '1rem',
+                              fontSize: '0.9rem',
                               fontWeight: '500',
                               padding: '0.5rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              minHeight: '2.5rem'
                             }}
                           />
                         )}
@@ -2981,7 +3010,7 @@ const PrimeDataTable = ({
                     ) : (
                       /* Read-only display */
                       <div style={{ 
-                        fontSize: '1rem',
+                        fontSize: '0.9rem',
                         fontWeight: isNumber ? '700' : '500',
                         color: isNumber ? '#1e293b' : '#374151',
                         padding: '0.5rem',
@@ -2994,7 +3023,12 @@ const PrimeDataTable = ({
                         flex: 1,
                         display: 'flex',
                         alignItems: 'center',
-                        justifyContent: 'center'
+                        justifyContent: 'center',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '100%',
+                        minHeight: '2.5rem'
                       }}>
                         {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                       </div>
@@ -3006,30 +3040,47 @@ const PrimeDataTable = ({
             
             {/* Card Footer with Action */}
             <div style={{ 
-              borderTop: '2px solid #e2e8f0', 
-              paddingTop: '1.25rem', 
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+              borderRadius: '16px',
+              padding: '1.25rem', 
               marginTop: '1.25rem',
               textAlign: 'center',
-              position: 'relative'
+              position: 'relative',
+              border: '1px solid #fecaca',
+              overflow: 'hidden'
             }}>
+              {/* Decorative Pattern */}
+              <div style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-10px',
+                width: '40px',
+                height: '40px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '50%',
+                opacity: 0.6
+              }} />
+              
               <Button
                 icon="pi pi-trash"
                 label="Delete Record"
                 className="p-button-sm"
                 style={{
-                  backgroundColor: '#ffffff',
-                  color: '#dc2626',
-                  border: '2px solid #dc2626',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '16px',
+                  padding: '0.875rem 2rem',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
-                  transition: 'all 0.3s ease',
+                  letterSpacing: '0.05em',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)',
                   position: 'relative',
-                  overflow: 'hidden'
+                  zIndex: 1,
+                  backdropFilter: 'blur(10px)',
+                  minWidth: '160px'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3039,16 +3090,12 @@ const PrimeDataTable = ({
                   }
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#dc2626';
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 8px 15px -3px rgba(220, 38, 38, 0.4), 0 4px 6px -2px rgba(220, 38, 38, 0.3)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.color = '#dc2626';
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
                 }}
               />
             </div>
@@ -3217,24 +3264,29 @@ const PrimeDataTable = ({
                     minHeight: '80px'
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f1f5f9';
-                    e.currentTarget.style.borderColor = '#cbd5e1';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.1)';
+                    e.currentTarget.style.borderColor = '#3b82f6';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.1), 0 2px 4px rgba(0, 0, 0, 0.05)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f8fafc';
                     e.currentTarget.style.borderColor = '#e2e8f0';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.04)';
                   }}>
                     <label style={{ 
                       fontSize: '0.75rem', 
-                      fontWeight: '600', 
-                      color: '#64748b',
+                      fontWeight: '700', 
+                      color: '#374151',
                       marginBottom: '0.5rem',
-                      textTransform: 'capitalize',
-                      letterSpacing: '0.025em'
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      textAlign: 'center',
+                      background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      backgroundClip: 'text',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      maxWidth: '100%'
                     }}>
                       {column.title}
                     </label>
@@ -3258,7 +3310,7 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '1rem',
+                              fontSize: '0.9rem',
                               fontWeight: '700',
                               fontFamily: 'monospace'
                             }}
@@ -3268,7 +3320,9 @@ const PrimeDataTable = ({
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              fontSize: '0.9rem',
+                              minHeight: '2.5rem'
                             }}
                           />
                         ) : columnType === 'date' ? (
@@ -3293,7 +3347,9 @@ const PrimeDataTable = ({
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              fontSize: '0.9rem',
+                              minHeight: '2.5rem'
                             }}
                           />
                         ) : columnType === 'boolean' ? (
@@ -3332,13 +3388,14 @@ const PrimeDataTable = ({
                             style={{
                               width: '100%',
                               textAlign: 'center',
-                              fontSize: '1rem',
+                              fontSize: '0.9rem',
                               fontWeight: '500',
                               padding: '0.5rem',
                               backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
                               border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
                               borderRadius: '6px',
-                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                              minHeight: '2.5rem'
                             }}
                           />
                         )}
@@ -3350,18 +3407,22 @@ const PrimeDataTable = ({
                         border: '1px solid #d1d5db', 
                         borderRadius: '6px',
                         backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
-                        minHeight: '2rem',
+                        minHeight: '2.5rem',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '1rem',
+                        fontSize: '0.9rem',
                         fontWeight: isNumber ? '700' : '500',
                         color: isNumber ? '#1e293b' : '#374151',
                         fontFamily: isNumber ? 'monospace' : 'inherit',
                         borderLeft: isHighValue ? '3px solid #3b82f6' : '3px solid transparent',
                         transition: 'all 0.2s ease',
                         boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                        flex: 1
+                        flex: 1,
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        maxWidth: '100%'
                       }}>
                         {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
                       </div>
@@ -3373,30 +3434,47 @@ const PrimeDataTable = ({
             
             {/* Form Footer */}
             <div style={{ 
-              borderTop: '2px solid #e2e8f0', 
-              paddingTop: '1.25rem', 
+              background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+              borderRadius: '16px',
+              padding: '1.25rem', 
               marginTop: '1.25rem',
               textAlign: 'center',
-              position: 'relative'
+              position: 'relative',
+              border: '1px solid #fecaca',
+              overflow: 'hidden'
             }}>
+              {/* Decorative Pattern */}
+              <div style={{
+                position: 'absolute',
+                top: '-10px',
+                right: '-10px',
+                width: '40px',
+                height: '40px',
+                background: 'rgba(239, 68, 68, 0.1)',
+                borderRadius: '50%',
+                opacity: 0.6
+              }} />
+              
               <Button
                 icon="pi pi-trash"
                 label="Delete Record"
                 className="p-button-sm"
                 style={{
-                  backgroundColor: '#ffffff',
-                  color: '#dc2626',
-                  border: '2px solid #dc2626',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '12px',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
+                  background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '16px',
+                  padding: '0.875rem 2rem',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
                   textTransform: 'uppercase',
-                  letterSpacing: '0.025em',
-                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.2)',
-                  transition: 'all 0.3s ease',
+                  letterSpacing: '0.05em',
+                  transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)',
                   position: 'relative',
-                  overflow: 'hidden'
+                  zIndex: 1,
+                  backdropFilter: 'blur(10px)',
+                  minWidth: '160px'
                 }}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -3406,16 +3484,12 @@ const PrimeDataTable = ({
                   }
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#dc2626';
-                  e.currentTarget.style.color = '#ffffff';
-                  e.currentTarget.style.transform = 'translateY(-2px) scale(1.05)';
-                  e.currentTarget.style.boxShadow = '0 8px 15px -3px rgba(220, 38, 38, 0.4), 0 4px 6px -2px rgba(220, 38, 38, 0.3)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
+                  e.currentTarget.style.boxShadow = '0 6px 16px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.color = '#dc2626';
-                  e.currentTarget.style.transform = 'translateY(0) scale(1)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(220, 38, 38, 0.2)';
+                  e.currentTarget.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)';
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(239, 68, 68, 0.3), 0 2px 4px rgba(0, 0, 0, 0.1)';
                 }}
               />
             </div>
