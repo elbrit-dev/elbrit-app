@@ -2824,7 +2824,7 @@ const PrimeDataTable = ({
               )}
             </div>
             
-            {/* Card Content - 2x2 Grid Layout */}
+            {/* Card Content - 2x2 Grid Layout with Inline Editing */}
             <div className="card-content" style={{
               display: 'grid',
               gridTemplateColumns: '1fr 1fr',
@@ -2835,6 +2835,8 @@ const PrimeDataTable = ({
                 const value = item[column.key];
                 const isNumber = typeof value === 'number';
                 const isHighValue = isNumber && value > 1000;
+                const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                const columnType = getEffectiveColumnType(column);
                 
                 return (
                   <div key={column.key} style={{ 
@@ -2870,24 +2872,133 @@ const PrimeDataTable = ({
                     }}>
                       {column.title}
                     </label>
-                    <div style={{ 
-                      fontSize: '1rem',
-                      fontWeight: isNumber ? '700' : '500',
-                      color: isNumber ? '#1e293b' : '#374151',
-                      padding: '0.5rem',
-                      backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
-                      borderRadius: '6px',
-                      border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
-                      fontFamily: isNumber ? 'monospace' : 'inherit',
-                      textAlign: 'center',
-                      boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                      flex: 1,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}>
-                      {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
-                    </div>
+                    
+                    {/* Inline Editor */}
+                    {isEditable ? (
+                      <div style={{ flex: 1 }}>
+                        {columnType === 'number' ? (
+                          <InputNumber
+                            value={value || 0}
+                            onValueChange={(e) => {
+                              // Handle value change for inline editing
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'center',
+                              fontSize: '1rem',
+                              fontWeight: '700',
+                              fontFamily: 'monospace'
+                            }}
+                            inputStyle={{
+                              textAlign: 'center',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        ) : columnType === 'date' ? (
+                          <Calendar
+                            value={value ? new Date(value) : null}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%'
+                            }}
+                            inputStyle={{
+                              textAlign: 'center',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        ) : columnType === 'boolean' ? (
+                          <Checkbox
+                            checked={!!value}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.checked,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              height: '100%'
+                            }}
+                          />
+                        ) : (
+                          <InputText
+                            value={safeCell(value)}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.target.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'center',
+                              fontSize: '1rem',
+                              fontWeight: '500',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      /* Read-only display */
+                      <div style={{ 
+                        fontSize: '1rem',
+                        fontWeight: isNumber ? '700' : '500',
+                        color: isNumber ? '#1e293b' : '#374151',
+                        padding: '0.5rem',
+                        backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                        borderRadius: '6px',
+                        border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                        fontFamily: isNumber ? 'monospace' : 'inherit',
+                        textAlign: 'center',
+                        boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -3080,7 +3191,7 @@ const PrimeDataTable = ({
               )}
             </div>
             
-            {/* Form Fields Grid - 2x2 Layout */}
+            {/* Form Fields Grid - 2x2 Layout with Inline Editing */}
             <div className="form-fields-grid" style={{ 
               display: 'grid', 
               gridTemplateColumns: '1fr 1fr', 
@@ -3091,6 +3202,8 @@ const PrimeDataTable = ({
                 const value = item[column.key];
                 const isNumber = typeof value === 'number';
                 const isHighValue = isNumber && value > 1000;
+                const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                const columnType = getEffectiveColumnType(column);
                 
                 return (
                   <div key={column.key} className="form-field" style={{
@@ -3125,26 +3238,134 @@ const PrimeDataTable = ({
                     }}>
                       {column.title}
                     </label>
-                    <div style={{ 
-                      padding: '0.5rem',
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '6px',
-                      backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
-                      minHeight: '2rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1rem',
-                      fontWeight: isNumber ? '700' : '500',
-                      color: isNumber ? '#1e293b' : '#374151',
-                      fontFamily: isNumber ? 'monospace' : 'inherit',
-                      borderLeft: isHighValue ? '3px solid #3b82f6' : '3px solid transparent',
-                      transition: 'all 0.2s ease',
-                      boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
-                      flex: 1
-                    }}>
-                      {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
-                    </div>
+                    
+                    {/* Inline Editor */}
+                    {isEditable ? (
+                      <div style={{ flex: 1 }}>
+                        {columnType === 'number' ? (
+                          <InputNumber
+                            value={value || 0}
+                            onValueChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'center',
+                              fontSize: '1rem',
+                              fontWeight: '700',
+                              fontFamily: 'monospace'
+                            }}
+                            inputStyle={{
+                              textAlign: 'center',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        ) : columnType === 'date' ? (
+                          <Calendar
+                            value={value ? new Date(value) : null}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%'
+                            }}
+                            inputStyle={{
+                              textAlign: 'center',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        ) : columnType === 'boolean' ? (
+                          <Checkbox
+                            checked={!!value}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.checked,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              height: '100%'
+                            }}
+                          />
+                        ) : (
+                          <InputText
+                            value={safeCell(value)}
+                            onChange={(e) => {
+                              if (onCellEditComplete) {
+                                onCellEditComplete({
+                                  data: item,
+                                  field: column.key,
+                                  newValue: e.target.value,
+                                  originalValue: value
+                                });
+                              }
+                            }}
+                            style={{
+                              width: '100%',
+                              textAlign: 'center',
+                              fontSize: '1rem',
+                              fontWeight: '500',
+                              padding: '0.5rem',
+                              backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                              border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                              borderRadius: '6px',
+                              boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)'
+                            }}
+                          />
+                        )}
+                      </div>
+                    ) : (
+                      /* Read-only display */
+                      <div style={{ 
+                        padding: '0.5rem',
+                        border: '1px solid #d1d5db', 
+                        borderRadius: '6px',
+                        backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                        minHeight: '2rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1rem',
+                        fontWeight: isNumber ? '700' : '500',
+                        color: isNumber ? '#1e293b' : '#374151',
+                        fontFamily: isNumber ? 'monospace' : 'inherit',
+                        borderLeft: isHighValue ? '3px solid #3b82f6' : '3px solid transparent',
+                        transition: 'all 0.2s ease',
+                        boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        flex: 1
+                      }}>
+                        {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -3466,7 +3687,7 @@ const PrimeDataTable = ({
 
       
       {/* Custom Toolbar Sizing CSS */}
-      <style jsx>{`
+        <style jsx>{`
         /* Small Size */
         .toolbar-small .p-inputtext {
           padding: 0.25rem 0.5rem !important;
