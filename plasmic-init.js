@@ -1421,6 +1421,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Override toolbar size for right section (bulk actions, export, etc.)",
       defaultValue: "normal"
     },
+    enableToolbarInCardForm: {
+      type: "boolean",
+      description: "Enable full toolbar functionality in card/form modes (disabled by default)",
+      defaultValue: false
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",

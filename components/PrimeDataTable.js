@@ -360,6 +360,9 @@ const PrimeDataTable = ({
   leftToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for left section
   rightToolbarSize = "normal", // "small" | "normal" | "large" - Overrides toolbarSize for right section
   
+  // Toolbar Control Props for Card/Form Views
+  enableToolbarInCardForm = false, // If true, shows full toolbar in card/form modes (disabled by default)
+  
   // Pagination
   pageSize = 10,
   currentPage = 1,
@@ -3163,6 +3166,46 @@ const PrimeDataTable = ({
         maxWidth: '600px',
         margin: '0 auto 2rem auto'
       }}>
+        {/* Toolbar Disabled Notice */}
+        <div style={{
+          textAlign: 'center',
+          padding: '1rem',
+          backgroundColor: '#f8fafc',
+          borderRadius: '8px',
+          border: '1px solid #e2e8f0',
+          marginBottom: '1rem'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '0.5rem',
+            marginBottom: '0.5rem'
+          }}>
+            <i className="pi pi-info-circle" style={{ color: '#6b7280', fontSize: '1.25rem' }}></i>
+            <span style={{ 
+              fontSize: '0.875rem', 
+              fontWeight: '600', 
+              color: '#374151' 
+            }}>
+              Toolbar Disabled in {viewMode === 'cards' ? 'Card' : 'Form'} View
+            </span>
+          </div>
+          <p style={{ 
+            fontSize: '0.75rem', 
+            color: '#6b7280', 
+            margin: 0,
+            lineHeight: '1.4'
+          }}>
+            Full toolbar functionality is disabled in {viewMode} mode. 
+            Set <code style={{ 
+              backgroundColor: '#e5e7eb', 
+              padding: '0.125rem 0.25rem', 
+              borderRadius: '3px',
+              fontSize: '0.7rem'
+            }}>enableToolbarInCardForm=true</code> to enable.
+          </p>
+        </div>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -3602,8 +3645,20 @@ const PrimeDataTable = ({
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
         </>
+      ) : enableToolbarInCardForm ? (
+        <>
+          {/* Full Toolbar for Card/Form Views (when enabled) */}
+      <Toolbar
+        left={leftToolbarTemplate}
+        right={rightToolbarTemplate}
+        className={`mb-4 toolbar-${leftToolbarSize || toolbarSize}`}
+            style={{}}
+      />
+      {/* Common Filter Toolbar for Column Grouping */}
+      {commonFilterToolbarTemplate()}
+        </>
       ) : (
-        /* Simplified Toolbar for Card/Form Views */
+        /* Simplified Toolbar for Card/Form Views (default) */
         renderSimplifiedToolbar()
       )}
 
