@@ -3151,135 +3151,6 @@ const PrimeDataTable = ({
     );
   };
 
-  // Simplified toolbar for card/form views (search only)
-  const renderSimplifiedToolbar = () => {
-    if (viewMode === 'table') return null;
-    
-    return (
-      <div className={`simplified-toolbar simplified-toolbar-${leftToolbarSize || toolbarSize}`} style={{
-        backgroundColor: '#ffffff',
-        border: '1px solid #e2e8f0',
-        borderRadius: '12px',
-        padding: '1.5rem',
-        marginBottom: '2rem',
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
-        maxWidth: '600px',
-        margin: '0 auto 2rem auto'
-      }}>
-        {/* Toolbar Disabled Notice */}
-        <div style={{
-          textAlign: 'center',
-          padding: '1rem',
-          backgroundColor: '#f8fafc',
-          borderRadius: '8px',
-          border: '1px solid #e2e8f0',
-          marginBottom: '1rem'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '0.5rem',
-            marginBottom: '0.5rem'
-          }}>
-            <i className="pi pi-info-circle" style={{ color: '#6b7280', fontSize: '1.25rem' }}></i>
-            <span style={{ 
-              fontSize: '0.875rem', 
-              fontWeight: '600', 
-              color: '#374151' 
-            }}>
-              Toolbar Disabled in {viewMode === 'cards' ? 'Card' : 'Form'} View
-            </span>
-          </div>
-          <p style={{ 
-            fontSize: '0.75rem', 
-            color: '#6b7280', 
-            margin: 0,
-            lineHeight: '1.4'
-          }}>
-            Full toolbar functionality is disabled in {viewMode} mode. 
-            Set <code style={{ 
-              backgroundColor: '#e5e7eb', 
-              padding: '0.125rem 0.25rem', 
-              borderRadius: '3px',
-              fontSize: '0.7rem'
-            }}>enableToolbarInCardForm=true</code> to enable.
-          </p>
-        </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '1rem',
-          position: 'relative'
-        }}>
-          <div style={{
-            position: 'absolute',
-            left: '1rem',
-            zIndex: 1,
-            color: '#6b7280'
-          }}>
-            <i className="pi pi-search" style={{ fontSize: '1rem' }}></i>
-          </div>
-          
-          <InputText
-            value={globalFilterValue}
-            onChange={(e) => setGlobalFilterValue(e.target.value)}
-            placeholder={`Search ${viewMode === 'cards' ? 'cards' : 'records'}...`}
-            style={{
-              width: '100%',
-              border: '2px solid #e5e7eb',
-              borderRadius: '10px',
-              padding: '0.75rem 1rem 0.75rem 3rem',
-              fontSize: '1rem',
-              transition: 'all 0.2s ease',
-              backgroundColor: '#f9fafb'
-            }}
-            onFocus={(e) => {
-              e.target.style.borderColor = '#3b82f6';
-              e.target.style.backgroundColor = '#ffffff';
-              e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
-            }}
-            onBlur={(e) => {
-              e.target.style.borderColor = '#e5e7eb';
-              e.target.style.backgroundColor = '#f9fafb';
-              e.target.style.boxShadow = 'none';
-            }}
-          />
-          
-          {globalFilterValue && (
-            <Button
-              icon="pi pi-times"
-              className="p-button-text p-button-sm p-button-rounded"
-              onClick={() => setGlobalFilterValue('')}
-              tooltip="Clear search"
-              style={{
-                color: '#6b7280',
-                padding: '0.5rem',
-                minWidth: 'auto',
-                width: '2.5rem',
-                height: '2.5rem'
-              }}
-            />
-          )}
-        </div>
-        
-        {/* Search Results Counter */}
-        {globalFilterValue && (
-          <div style={{
-            marginTop: '1rem',
-            padding: '0.5rem 1rem',
-            backgroundColor: '#eff6ff',
-            borderRadius: '6px',
-            fontSize: '0.875rem',
-            color: '#1e40af',
-            textAlign: 'center'
-          }}>
-            {Array.isArray(finalTableData) ? finalTableData.length : 0} result(s) found
-          </div>
-        )}
-      </div>
-    );
-  };
 
   // Common filter toolbar for column grouping
   const commonFilterToolbarTemplate = useCallback(() => {
@@ -3597,39 +3468,6 @@ const PrimeDataTable = ({
           font-size: 1rem !important;
         }
         
-        /* Simplified Toolbar Sizing */
-        .simplified-toolbar-small .p-inputtext {
-          padding: 0.25rem 0.5rem !important;
-          font-size: 0.75rem !important;
-          height: 2rem !important;
-        }
-        .simplified-toolbar-small .p-button {
-          padding: 0.25rem 0.5rem !important;
-          font-size: 0.75rem !important;
-          height: 2rem !important;
-        }
-        
-        .simplified-toolbar-normal .p-inputtext {
-          padding: 0.5rem 0.75rem !important;
-          font-size: 0.875rem !important;
-          height: 2.5rem !important;
-        }
-        .simplified-toolbar-normal .p-button {
-          padding: 0.5rem 0.75rem !important;
-          font-size: 0.875rem !important;
-          height: 2.5rem !important;
-        }
-        
-        .simplified-toolbar-large .p-inputtext {
-          padding: 0.75rem 1rem !important;
-          font-size: 1rem !important;
-          height: 3rem !important;
-        }
-        .simplified-toolbar-large .p-button {
-          padding: 0.75rem 1rem !important;
-          font-size: 1rem !important;
-          height: 3rem !important;
-        }
       `}</style>
 
       {/* Conditional Toolbar based on viewMode */}
@@ -3657,10 +3495,7 @@ const PrimeDataTable = ({
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
         </>
-      ) : (
-        /* Simplified Toolbar for Card/Form Views (default) */
-        renderSimplifiedToolbar()
-      )}
+      ) : null}
 
       {/* Conditional Content based on viewMode */}
       {viewMode === 'cards' && (
