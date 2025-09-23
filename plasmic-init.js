@@ -1426,6 +1426,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable full toolbar functionality in card/form modes (disabled by default)",
       defaultValue: false
     },
+    onRowDelete: {
+      type: "eventHandler",
+      argTypes: [{ name: "data", type: "object" }],
+      description: "Callback function called when delete button is clicked on a row"
+    },
     editingRows: {
       type: "object",
       description: "Currently editing rows",
