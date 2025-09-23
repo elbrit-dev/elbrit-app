@@ -240,7 +240,8 @@ const a = {
     };
   
     return data.flatMap(entry => {
-      const parentObject = get(entry, itemPath.split('.').slice(0, -1).join('.')) || {};
+      const parentPath = itemPath.split('.').slice(0, -1).join('.');
+      const parentObject = parentPath ? get(entry, parentPath) : entry;   // 👈 use whole entry when no parentPath
       const parentFlatFull = flatten(parentObject, parentPrefix);
   
       // If includeParentPaths is defined, filter only selected keys
