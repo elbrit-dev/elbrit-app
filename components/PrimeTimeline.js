@@ -144,13 +144,6 @@ const PrimeTimeline = ({
   const [dialogItem, setDialogItem] = useState(null);
   const [capturedDrawerContent, setCapturedDrawerContent] = useState(null);
 
-  // Capture drawer HTML when drawer opens
-  useEffect(() => {
-    if (dialogVisible && useEmptyDrawer) {
-      captureDrawerHTML();
-    }
-  }, [dialogVisible, useEmptyDrawer, captureDrawerHTML]);
-  
   // Responsive drawer position
   const getDrawerPosition = () => {
     if (drawerPosition !== "auto") return drawerPosition;
@@ -200,6 +193,13 @@ const PrimeTimeline = ({
       }, 500); // Increased timeout
     }
   }, [useEmptyDrawer, dialogVisible]);
+
+  // Capture drawer HTML when drawer opens
+  useEffect(() => {
+    if (dialogVisible && useEmptyDrawer) {
+      captureDrawerHTML();
+    }
+  }, [dialogVisible, useEmptyDrawer, captureDrawerHTML]);
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
   const renderMarker = (item) => {
