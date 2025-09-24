@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
@@ -143,6 +143,13 @@ const PrimeTimeline = ({
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
   const [capturedDrawerContent, setCapturedDrawerContent] = useState(null);
+
+  // Capture drawer HTML when drawer opens
+  useEffect(() => {
+    if (dialogVisible && useEmptyDrawer) {
+      captureDrawerHTML();
+    }
+  }, [dialogVisible, useEmptyDrawer]);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -165,6 +172,20 @@ const PrimeTimeline = ({
   const captureDrawerContent = (content) => {
     if (useEmptyDrawer && content) {
       setCapturedDrawerContent(content);
+    }
+  };
+
+  // Function to capture the actual HTML content from the drawer
+  const captureDrawerHTML = () => {
+    if (useEmptyDrawer && dialogVisible) {
+      // Wait for the drawer to render, then capture its HTML
+      setTimeout(() => {
+        const drawerElement = document.querySelector('.p-sidebar-content');
+        if (drawerElement) {
+          const htmlContent = drawerElement.innerHTML;
+          setCapturedDrawerContent(htmlContent);
+        }
+      }, 100);
     }
   };
 
