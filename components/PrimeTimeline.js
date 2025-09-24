@@ -145,7 +145,6 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
-  const drawerContentRef = useRef(null);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -167,26 +166,68 @@ const PrimeTimeline = ({
   // PDF generation function
   const generatePDFFromDrawerContent = async (item) => {
     try {
-      // Temporarily set the dialog item to render the drawer content
-      const originalDialogItem = dialogItem;
-      setDialogItem(item);
-      
-      // Wait for the drawer content to render
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Get the drawer content element
-      const drawerContentElement = drawerContentRef.current;
-      if (!drawerContentElement) {
-        console.error("Drawer content not found");
-        return;
-      }
+      // Create a temporary container to render the drawer content
+      const tempContainer = document.createElement('div');
+      tempContainer.style.position = 'absolute';
+      tempContainer.style.left = '-9999px';
+      tempContainer.style.top = '-9999px';
+      tempContainer.style.width = '800px'; // Fixed width for consistent rendering
+      tempContainer.style.backgroundColor = '#ffffff';
+      tempContainer.style.padding = '20px';
+      document.body.appendChild(tempContainer);
 
-      // Generate canvas from the drawer content
-      const canvas = await html2canvas(drawerContentElement, {
+      // Create a temporary React root to render the drawer content
+      const { createRoot } = await import('react-dom/client');
+      const root = createRoot(tempContainer);
+
+      // Render the drawer content temporarily
+      const DrawerContentForPDF = () => {
+        if (useEmptyDrawer) {
+          return (
+            <DataProvider name="currentItem" data={item}>
+              <DataProvider name="allEvents" data={events}>
+                <div 
+                  style={{ 
+                    width: "100%", 
+                    height: "100%", 
+                    minHeight: "200px",
+                    padding: "1rem"
+                  }}
+                >
+                  {drawerContent || (
+                    <div style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--text-color-secondary)",
+                      fontSize: "0.875rem",
+                      textAlign: "center"
+                    }}>
+                      Empty drawer - design via drawerContent slot. Use data: currentItem (clicked item) or allEvents (all timeline data)
+                    </div>
+                  )}
+                </div>
+              </DataProvider>
+            </DataProvider>
+          );
+        }
+        return null;
+      };
+
+      // Render the content
+      root.render(<DrawerContentForPDF />);
+      
+      // Wait for the content to render
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // Generate canvas from the temporary content
+      const canvas = await html2canvas(tempContainer, {
         scale: 2, // Higher quality
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        width: 800,
+        height: tempContainer.scrollHeight
       });
 
       // Create PDF
@@ -219,8 +260,9 @@ const PrimeTimeline = ({
       // Open PDF in new tab
       pdf.save(filename);
       
-      // Restore original dialog item
-      setDialogItem(originalDialogItem);
+      // Cleanup
+      root.unmount();
+      document.body.removeChild(tempContainer);
       
     } catch (error) {
       console.error("Error generating PDF:", error);
@@ -474,7 +516,6 @@ const PrimeTimeline = ({
         <DataProvider name="currentItem" data={dialogItem}>
           <DataProvider name="allEvents" data={events}>
             <div 
-              ref={drawerContentRef}
               style={{ 
                 width: "100%", 
                 height: "100%", 
