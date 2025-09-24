@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
@@ -144,6 +144,13 @@ const PrimeTimeline = ({
   const [dialogItem, setDialogItem] = useState(null);
   const [capturedDrawerContent, setCapturedDrawerContent] = useState(null);
 
+  // Capture drawer HTML when drawer opens
+  useEffect(() => {
+    if (dialogVisible && useEmptyDrawer) {
+      captureDrawerHTML();
+    }
+  }, [dialogVisible, useEmptyDrawer]);
+  
   // Responsive drawer position
   const getDrawerPosition = () => {
     if (drawerPosition !== "auto") return drawerPosition;
@@ -162,14 +169,14 @@ const PrimeTimeline = ({
   };
 
   // Function to capture drawer content for PDF preview
-  const captureDrawerContent = useCallback((content) => {
+  const captureDrawerContent = (content) => {
     if (useEmptyDrawer && content) {
       setCapturedDrawerContent(content);
     }
-  }, [useEmptyDrawer]);
+  };
 
   // Function to capture the actual HTML content from the drawer
-  const captureDrawerHTML = useCallback(() => {
+  const captureDrawerHTML = () => {
     if (useEmptyDrawer && dialogVisible) {
       // Wait longer for the drawer to fully render, then capture its HTML
       setTimeout(() => {
@@ -192,14 +199,7 @@ const PrimeTimeline = ({
         }
       }, 500); // Increased timeout
     }
-  }, [useEmptyDrawer, dialogVisible]);
-
-  // Capture drawer HTML when drawer opens
-  useEffect(() => {
-    if (dialogVisible && useEmptyDrawer) {
-      captureDrawerHTML();
-    }
-  }, [dialogVisible, useEmptyDrawer, captureDrawerHTML]);
+  };
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
   const renderMarker = (item) => {
