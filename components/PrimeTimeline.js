@@ -169,16 +169,30 @@ const PrimeTimeline = ({
       const html2canvas = (await import('html2canvas')).default;
       const jsPDF = (await import('jspdf')).default;
       
+      console.log('Generating PDF from element:', contentElement);
+      console.log('Element HTML:', contentElement.innerHTML);
+      
       // Capture the drawer content as canvas
       const canvas = await html2canvas(contentElement, {
-        scale: 2,
+        scale: 1, // Reduced scale to avoid memory issues
         useCORS: true,
         allowTaint: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        logging: true, // Enable logging for debugging
+        width: contentElement.scrollWidth,
+        height: contentElement.scrollHeight
       });
       
+      console.log('Canvas created:', canvas);
+      
       // Create PDF
-      const imgData = canvas.toDataURL('image/png');
+      const imgData = canvas.toDataURL('image/png', 0.95); // Reduced quality to avoid corruption
+      console.log('Image data length:', imgData.length);
+      
+      if (!imgData || imgData === 'data:,') {
+        throw new Error('Failed to generate image data from canvas');
+      }
+      
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgWidth = 210;
       const pageHeight = 295;
@@ -198,11 +212,11 @@ const PrimeTimeline = ({
       }
       
       // Open PDF in new tab
-      pdf.save(`${pdfDrawerItem?.[titleField] || 'document'}.pdf`);
+      pdf.save(`${item?.[titleField] || 'document'}.pdf`);
       
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Error generating PDF. Please try again.');
+      alert(`Error generating PDF: ${error.message}`);
     }
   };
   const renderMarker = (item) => {
@@ -384,36 +398,34 @@ const PrimeTimeline = ({
                 
                 // Generate PDF with exact drawer content
                 try {
-                  // First, temporarily open the drawer to capture its content
-                  setPdfDrawerItem(item);
-                  setPdfDrawerVisible(true);
+                  // Create a temporary container for PDF generation
+                  const tempContainer = document.createElement('div');
+                  tempContainer.style.position = 'absolute';
+                  tempContainer.style.left = '-9999px';
+                  tempContainer.style.top = '-9999px';
+                  tempContainer.style.width = '800px';
+                  tempContainer.style.backgroundColor = '#ffffff';
+                  tempContainer.style.padding = '20px';
+                  tempContainer.style.fontFamily = 'Arial, sans-serif';
+                  tempContainer.id = 'pdf-temp-container';
+                  document.body.appendChild(tempContainer);
                   
-                  // Wait for drawer to render
-                  await new Promise(resolve => setTimeout(resolve, 500));
+                  // Render the exact same content as drawer using React
+                  const { createRoot } = await import('react-dom/client');
+                  const { createElement } = await import('react');
+                  const root = createRoot(tempContainer);
                   
-                  // Find the drawer content element
-                  const drawerContent = document.querySelector('.p-sidebar-content');
-                  if (drawerContent) {
-                    // Generate PDF from the actual drawer content
-                    await generatePDF(drawerContent);
-                  } else {
-                    // Fallback: create temporary content
-                    const tempContainer = document.createElement('div');
-                    tempContainer.style.position = 'absolute';
-                    tempContainer.style.left = '-9999px';
-                    tempContainer.style.top = '-9999px';
-                    tempContainer.style.width = '800px';
-                    tempContainer.style.backgroundColor = '#ffffff';
-                    tempContainer.style.padding = '20px';
-                    document.body.appendChild(tempContainer);
-                    
-                    // Render the exact same content as drawer
-                    const { createRoot } = await import('react-dom/client');
-                    const { createElement } = await import('react');
-                    const root = createRoot(tempContainer);
-                    
-                    // Render the exact drawer content
-                    root.render(createElement('div', { id: 'pdf-content' }, 
+                  // Create a wrapper component that renders the exact drawer content
+                  const PdfContentWrapper = () => {
+                    return createElement('div', { 
+                      id: 'pdf-content',
+                      style: { 
+                        width: "100%", 
+                        height: "100%", 
+                        minHeight: "200px",
+                        padding: "1rem"
+                      }
+                    }, 
                       useEmptyDrawer ? (
                         createElement(DataProvider, { name: "currentItem", data: item },
                           createElement(DataProvider, { name: "allEvents", data: events },
@@ -431,21 +443,25 @@ const PrimeTimeline = ({
                           )
                         )
                       ) : renderDialogContentForItem(item)
-                    ));
-                    
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    await generatePDF(tempContainer);
-                    root.unmount();
-                    document.body.removeChild(tempContainer);
-                  }
+                    );
+                  };
                   
-                  // Close the drawer after PDF generation
-                  setPdfDrawerVisible(false);
+                  // Render the content
+                  root.render(createElement(PdfContentWrapper));
+                  
+                  // Wait for content to fully render
+                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  
+                  // Generate PDF from the rendered content
+                  await generatePDF(tempContainer);
+                  
+                  // Clean up
+                  root.unmount();
+                  document.body.removeChild(tempContainer);
                   
                 } catch (error) {
                   console.error('Error generating PDF:', error);
                   alert('Error generating PDF. Please try again.');
-                  setPdfDrawerVisible(false);
                 }
               }}
             />
