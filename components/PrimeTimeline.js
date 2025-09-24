@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
@@ -142,14 +142,6 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
-  const [capturedDrawerContent, setCapturedDrawerContent] = useState(null);
-
-  // Capture drawer HTML when drawer opens
-  useEffect(() => {
-    if (dialogVisible && useEmptyDrawer) {
-      captureDrawerHTML();
-    }
-  }, [dialogVisible, useEmptyDrawer]);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -166,39 +158,6 @@ const PrimeTimeline = ({
     if (!obj || !path) return undefined;
     if (path.indexOf(".") === -1) return obj?.[path];
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
-  };
-
-  // Function to capture drawer content for PDF preview
-  const captureDrawerContent = (content) => {
-    if (useEmptyDrawer && content) {
-      setCapturedDrawerContent(content);
-    }
-  };
-
-  // Function to capture the actual HTML content from the drawer
-  const captureDrawerHTML = () => {
-    if (useEmptyDrawer && dialogVisible) {
-      // Wait longer for the drawer to fully render, then capture its HTML
-      setTimeout(() => {
-        const drawerElement = document.querySelector('.p-sidebar-content');
-        if (drawerElement) {
-          const htmlContent = drawerElement.innerHTML;
-          console.log('Captured drawer HTML:', htmlContent.substring(0, 200) + '...');
-          setCapturedDrawerContent(htmlContent);
-        } else {
-          console.log('Drawer element not found, trying alternative selectors...');
-          // Try alternative selectors
-          const altElement = document.querySelector('.p-sidebar .p-sidebar-content') || 
-                           document.querySelector('[data-pc-section="content"]') ||
-                           document.querySelector('.p-sidebar-content');
-          if (altElement) {
-            const htmlContent = altElement.innerHTML;
-            console.log('Captured drawer HTML (alternative):', htmlContent.substring(0, 200) + '...');
-            setCapturedDrawerContent(htmlContent);
-          }
-        }
-      }, 500); // Increased timeout
-    }
   };
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
@@ -372,95 +331,6 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
-                // Try to capture HTML content immediately before opening PDF
-                if (useEmptyDrawer && dialogVisible) {
-                  const drawerElement = document.querySelector('.p-sidebar-content');
-                  if (drawerElement) {
-                    const htmlContent = drawerElement.innerHTML;
-                    console.log('Captured drawer HTML on PDF click:', htmlContent.substring(0, 200) + '...');
-                    setCapturedDrawerContent(htmlContent);
-                  }
-                }
-                
-                // Store data in localStorage to avoid URL length issues
-                const timelineData = Array.isArray(events) ? events : [];
-                const selectedItem = item;
-                
-                // Prepare drawer props to pass to PDF preview
-                const drawerProps = {
-                  dialogMode,
-                  dialogHeaderField,
-                  dialogContentField,
-                  dateField,
-                  titleField,
-                  descriptionField,
-                  imageField,
-                  imageAltField,
-                  imagePreview,
-                  leftCardTitle,
-                  rightCardTitle,
-                  leftFields,
-                  rightFields,
-                  columnGap,
-                  dialogCardPadding,
-                  leftListField,
-                  leftListItemLabelField,
-                  leftListItemValueField,
-                  rightListField,
-                  rightListItemLabelField,
-                  rightListItemValueField,
-                  showSummary,
-                  summaryTitle,
-                  summaryFields,
-                  leftTableColumns,
-                  rightTableColumns,
-                  tableSize,
-                  showTableBorders,
-                  tableStripedRows,
-                  showTableTotals,
-                  leftTotalField,
-                  leftTotalLabel,
-                  rightTotalField,
-                  rightTotalLabel,
-                  leftTotalColor,
-                  leftTotalTextColor,
-                  rightTotalColor,
-                  rightTotalTextColor,
-                  drawerContent,
-                  useEmptyDrawer,
-                  showPdfButton,
-                  pdfButtonLabel,
-                  pdfButtonSeverity,
-                  pdfButtonSize,
-                  pdfButtonStyle,
-                  pdfButtonClassName
-                };
-                
-                // Store data in localStorage with timestamp to avoid conflicts
-                const timestamp = Date.now();
-                const pdfData = {
-                  timelineData,
-                  selectedItem,
-                  drawerProps: {
-                    ...drawerProps,
-                    capturedDrawerContent: capturedDrawerContent
-                  },
-                  timestamp
-                };
-                
-                try {
-                  localStorage.setItem(`pdfPreview_${timestamp}`, JSON.stringify(pdfData));
-                  
-                  // Open new window with PDF preview using timestamp
-                  const pdfUrl = `/pdf-preview?t=${timestamp}`;
-                  window.open(pdfUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
-                } catch (error) {
-                  console.error('Error storing PDF data:', error);
-                  // Fallback: try with smaller data or show error
-                  alert('Data too large for PDF preview. Please try with smaller data.');
-                }
-                
-                // Also call the original onPdfView if provided
                 const resolvedData =
                   typeof pdfData === "function"
                     ? pdfData(item)
@@ -526,40 +396,33 @@ const PrimeTimeline = ({
 
     // If useEmptyDrawer is true, render the drawerContent slot with data context
     if (useEmptyDrawer) {
-      const content = (
+      return (
         <DataProvider name="currentItem" data={dialogItem}>
           <DataProvider name="allEvents" data={events}>
-            <DataProvider name="slip" data={dialogItem}>
-              <div 
-                style={{ 
-                  width: "100%", 
-                  height: "100%", 
-                  minHeight: "200px",
-                  padding: "1rem"
-                }}
-              >
-                {drawerContent || (
-                  <div style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "var(--text-color-secondary)",
-                    fontSize: "0.875rem",
-                    textAlign: "center"
-                  }}>
-                    Empty drawer - design via drawerContent slot. Use data: currentItem, allEvents, or slip (state data)
-                  </div>
-                )}
-              </div>
-            </DataProvider>
+            <div 
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                minHeight: "200px",
+                padding: "1rem"
+              }}
+            >
+              {drawerContent || (
+                <div style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--text-color-secondary)",
+                  fontSize: "0.875rem",
+                  textAlign: "center"
+                }}>
+                  Empty drawer - design via drawerContent slot. Use data: currentItem (clicked item) or allEvents (all timeline data)
+                </div>
+              )}
+            </div>
           </DataProvider>
         </DataProvider>
       );
-      
-      // Capture the content for PDF preview
-      captureDrawerContent(content);
-      
-      return content;
     }
 
     const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;
