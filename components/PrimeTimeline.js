@@ -142,8 +142,6 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
-  const [pdfDrawerVisible, setPdfDrawerVisible] = useState(false);
-  const [pdfDrawerItem, setPdfDrawerItem] = useState(null);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -162,71 +160,7 @@ const PrimeTimeline = ({
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
   };
 
-  // PDF generation function
-  const generatePDF = async (contentElement, itemData) => {
-    try {
-      // Import html2canvas and jsPDF dynamically
-      const html2canvas = (await import('html2canvas')).default;
-      const jsPDF = (await import('jspdf')).default;
-      
-      console.log('Generating PDF from element:', contentElement);
-      console.log('Element HTML:', contentElement.innerHTML);
-      console.log('Item data:', itemData);
-      
-      // Capture the drawer content as canvas
-      const canvas = await html2canvas(contentElement, {
-        scale: 1, // Reduced scale to avoid memory issues
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        logging: false, // Disable logging to avoid console spam
-        width: contentElement.scrollWidth,
-        height: contentElement.scrollHeight,
-        ignoreElements: (element) => {
-          // Ignore elements that might cause issues
-          return element.classList?.contains('p-sidebar') || 
-                 element.classList?.contains('p-sidebar-header') ||
-                 element.tagName === 'SCRIPT';
-        }
-      });
-      
-      console.log('Canvas created:', canvas);
-      
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png', 0.95); // Reduced quality to avoid corruption
-      console.log('Image data length:', imgData.length);
-      
-      if (!imgData || imgData === 'data:,') {
-        throw new Error('Failed to generate image data from canvas');
-      }
-      
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 295;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      
-      let position = 0;
-      
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-      
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-      
-      // Open PDF in new tab
-      const fileName = itemData?.[titleField] || 'document';
-      pdf.save(`${fileName}.pdf`);
-      
-    } catch (error) {
-      console.error('Error generating PDF:', error);
-      alert(`Error generating PDF: ${error.message}`);
-    }
-  };
+  // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
   const renderMarker = (item) => {
     const backgroundColor = item?.[markerColorField] || "#3b82f6";
     const icon = item?.[iconField];
@@ -396,102 +330,76 @@ const PrimeTimeline = ({
                 height: pdfButtonHeight
               }}
               className={pdfButtonClassName}
-              onClick={async () => {
-                // Validate item data
-                if (!item) {
-                  alert('No item data available for PDF generation');
-                  return;
-                }
+              onClick={() => {
+                // Open PDF preview in new browser window
+                const timelineData = Array.isArray(events) ? events : [];
+                const selectedItem = item;
                 
-                // Emit the event for backward compatibility
+                // Prepare drawer props to pass to PDF preview
+                const drawerProps = {
+                  dialogMode,
+                  dialogHeaderField,
+                  dialogContentField,
+                  dateField,
+                  titleField,
+                  descriptionField,
+                  imageField,
+                  imageAltField,
+                  imagePreview,
+                  leftCardTitle,
+                  rightCardTitle,
+                  leftFields,
+                  rightFields,
+                  columnGap,
+                  dialogCardPadding,
+                  leftListField,
+                  leftListItemLabelField,
+                  leftListItemValueField,
+                  rightListField,
+                  rightListItemLabelField,
+                  rightListItemValueField,
+                  showSummary,
+                  summaryTitle,
+                  summaryFields,
+                  leftTableColumns,
+                  rightTableColumns,
+                  tableSize,
+                  showTableBorders,
+                  tableStripedRows,
+                  showTableTotals,
+                  leftTotalField,
+                  leftTotalLabel,
+                  rightTotalField,
+                  rightTotalLabel,
+                  leftTotalColor,
+                  leftTotalTextColor,
+                  rightTotalColor,
+                  rightTotalTextColor,
+                  drawerContent,
+                  useEmptyDrawer,
+                  showPdfButton,
+                  pdfButtonLabel,
+                  pdfButtonSeverity,
+                  pdfButtonSize,
+                  pdfButtonStyle,
+                  pdfButtonClassName
+                };
+                
+                // Encode data for URL parameters
+                const encodedTimelineData = encodeURIComponent(JSON.stringify(timelineData));
+                const encodedSelectedItem = encodeURIComponent(JSON.stringify(selectedItem));
+                const encodedDrawerProps = encodeURIComponent(JSON.stringify(drawerProps));
+                
+                // Open new window with PDF preview
+                const pdfUrl = `/pdf-preview?data=${encodedTimelineData}&item=${encodedSelectedItem}&props=${encodedDrawerProps}`;
+                window.open(pdfUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                
+                // Also call the original onPdfView if provided
                 const resolvedData =
                   typeof pdfData === "function"
                     ? pdfData(item)
                     : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
                 if (onPdfView) onPdfView({ item, data: resolvedData });
-                
-                // Generate PDF with exact drawer content
-                try {
-                  // Create a temporary container for PDF generation
-                  const tempContainer = document.createElement('div');
-                  tempContainer.style.position = 'absolute';
-                  tempContainer.style.left = '-9999px';
-                  tempContainer.style.top = '-9999px';
-                  tempContainer.style.width = '800px';
-                  tempContainer.style.backgroundColor = '#ffffff';
-                  tempContainer.style.padding = '20px';
-                  tempContainer.style.fontFamily = 'Arial, sans-serif';
-                  tempContainer.id = 'pdf-temp-container';
-                  document.body.appendChild(tempContainer);
-                  
-                  // Render the exact same content as drawer using React
-                  const { createRoot } = await import('react-dom/client');
-                  const { createElement } = await import('react');
-                  const root = createRoot(tempContainer);
-                  
-                  // Create a wrapper component that renders the exact drawer content
-                  const PdfContentWrapper = () => {
-                    try {
-                      return createElement('div', { 
-                        id: 'pdf-content',
-                        style: { 
-                          width: "100%", 
-                          height: "100%", 
-                          minHeight: "200px",
-                          padding: "1rem"
-                        }
-                      }, 
-                        useEmptyDrawer ? (
-                          createElement(DataProvider, { name: "currentItem", data: item },
-                            createElement(DataProvider, { name: "allEvents", data: events },
-                              drawerContent || createElement('div', {
-                                style: {
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: "var(--text-color-secondary)",
-                                  fontSize: "0.875rem",
-                                  textAlign: "center",
-                                  minHeight: "200px"
-                                }
-                              }, "Empty drawer - design via drawerContent slot")
-                            )
-                          )
-                        ) : renderDialogContentForItem(item)
-                      );
-                    } catch (renderError) {
-                      console.error('Error rendering PDF content:', renderError);
-                      return createElement('div', {
-                        style: {
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "red",
-                          fontSize: "0.875rem",
-                          textAlign: "center",
-                          minHeight: "200px"
-                        }
-                      }, "Error rendering content for PDF");
-                    }
-                  };
-                  
-                  // Render the content
-                  root.render(createElement(PdfContentWrapper));
-                  
-                  // Wait for content to fully render
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  
-                  // Generate PDF from the rendered content
-                  await generatePDF(tempContainer, item);
-                  
-                  // Clean up
-                  root.unmount();
-                  document.body.removeChild(tempContainer);
-                  
-                } catch (error) {
-                  console.error('Error generating PDF:', error);
-                  alert(`Error generating PDF: ${error.message}`);
-                }
               }}
             />
           ) : null}
@@ -547,57 +455,13 @@ const PrimeTimeline = ({
     return content ? <small className="text-color-secondary">{content}</small> : null;
   };
 
-  const renderPdfDrawerContent = () => {
-    if (!pdfDrawerItem) return null;
-
-    // If useEmptyDrawer is true, render the drawerContent slot with data context
-    if (useEmptyDrawer) {
-      return (
-        <DataProvider name="currentItem" data={pdfDrawerItem}>
-          <DataProvider name="allEvents" data={events}>
-            <div 
-              id="pdf-content"
-              style={{ 
-                width: "100%", 
-                height: "100%", 
-                minHeight: "200px",
-                padding: "1rem"
-              }}
-            >
-              {drawerContent || (
-                <div style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "var(--text-color-secondary)",
-                  fontSize: "0.875rem",
-                  textAlign: "center"
-                }}>
-                  Empty drawer - design via drawerContent slot. Use data: currentItem (clicked item) or allEvents (all timeline data)
-                </div>
-              )}
-            </div>
-          </DataProvider>
-        </DataProvider>
-      );
-    }
-
-    // Render the same content as the main dialog
-    return renderDialogContentForItem(pdfDrawerItem);
-  };
-
   const renderDialogContent = () => {
     if (!dialogItem) return null;
-    return renderDialogContentForItem(dialogItem);
-  };
-
-  const renderDialogContentForItem = (item) => {
-    if (!item) return null;
 
     // If useEmptyDrawer is true, render the drawerContent slot with data context
     if (useEmptyDrawer) {
       return (
-        <DataProvider name="currentItem" data={item}>
+        <DataProvider name="currentItem" data={dialogItem}>
           <DataProvider name="allEvents" data={events}>
             <div 
               style={{ 
@@ -1227,37 +1091,6 @@ const PrimeTimeline = ({
           header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
         >
           {renderDialogContent()}
-        </Sidebar>
-      )}
-      
-      {/* PDF Drawer - Always opens from the right */}
-      {pdfDrawerVisible && (
-        <Sidebar
-          visible={pdfDrawerVisible}
-          position="right"
-          onHide={() => setPdfDrawerVisible(false)}
-          style={{ 
-            width: drawerSize,
-            height: "100vh"
-          }}
-          header={
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-              <span>{pdfDrawerItem ? (dialogHeaderField ? pdfDrawerItem?.[dialogHeaderField] : pdfDrawerItem?.[titleField]) : "PDF Preview"}</span>
-              <Button
-                label="Generate PDF"
-                icon="pi pi-file-pdf"
-                size="small"
-                onClick={() => {
-                  const contentElement = document.getElementById('pdf-content');
-                  if (contentElement) {
-                    generatePDF(contentElement);
-                  }
-                }}
-              />
-            </div>
-          }
-        >
-          {renderPdfDrawerContent()}
         </Sidebar>
       )}
       </div>
