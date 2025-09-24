@@ -10,33 +10,56 @@ const PdfPreview = () => {
   const [drawerProps, setDrawerProps] = useState({});
 
   useEffect(() => {
-    // Get data from URL parameters
+    // Get data from URL parameters (timestamp)
     const urlParams = new URLSearchParams(window.location.search);
-    const data = urlParams.get('data');
-    const item = urlParams.get('item');
-    const props = urlParams.get('props');
+    const timestamp = urlParams.get('t');
     
-    if (data) {
+    if (timestamp) {
       try {
-        setTimelineData(JSON.parse(decodeURIComponent(data)));
+        // Get data from localStorage using timestamp
+        const storedData = localStorage.getItem(`pdfPreview_${timestamp}`);
+        if (storedData) {
+          const pdfData = JSON.parse(storedData);
+          setTimelineData(pdfData.timelineData);
+          setSelectedItem(pdfData.selectedItem);
+          setDrawerProps(pdfData.drawerProps);
+          
+          // Clean up localStorage after use
+          localStorage.removeItem(`pdfPreview_${timestamp}`);
+        } else {
+          console.error('No PDF data found for timestamp:', timestamp);
+        }
       } catch (e) {
-        console.error('Error parsing timeline data:', e);
+        console.error('Error parsing PDF data:', e);
       }
-    }
-    
-    if (item) {
-      try {
-        setSelectedItem(JSON.parse(decodeURIComponent(item)));
-      } catch (e) {
-        console.error('Error parsing selected item:', e);
+    } else {
+      // Fallback: try to get data from URL parameters (for backward compatibility)
+      const data = urlParams.get('data');
+      const item = urlParams.get('item');
+      const props = urlParams.get('props');
+      
+      if (data) {
+        try {
+          setTimelineData(JSON.parse(decodeURIComponent(data)));
+        } catch (e) {
+          console.error('Error parsing timeline data:', e);
+        }
       }
-    }
+      
+      if (item) {
+        try {
+          setSelectedItem(JSON.parse(decodeURIComponent(item)));
+        } catch (e) {
+          console.error('Error parsing selected item:', e);
+        }
+      }
 
-    if (props) {
-      try {
-        setDrawerProps(JSON.parse(decodeURIComponent(props)));
-      } catch (e) {
-        console.error('Error parsing drawer props:', e);
+      if (props) {
+        try {
+          setDrawerProps(JSON.parse(decodeURIComponent(props)));
+        } catch (e) {
+          console.error('Error parsing drawer props:', e);
+        }
       }
     }
 

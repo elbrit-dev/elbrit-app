@@ -331,7 +331,7 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
-                // Open PDF preview in new browser window
+                // Store data in localStorage to avoid URL length issues
                 const timelineData = Array.isArray(events) ? events : [];
                 const selectedItem = item;
                 
@@ -385,14 +385,26 @@ const PrimeTimeline = ({
                   pdfButtonClassName
                 };
                 
-                // Encode data for URL parameters
-                const encodedTimelineData = encodeURIComponent(JSON.stringify(timelineData));
-                const encodedSelectedItem = encodeURIComponent(JSON.stringify(selectedItem));
-                const encodedDrawerProps = encodeURIComponent(JSON.stringify(drawerProps));
+                // Store data in localStorage with timestamp to avoid conflicts
+                const timestamp = Date.now();
+                const pdfData = {
+                  timelineData,
+                  selectedItem,
+                  drawerProps,
+                  timestamp
+                };
                 
-                // Open new window with PDF preview
-                const pdfUrl = `/pdf-preview?data=${encodedTimelineData}&item=${encodedSelectedItem}&props=${encodedDrawerProps}`;
-                window.open(pdfUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                try {
+                  localStorage.setItem(`pdfPreview_${timestamp}`, JSON.stringify(pdfData));
+                  
+                  // Open new window with PDF preview using timestamp
+                  const pdfUrl = `/pdf-preview?t=${timestamp}`;
+                  window.open(pdfUrl, '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes');
+                } catch (error) {
+                  console.error('Error storing PDF data:', error);
+                  // Fallback: try with smaller data or show error
+                  alert('Data too large for PDF preview. Please try with smaller data.');
+                }
                 
                 // Also call the original onPdfView if provided
                 const resolvedData =
