@@ -3014,29 +3014,6 @@ const PrimeDataTable = ({
               })}
             </div>
             
-            {/* Card Footer with Action */}
-            <div style={{ 
-              backgroundColor: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '1rem', 
-              marginTop: '1rem',
-              textAlign: 'center',
-              position: 'relative'
-            }}>
-              {/* Decorative Pattern */}
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                right: '-10px',
-                width: '40px',
-                height: '40px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                borderRadius: '50%',
-                opacity: 0.6
-              }} />
-              
-            </div>
           </div>
         ))}
       </div>
@@ -3379,29 +3356,6 @@ const PrimeDataTable = ({
               })}
             </div>
             
-            {/* Form Footer */}
-            <div style={{ 
-              backgroundColor: '#f9fafb',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              padding: '1rem', 
-              marginTop: '1rem',
-              textAlign: 'center',
-              position: 'relative'
-            }}>
-              {/* Decorative Pattern */}
-              <div style={{
-                position: 'absolute',
-                top: '-10px',
-                right: '-10px',
-                width: '40px',
-                height: '40px',
-                background: 'rgba(239, 68, 68, 0.1)',
-                borderRadius: '50%',
-                opacity: 0.6
-              }} />
-              
-            </div>
           </div>
         ))}
       </div>
