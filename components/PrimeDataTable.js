@@ -2761,20 +2761,31 @@ const PrimeDataTable = ({
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <h3 style={{ 
-                  margin: 0, 
-                  fontSize: '1.1rem', 
-                  fontWeight: '600', 
-                  color: '#1f2937',
-                  lineHeight: '1.3',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  flex: 1,
-                  marginRight: '1rem'
-                }}>
-                  {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
-                </h3>
+                <div style={{ flex: 1, marginRight: '1rem' }}>
+                  <h3 style={{ 
+                    margin: 0, 
+                    fontSize: '1.1rem', 
+                    fontWeight: '600', 
+                    color: '#1f2937',
+                    lineHeight: '1.3',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+                  </h3>
+                  <p style={{ 
+                    margin: '0.25rem 0 0 0', 
+                    fontSize: '0.875rem', 
+                    fontWeight: '500', 
+                    color: '#6b7280',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {item[defaultColumns[1]?.key] || `Field: ${defaultColumns[1]?.header || 'N/A'}`}
+                  </p>
+                </div>
                 
                 <Button
                   icon="pi pi-trash"
@@ -2814,12 +2825,38 @@ const PrimeDataTable = ({
             
             {/* Card Content - 2x2 Grid Layout with Inline Editing */}
             <div className="card-content" style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              display: 'flex',
+              flexDirection: 'column',
               gap: '0.75rem',
               marginBottom: '1rem'
             }}>
-              {defaultColumns.slice(1, 5).map((column) => {
+              {/* Row 1 - CONSUMED */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '700',
+                  color: '#1f2937',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  padding: '0.5rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  CONSUMED
+                </div>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.75rem'
+                }}>
+                  {defaultColumns.slice(1, 3).map((column) => {
                 const value = item[column.key];
                 const isNumber = typeof value === 'number';
                 const isHighValue = isNumber && value > 1000;
@@ -3012,6 +3049,176 @@ const PrimeDataTable = ({
                   </div>
                 );
               })}
+                </div>
+              </div>
+              
+              {/* Row 2 - CLOSING */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem'
+              }}>
+                <div style={{
+                  fontSize: '0.875rem',
+                  fontWeight: '700',
+                  color: '#1f2937',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  textAlign: 'center',
+                  padding: '0.5rem',
+                  backgroundColor: '#f8fafc',
+                  borderRadius: '6px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  CLOSING
+                </div>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '0.75rem'
+                }}>
+                  {defaultColumns.slice(3, 5).map((column) => {
+                    const value = item[column.key];
+                    const isNumber = typeof value === 'number';
+                    const isHighValue = isNumber && value > 1000;
+                    const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                    const columnType = getEffectiveColumnType(column);
+                    
+                    return (
+                      <div key={column.key} style={{ 
+                        display: 'flex',
+                        flexDirection: 'column',
+                        padding: '0.75rem',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        border: '1px solid #e5e7eb',
+                        transition: 'all 0.2s ease',
+                        position: 'relative',
+                        minHeight: '70px',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                        overflow: 'hidden'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = '#3b82f6';
+                        e.currentTarget.style.boxShadow = '0 2px 4px rgba(59, 130, 246, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = '#e5e7eb';
+                        e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.05)';
+                      }}>
+                        <label style={{ 
+                          fontSize: '0.75rem', 
+                          fontWeight: '600', 
+                          color: '#6b7280',
+                          marginBottom: '0.5rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.025em',
+                          textAlign: 'center',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: '100%'
+                        }}>
+                          {column.title}
+                        </label>
+                        
+                        {/* Inline Editor */}
+                        {isEditable ? (
+                          <div style={{ flex: 1 }}>
+                            {columnType === 'number' ? (
+                              <InputNumber
+                                value={value || 0}
+                                onValueChange={(e) => {
+                                  if (onCellEditComplete) {
+                                    onCellEditComplete({
+                                      data: item,
+                                      field: column.key,
+                                      newValue: e.value,
+                                      originalValue: value
+                                    });
+                                  }
+                                }}
+                                style={{
+                                  width: '100%',
+                                  textAlign: 'center',
+                                  fontSize: '0.8rem',
+                                  fontWeight: '700',
+                                  fontFamily: 'monospace'
+                                }}
+                                inputStyle={{
+                                  textAlign: 'center',
+                                  padding: '0.375rem',
+                                  backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                                  border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                  fontSize: '0.8rem',
+                                  minHeight: '2rem',
+                                  maxWidth: '100%',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}
+                              />
+                            ) : (
+                              <InputText
+                                value={value || ''}
+                                onChange={(e) => {
+                                  if (onCellEditComplete) {
+                                    onCellEditComplete({
+                                      data: item,
+                                      field: column.key,
+                                      newValue: e.target.value,
+                                      originalValue: value
+                                    });
+                                  }
+                                }}
+                                style={{
+                                  width: '100%',
+                                  textAlign: 'center',
+                                  padding: '0.375rem',
+                                  backgroundColor: '#ffffff',
+                                  border: '1px solid #d1d5db',
+                                  borderRadius: '6px',
+                                  fontSize: '0.8rem',
+                                  minHeight: '2rem',
+                                  maxWidth: '100%',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis'
+                                }}
+                              />
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ 
+                            fontSize: '0.8rem',
+                            fontWeight: isNumber ? '700' : '500',
+                            color: isNumber ? '#1e293b' : '#374151',
+                            padding: '0.375rem',
+                            backgroundColor: isHighValue ? '#dbeafe' : '#ffffff',
+                            borderRadius: '6px',
+                            border: isHighValue ? '2px solid #3b82f6' : '1px solid #d1d5db',
+                            fontFamily: isNumber ? 'monospace' : 'inherit',
+                            textAlign: 'center',
+                            boxShadow: isHighValue ? '0 2px 4px rgba(59, 130, 246, 0.2)' : '0 1px 2px rgba(0, 0, 0, 0.05)',
+                            flex: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            maxWidth: '100%',
+                            minHeight: '2rem'
+                          }}>
+                            {isNumber && value > 1000 ? value.toLocaleString() : safeCell(value)}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
             
           </div>
@@ -3123,21 +3330,34 @@ const PrimeDataTable = ({
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <h4 style={{ 
-                margin: 0, 
-                fontSize: '1rem', 
-                fontWeight: '700', 
-                color: '#1e293b',
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap',
-                flex: 1,
-                marginRight: '0.5rem'
-              }}>
-                {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
-              </h4>
+              <div style={{ flex: 1, marginRight: '0.5rem' }}>
+                <h4 style={{ 
+                  margin: 0, 
+                  fontSize: '1rem', 
+                  fontWeight: '700', 
+                  color: '#1e293b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+                </h4>
+                <p style={{ 
+                  margin: '0.25rem 0 0 0', 
+                  fontSize: '0.75rem', 
+                  fontWeight: '500', 
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap'
+                }}>
+                  {item[defaultColumns[1]?.key] || `Field: ${defaultColumns[1]?.header || 'N/A'}`}
+                </p>
+              </div>
               
               <Button
                 icon="pi pi-trash"
