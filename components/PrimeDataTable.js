@@ -672,8 +672,11 @@ const PrimeDataTable = ({
   
   // Custom row editor dialog state
   const [showCustomRowEditor, setShowCustomRowEditor] = useState(false);
-  const [customRowEditData, setCustomRowEditData] = useState(null);
-  const [originalRowData, setOriginalRowData] = useState(null);
+    const [customRowEditData, setCustomRowEditData] = useState(null);
+    const [originalRowData, setOriginalRowData] = useState(null);
+    
+    // State for card view editing
+    const [editingCards, setEditingCards] = useState(new Set());
   
   // Context menu state
   const [localContextMenuSelection, setLocalContextMenuSelection] = useState(contextMenuSelection || null);
@@ -2650,6 +2653,21 @@ const PrimeDataTable = ({
     setCustomRowEditData(null);
     setOriginalRowData(null);
   }, []);
+  
+  // Card editing functions
+  const handleCardEdit = useCallback((item) => {
+    const itemKey = item[resolvedDataKey] || JSON.stringify(item);
+    setEditingCards(prev => new Set([...prev, itemKey]));
+  }, [resolvedDataKey]);
+
+  const handleCardCancel = useCallback((item) => {
+    const itemKey = item[resolvedDataKey] || JSON.stringify(item);
+    setEditingCards(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemKey);
+      return newSet;
+    });
+  }, [resolvedDataKey]);
 
   // Generate editable fields for custom editor
   const customEditorFields = useMemo(() => {
@@ -2776,39 +2794,83 @@ const PrimeDataTable = ({
                   {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
                 </h3>
                 
-                <Button
-                  icon="pi pi-trash"
-                  className="p-button-text p-button-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Handle delete action
-                    if (onRowDelete) {
-                      onRowDelete({ data: item });
-                    }
-                  }}
-                  tooltip="Delete Record"
-                  style={{ 
-                    color: '#dc2626',
-                    padding: '0.5rem',
-                    borderRadius: '6px',
-                    width: '2.5rem',
-                    height: '2.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    backgroundColor: 'transparent',
-                    border: '1px solid #fecaca'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = '#fef2f2';
-                    e.currentTarget.style.borderColor = '#fca5a5';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                    e.currentTarget.style.borderColor = '#fecaca';
-                  }}
-                />
+                 <div style={{ display: 'flex', gap: '0.5rem' }}>
+                   {/* Edit/Done Button - only show when editMode is row */}
+                   {editMode === 'row' && (
+                     <Button
+                       icon={editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? "pi pi-check" : "pi pi-pencil"}
+                       className="p-button-text p-button-sm"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         if (editingCards.has(item[resolvedDataKey] || JSON.stringify(item))) {
+                           handleCardCancel(item);
+                         } else {
+                           handleCardEdit(item);
+                         }
+                       }}
+                       tooltip={editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? "Done Editing" : "Edit Record"}
+                       style={{ 
+                         color: editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? '#059669' : '#3b82f6',
+                         padding: '0.5rem',
+                         borderRadius: '6px',
+                         width: '2.5rem',
+                         height: '2.5rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         transition: 'all 0.2s ease',
+                         backgroundColor: 'transparent',
+                         border: editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? '1px solid #a7f3d0' : '1px solid #dbeafe'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.backgroundColor = editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? '#ecfdf5' : '#eff6ff';
+                         e.currentTarget.style.borderColor = editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? '#6ee7b7' : '#93c5fd';
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.backgroundColor = 'transparent';
+                         e.currentTarget.style.borderColor = editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) ? '#a7f3d0' : '#dbeafe';
+                       }}
+                     />
+                   )}
+                   
+                   
+                   {/* Delete Button - only show when not editing */}
+                   {!editingCards.has(item[resolvedDataKey] || JSON.stringify(item)) && (
+                     <Button
+                       icon="pi pi-trash"
+                       className="p-button-text p-button-sm"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         // Handle delete action
+                         if (onRowDelete) {
+                           onRowDelete({ data: item });
+                         }
+                       }}
+                       tooltip="Delete Record"
+                       style={{ 
+                         color: '#dc2626',
+                         padding: '0.5rem',
+                         borderRadius: '6px',
+                         width: '2.5rem',
+                         height: '2.5rem',
+                         display: 'flex',
+                         alignItems: 'center',
+                         justifyContent: 'center',
+                         transition: 'all 0.2s ease',
+                         backgroundColor: 'transparent',
+                         border: '1px solid #fecaca'
+                       }}
+                       onMouseEnter={(e) => {
+                         e.currentTarget.style.backgroundColor = '#fef2f2';
+                         e.currentTarget.style.borderColor = '#fca5a5';
+                       }}
+                       onMouseLeave={(e) => {
+                         e.currentTarget.style.backgroundColor = 'transparent';
+                         e.currentTarget.style.borderColor = '#fecaca';
+                       }}
+                     />
+                   )}
+                 </div>
               </div>
             </div>
             
@@ -2849,7 +2911,9 @@ const PrimeDataTable = ({
                 const value = item[column.key];
                 const isNumber = typeof value === 'number';
                 const isHighValue = isNumber && value > 1000;
-                const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                const itemKey = item[resolvedDataKey] || JSON.stringify(item);
+                const isCardEditing = editingCards.has(itemKey);
+                const isEditable = editMode === 'row' && editableColumns.includes(column.key) && isCardEditing;
                 const columnType = getEffectiveColumnType(column);
                 
                 return (
@@ -2894,19 +2958,20 @@ const PrimeDataTable = ({
                     {isEditable ? (
                       <div style={{ flex: 1 }}>
                         {columnType === 'number' ? (
-                          <InputNumber
-                            value={value || 0}
-                            onValueChange={(e) => {
-                              // Handle value change for inline editing
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
-                                  data: item,
-                                  field: column.key,
-                                  newValue: e.value,
-                                  originalValue: value
-                                });
-                              }
-                            }}
+                            <InputNumber
+                             value={value || 0}
+                             onValueChange={(e) => {
+                               // Auto-save changes through row editing system
+                               if (onRowEditSave) {
+                                 const updatedData = { ...item, [column.key]: e.value };
+                                 const mockEvent = {
+                                   newData: updatedData,
+                                   data: item,
+                                   index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                 };
+                                 onRowEditSave(mockEvent);
+                               }
+                             }}
                             style={{
                               width: '100%',
                               textAlign: 'center',
@@ -2932,13 +2997,15 @@ const PrimeDataTable = ({
                           <Calendar
                             value={value ? new Date(value) : null}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
+                              // Auto-save changes through row editing system
+                              if (onRowEditSave) {
+                                const updatedData = { ...item, [column.key]: e.value };
+                                const mockEvent = {
+                                  newData: updatedData,
                                   data: item,
-                                  field: column.key,
-                                  newValue: e.value,
-                                  originalValue: value
-                                });
+                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                };
+                                onRowEditSave(mockEvent);
                               }
                             }}
                             style={{
@@ -2962,13 +3029,15 @@ const PrimeDataTable = ({
                           <Checkbox
                             checked={!!value}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
+                              // Auto-save changes through row editing system
+                              if (onRowEditSave) {
+                                const updatedData = { ...item, [column.key]: e.checked };
+                                const mockEvent = {
+                                  newData: updatedData,
                                   data: item,
-                                  field: column.key,
-                                  newValue: e.checked,
-                                  originalValue: value
-                                });
+                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                };
+                                onRowEditSave(mockEvent);
                               }
                             }}
                             style={{
@@ -3071,7 +3140,9 @@ const PrimeDataTable = ({
                     const value = item[column.key];
                     const isNumber = typeof value === 'number';
                     const isHighValue = isNumber && value > 1000;
-                    const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                    const itemKey = item[resolvedDataKey] || JSON.stringify(item);
+                    const isCardEditing = editingCards.has(itemKey);
+                    const isEditable = editMode === 'row' && editableColumns.includes(column.key) && isCardEditing;
                     const columnType = getEffectiveColumnType(column);
                     
                     return (
@@ -3150,18 +3221,20 @@ const PrimeDataTable = ({
                                 }}
                               />
                             ) : (
-                              <InputText
-                                value={value || ''}
-                                onChange={(e) => {
-                                  if (onCellEditComplete) {
-                                    onCellEditComplete({
-                                      data: item,
-                                      field: column.key,
-                                      newValue: e.target.value,
-                                      originalValue: value
-                                    });
-                                  }
-                                }}
+                                <InputText
+                                 value={value || ''}
+                                 onChange={(e) => {
+                                   // Auto-save changes through row editing system
+                                   if (onRowEditSave) {
+                                     const updatedData = { ...item, [column.key]: e.target.value };
+                                     const mockEvent = {
+                                       newData: updatedData,
+                                       data: item,
+                                       index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                     };
+                                     onRowEditSave(mockEvent);
+                                   }
+                                 }}
                                 style={{
                                   width: '100%',
                                   textAlign: 'center',
@@ -3364,7 +3437,9 @@ const PrimeDataTable = ({
                 const value = item[column.key];
                 const isNumber = typeof value === 'number';
                 const isHighValue = isNumber && value > 1000;
-                const isEditable = editMode === 'row' && editableColumns.includes(column.key);
+                const itemKey = item[resolvedDataKey] || JSON.stringify(item);
+                const isCardEditing = editingCards.has(itemKey);
+                const isEditable = editMode === 'row' && editableColumns.includes(column.key) && isCardEditing;
                 const columnType = getEffectiveColumnType(column);
                 
                 return (
@@ -3443,13 +3518,15 @@ const PrimeDataTable = ({
                           <Calendar
                             value={value ? new Date(value) : null}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
+                              // Auto-save changes through row editing system
+                              if (onRowEditSave) {
+                                const updatedData = { ...item, [column.key]: e.value };
+                                const mockEvent = {
+                                  newData: updatedData,
                                   data: item,
-                                  field: column.key,
-                                  newValue: e.value,
-                                  originalValue: value
-                                });
+                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                };
+                                onRowEditSave(mockEvent);
                               }
                             }}
                             style={{
@@ -3473,13 +3550,15 @@ const PrimeDataTable = ({
                           <Checkbox
                             checked={!!value}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
+                              // Auto-save changes through row editing system
+                              if (onRowEditSave) {
+                                const updatedData = { ...item, [column.key]: e.checked };
+                                const mockEvent = {
+                                  newData: updatedData,
                                   data: item,
-                                  field: column.key,
-                                  newValue: e.checked,
-                                  originalValue: value
-                                });
+                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
+                                };
+                                onRowEditSave(mockEvent);
                               }
                             }}
                             style={{
@@ -3897,7 +3976,7 @@ const PrimeDataTable = ({
         .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-inputnumber,
         .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-calendar,
         .p-datatable-overflow-hidden .p-datatable-tbody > tr.p-row-editor > td .p-dropdown {
-          width: 100% !important;
+              width: 100% !important;
           min-width: 120px !important;
           max-width: 250px !important;
         }
