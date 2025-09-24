@@ -2776,38 +2776,39 @@ const PrimeDataTable = ({
                   {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
                 </h3>
                 
-                {(editMode === 'row' && useCustomRowEditor) && (
-                  <Button
-                    icon="pi pi-pencil"
-                    className="p-button-text p-button-sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      openCustomRowEditor(item);
-                    }}
-                    tooltip="Edit Record"
-                    style={{ 
-                      color: '#6b7280',
-                      padding: '0.5rem',
-                      borderRadius: '6px',
-                      width: '2.5rem',
-                      height: '2.5rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: 'transparent',
-                      border: '1px solid #d1d5db'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                      e.currentTarget.style.borderColor = '#9ca3af';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                      e.currentTarget.style.borderColor = '#d1d5db';
-                    }}
-                  />
-                )}
+                <Button
+                  icon="pi pi-trash"
+                  className="p-button-text p-button-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    // Handle delete action
+                    if (onRowDelete) {
+                      onRowDelete({ data: item });
+                    }
+                  }}
+                  tooltip="Delete Record"
+                  style={{ 
+                    color: '#dc2626',
+                    padding: '0.5rem',
+                    borderRadius: '6px',
+                    width: '2.5rem',
+                    height: '2.5rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    backgroundColor: 'transparent',
+                    border: '1px solid #fecaca'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#fef2f2';
+                    e.currentTarget.style.borderColor = '#fca5a5';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.borderColor = '#fecaca';
+                  }}
+                />
               </div>
             </div>
             
@@ -3035,38 +3036,6 @@ const PrimeDataTable = ({
                 opacity: 0.6
               }} />
               
-              <Button
-                icon="pi pi-trash"
-                label="Delete Record"
-                className="p-button-sm"
-                style={{
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
-                  border: '1px solid #dc2626',
-                  borderRadius: '6px',
-                  padding: '0.5rem 1rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                  minWidth: '120px'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Handle delete action
-                  if (onRowDelete) {
-                    onRowDelete({ data: item });
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#b91c1c';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#dc2626';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
-                }}
-              />
             </div>
           </div>
         ))}
@@ -3193,18 +3162,22 @@ const PrimeDataTable = ({
                 {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
               </h4>
               
-              {(editMode === 'row' && useCustomRowEditor) && (
-                <Button
-                  icon="pi pi-pencil"
-                  className="p-button-text p-button-sm p-button-rounded"
-                  onClick={() => openCustomRowEditor(item)}
-                  tooltip="Edit Record"
-                  style={{ 
-                    color: '#3b82f6',
-                    padding: '0.5rem'
-                  }}
-                />
-              )}
+              <Button
+                icon="pi pi-trash"
+                className="p-button-text p-button-sm p-button-rounded"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  // Handle delete action
+                  if (onRowDelete) {
+                    onRowDelete({ data: item });
+                  }
+                }}
+                tooltip="Delete Record"
+                style={{ 
+                  color: '#dc2626',
+                  padding: '0.5rem'
+                }}
+              />
             </div>
             
             {/* Form Fields Grid - 2x2 Layout with Inline Editing */}
@@ -3428,38 +3401,6 @@ const PrimeDataTable = ({
                 opacity: 0.6
               }} />
               
-              <Button
-                icon="pi pi-trash"
-                label="Delete Record"
-                className="p-button-sm"
-                style={{
-                  backgroundColor: '#dc2626',
-                  color: '#ffffff',
-                  border: '1px solid #dc2626',
-                  borderRadius: '6px',
-                  padding: '0.5rem 1rem',
-                  fontWeight: '500',
-                  fontSize: '0.875rem',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.1)',
-                  minWidth: '120px'
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Handle delete action
-                  if (onRowDelete) {
-                    onRowDelete({ data: item });
-                  }
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#b91c1c';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#dc2626';
-                  e.currentTarget.style.boxShadow = '0 1px 2px rgba(0, 0, 0, 0.1)';
-                }}
-              />
             </div>
           </div>
         ))}
