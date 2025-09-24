@@ -1845,6 +1845,24 @@ PLASMIC.registerComponent(PrimeDataTable, {
     }
   },
   
+  interactions: {
+    oneCellRow: {
+      description: "Click on a single cell to select the entire row",
+      parameters: [
+        {
+          name: "row",
+          type: "object",
+          description: "The selected row data"
+        },
+        {
+          name: "index", 
+          type: "number",
+          description: "The index of the selected row"
+        }
+      ]
+    }
+  },
+  
   importPath: "./components/PrimeDataTable"
 });
 
