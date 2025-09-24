@@ -72,7 +72,99 @@ const PdfPreview = () => {
   const renderDrawerContent = () => {
     if (!selectedItem) return null;
 
-    // Render the exact same content as the main drawer using DrawerContentRenderer
+    // If useEmptyDrawer is true, show a simplified version since we can't render Plasmic slots
+    if (drawerProps.useEmptyDrawer) {
+      return (
+        <DataProvider name="currentItem" data={selectedItem}>
+          <DataProvider name="allEvents" data={timelineData || []}>
+            <DataProvider name="slip" data={selectedItem}>
+              <div style={{ 
+                width: "100%", 
+                height: "100%", 
+                minHeight: "200px",
+                padding: "1rem"
+              }}>
+                <div style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "1rem"
+                }}>
+                  <h3 style={{ margin: 0, color: "var(--text-color)" }}>
+                    {selectedItem?.status || selectedItem?.title || 'Timeline Item'}
+                  </h3>
+                  
+                  {selectedItem?.date && (
+                    <p style={{ margin: 0, color: "var(--text-color-secondary)" }}>
+                      Date: {selectedItem.date}
+                    </p>
+                  )}
+                  
+                  {selectedItem?.description && (
+                    <p style={{ margin: 0, color: "var(--text-color)" }}>
+                      {selectedItem.description}
+                    </p>
+                  )}
+                  
+                  {selectedItem?.start_date && (
+                    <p style={{ margin: 0, color: "var(--text-color-secondary)" }}>
+                      Period: {selectedItem.start_date} to {selectedItem.end_date}
+                    </p>
+                  )}
+                  
+                  {/* Show all available data in a simple format */}
+                  <div style={{ marginTop: "1rem" }}>
+                    <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--text-color)" }}>Item Details:</h4>
+                    <div style={{ 
+                      backgroundColor: "var(--surface-100)", 
+                      padding: "1rem", 
+                      borderRadius: "8px",
+                      fontSize: "0.875rem"
+                    }}>
+                      {Object.entries(selectedItem).map(([key, value]) => (
+                        <div key={key} style={{ 
+                          display: "flex", 
+                          justifyContent: "space-between", 
+                          marginBottom: "0.25rem",
+                          padding: "0.25rem 0",
+                          borderBottom: "1px solid var(--surface-border)"
+                        }}>
+                          <span style={{ fontWeight: 500, color: "var(--text-color-secondary)" }}>
+                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
+                          </span>
+                          <span style={{ color: "var(--text-color)" }}>
+                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div style={{ 
+                    marginTop: "2rem", 
+                    padding: "1rem", 
+                    backgroundColor: "var(--primary-50)", 
+                    borderRadius: "8px",
+                    textAlign: "center"
+                  }}>
+                    <p style={{ margin: 0, color: "var(--primary-700)" }}>
+                      PDF Preview - Empty Slot Content
+                    </p>
+                    <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.875rem", color: "var(--primary-600)" }}>
+                      This shows the data that would be available in your custom Plasmic slot design
+                    </p>
+                    <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.75rem", color: "var(--primary-500)" }}>
+                      Data available: currentItem, allEvents, slip (state data)
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </DataProvider>
+          </DataProvider>
+        </DataProvider>
+      );
+    }
+
+    // For non-empty drawer modes, use the DrawerContentRenderer
     return (
       <DrawerContentRenderer
         item={selectedItem}
