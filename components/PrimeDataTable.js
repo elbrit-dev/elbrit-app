@@ -2761,31 +2761,20 @@ const PrimeDataTable = ({
                 justifyContent: 'space-between',
                 alignItems: 'center'
               }}>
-                <div style={{ flex: 1, marginRight: '1rem' }}>
-                  <h3 style={{ 
-                    margin: 0, 
-                    fontSize: '1.1rem', 
-                    fontWeight: '600', 
-                    color: '#1f2937',
-                    lineHeight: '1.3',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
-                  </h3>
-                  <p style={{ 
-                    margin: '0.25rem 0 0 0', 
-                    fontSize: '0.875rem', 
-                    fontWeight: '500', 
-                    color: '#6b7280',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {item[defaultColumns[1]?.key] || `Field: ${defaultColumns[1]?.header || 'N/A'}`}
-                  </p>
-                </div>
+                <h3 style={{ 
+                  margin: 0, 
+                  fontSize: '1.1rem', 
+                  fontWeight: '600', 
+                  color: '#1f2937',
+                  lineHeight: '1.3',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  marginRight: '1rem'
+                }}>
+                  {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+                </h3>
                 
                 <Button
                   icon="pi pi-trash"
@@ -3330,34 +3319,21 @@ const PrimeDataTable = ({
               justifyContent: 'space-between',
               alignItems: 'center'
             }}>
-              <div style={{ flex: 1, marginRight: '0.5rem' }}>
-                <h4 style={{ 
-                  margin: 0, 
-                  fontSize: '1rem', 
-                  fontWeight: '700', 
-                  color: '#1e293b',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
-                </h4>
-                <p style={{ 
-                  margin: '0.25rem 0 0 0', 
-                  fontSize: '0.75rem', 
-                  fontWeight: '500', 
-                  color: '#64748b',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.05em',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {item[defaultColumns[1]?.key] || `Field: ${defaultColumns[1]?.header || 'N/A'}`}
-                </p>
-              </div>
+              <h4 style={{ 
+                margin: 0, 
+                fontSize: '1rem', 
+                fontWeight: '700', 
+                color: '#1e293b',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flex: 1,
+                marginRight: '0.5rem'
+              }}>
+                {item[defaultColumns[0]?.key] || `Record ${startIndex + index + 1}`}
+              </h4>
               
               <Button
                 icon="pi pi-trash"
