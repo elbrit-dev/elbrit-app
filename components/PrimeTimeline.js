@@ -178,14 +178,26 @@ const PrimeTimeline = ({
   // Function to capture the actual HTML content from the drawer
   const captureDrawerHTML = () => {
     if (useEmptyDrawer && dialogVisible) {
-      // Wait for the drawer to render, then capture its HTML
+      // Wait longer for the drawer to fully render, then capture its HTML
       setTimeout(() => {
         const drawerElement = document.querySelector('.p-sidebar-content');
         if (drawerElement) {
           const htmlContent = drawerElement.innerHTML;
+          console.log('Captured drawer HTML:', htmlContent.substring(0, 200) + '...');
           setCapturedDrawerContent(htmlContent);
+        } else {
+          console.log('Drawer element not found, trying alternative selectors...');
+          // Try alternative selectors
+          const altElement = document.querySelector('.p-sidebar .p-sidebar-content') || 
+                           document.querySelector('[data-pc-section="content"]') ||
+                           document.querySelector('.p-sidebar-content');
+          if (altElement) {
+            const htmlContent = altElement.innerHTML;
+            console.log('Captured drawer HTML (alternative):', htmlContent.substring(0, 200) + '...');
+            setCapturedDrawerContent(htmlContent);
+          }
         }
-      }, 100);
+      }, 500); // Increased timeout
     }
   };
 
@@ -360,6 +372,16 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
+                // Try to capture HTML content immediately before opening PDF
+                if (useEmptyDrawer && dialogVisible) {
+                  const drawerElement = document.querySelector('.p-sidebar-content');
+                  if (drawerElement) {
+                    const htmlContent = drawerElement.innerHTML;
+                    console.log('Captured drawer HTML on PDF click:', htmlContent.substring(0, 200) + '...');
+                    setCapturedDrawerContent(htmlContent);
+                  }
+                }
+                
                 // Store data in localStorage to avoid URL length issues
                 const timelineData = Array.isArray(events) ? events : [];
                 const selectedItem = item;
