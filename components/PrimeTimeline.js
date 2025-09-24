@@ -163,7 +163,7 @@ const PrimeTimeline = ({
   };
 
   // PDF generation function
-  const generatePDF = async (contentElement) => {
+  const generatePDF = async (contentElement, itemData) => {
     try {
       // Import html2canvas and jsPDF dynamically
       const html2canvas = (await import('html2canvas')).default;
@@ -171,6 +171,7 @@ const PrimeTimeline = ({
       
       console.log('Generating PDF from element:', contentElement);
       console.log('Element HTML:', contentElement.innerHTML);
+      console.log('Item data:', itemData);
       
       // Capture the drawer content as canvas
       const canvas = await html2canvas(contentElement, {
@@ -178,9 +179,15 @@ const PrimeTimeline = ({
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff',
-        logging: true, // Enable logging for debugging
+        logging: false, // Disable logging to avoid console spam
         width: contentElement.scrollWidth,
-        height: contentElement.scrollHeight
+        height: contentElement.scrollHeight,
+        ignoreElements: (element) => {
+          // Ignore elements that might cause issues
+          return element.classList?.contains('p-sidebar') || 
+                 element.classList?.contains('p-sidebar-header') ||
+                 element.tagName === 'SCRIPT';
+        }
       });
       
       console.log('Canvas created:', canvas);
@@ -212,7 +219,8 @@ const PrimeTimeline = ({
       }
       
       // Open PDF in new tab
-      pdf.save(`${item?.[titleField] || 'document'}.pdf`);
+      const fileName = itemData?.[titleField] || 'document';
+      pdf.save(`${fileName}.pdf`);
       
     } catch (error) {
       console.error('Error generating PDF:', error);
@@ -389,6 +397,12 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={async () => {
+                // Validate item data
+                if (!item) {
+                  alert('No item data available for PDF generation');
+                  return;
+                }
+                
                 // Emit the event for backward compatibility
                 const resolvedData =
                   typeof pdfData === "function"
@@ -417,43 +431,58 @@ const PrimeTimeline = ({
                   
                   // Create a wrapper component that renders the exact drawer content
                   const PdfContentWrapper = () => {
-                    return createElement('div', { 
-                      id: 'pdf-content',
-                      style: { 
-                        width: "100%", 
-                        height: "100%", 
-                        minHeight: "200px",
-                        padding: "1rem"
-                      }
-                    }, 
-                      useEmptyDrawer ? (
-                        createElement(DataProvider, { name: "currentItem", data: item },
-                          createElement(DataProvider, { name: "allEvents", data: events },
-                            drawerContent || createElement('div', {
-                              style: {
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                color: "var(--text-color-secondary)",
-                                fontSize: "0.875rem",
-                                textAlign: "center",
-                                minHeight: "200px"
-                              }
-                            }, "Empty drawer - design via drawerContent slot")
+                    try {
+                      return createElement('div', { 
+                        id: 'pdf-content',
+                        style: { 
+                          width: "100%", 
+                          height: "100%", 
+                          minHeight: "200px",
+                          padding: "1rem"
+                        }
+                      }, 
+                        useEmptyDrawer ? (
+                          createElement(DataProvider, { name: "currentItem", data: item },
+                            createElement(DataProvider, { name: "allEvents", data: events },
+                              drawerContent || createElement('div', {
+                                style: {
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  color: "var(--text-color-secondary)",
+                                  fontSize: "0.875rem",
+                                  textAlign: "center",
+                                  minHeight: "200px"
+                                }
+                              }, "Empty drawer - design via drawerContent slot")
+                            )
                           )
-                        )
-                      ) : renderDialogContentForItem(item)
-                    );
+                        ) : renderDialogContentForItem(item)
+                      );
+                    } catch (renderError) {
+                      console.error('Error rendering PDF content:', renderError);
+                      return createElement('div', {
+                        style: {
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "red",
+                          fontSize: "0.875rem",
+                          textAlign: "center",
+                          minHeight: "200px"
+                        }
+                      }, "Error rendering content for PDF");
+                    }
                   };
                   
                   // Render the content
                   root.render(createElement(PdfContentWrapper));
                   
                   // Wait for content to fully render
-                  await new Promise(resolve => setTimeout(resolve, 1000));
+                  await new Promise(resolve => setTimeout(resolve, 1500));
                   
                   // Generate PDF from the rendered content
-                  await generatePDF(tempContainer);
+                  await generatePDF(tempContainer, item);
                   
                   // Clean up
                   root.unmount();
@@ -461,7 +490,7 @@ const PrimeTimeline = ({
                   
                 } catch (error) {
                   console.error('Error generating PDF:', error);
-                  alert('Error generating PDF. Please try again.');
+                  alert(`Error generating PDF: ${error.message}`);
                 }
               }}
             />
