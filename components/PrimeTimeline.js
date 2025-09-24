@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
@@ -7,6 +7,8 @@ import { Sidebar } from "primereact/sidebar";
 import { Image } from "primereact/image";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 /**
  * PrimeTimeline
@@ -20,7 +22,8 @@ import { Column } from "primereact/column";
  * `useEmptyDrawer` is set to true, the drawer will render empty content that can
  * be used as a slot in Plasmic Studio for custom content design. The "Read more"
  * button will automatically open the drawer with the clicked item's data available
- * in the slot via the 'currentItem' data context.
+ * in the slot via the 'currentItem' data context. The "View PDF" button will generate
+ * a PDF with the exact design from the drawer slot using the timeline item data.
  */
 const PrimeTimeline = ({
   // Data
@@ -142,6 +145,7 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
+  const drawerContentRef = useRef(null);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -158,6 +162,70 @@ const PrimeTimeline = ({
     if (!obj || !path) return undefined;
     if (path.indexOf(".") === -1) return obj?.[path];
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  };
+
+  // PDF generation function
+  const generatePDFFromDrawerContent = async (item) => {
+    try {
+      // Temporarily set the dialog item to render the drawer content
+      const originalDialogItem = dialogItem;
+      setDialogItem(item);
+      
+      // Wait for the drawer content to render
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Get the drawer content element
+      const drawerContentElement = drawerContentRef.current;
+      if (!drawerContentElement) {
+        console.error("Drawer content not found");
+        return;
+      }
+
+      // Generate canvas from the drawer content
+      const canvas = await html2canvas(drawerContentElement, {
+        scale: 2, // Higher quality
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff'
+      });
+
+      // Create PDF
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      
+      // Calculate dimensions to fit the content
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 295; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      // Add first page
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      // Add additional pages if content is longer than one page
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Generate filename using salary slip data
+      const filename = `payslip_${item?.title || item?.name || 'document'}_${item?.date || new Date().toISOString().split('T')[0]}.pdf`;
+      
+      // Open PDF in new tab
+      pdf.save(filename);
+      
+      // Restore original dialog item
+      setDialogItem(originalDialogItem);
+      
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
+    }
   };
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
@@ -331,11 +399,17 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
-                const resolvedData =
-                  typeof pdfData === "function"
-                    ? pdfData(item)
-                    : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
-                if (onPdfView) onPdfView({ item, data: resolvedData });
+                // If useEmptyDrawer is true, generate PDF from drawer content
+                if (useEmptyDrawer) {
+                  generatePDFFromDrawerContent(item);
+                } else {
+                  // Original PDF behavior
+                  const resolvedData =
+                    typeof pdfData === "function"
+                      ? pdfData(item)
+                      : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
+                  if (onPdfView) onPdfView({ item, data: resolvedData });
+                }
               }}
             />
           ) : null}
@@ -400,6 +474,7 @@ const PrimeTimeline = ({
         <DataProvider name="currentItem" data={dialogItem}>
           <DataProvider name="allEvents" data={events}>
             <div 
+              ref={drawerContentRef}
               style={{ 
                 width: "100%", 
                 height: "100%", 
