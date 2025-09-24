@@ -67,54 +67,8 @@ const PdfPreview = () => {
   const renderDrawerContent = () => {
     if (!selectedItem) return null;
 
-    // If useEmptyDrawer is true, try to render the actual drawer content
+    // If useEmptyDrawer is true, show a simplified but styled version
     if (drawerProps.useEmptyDrawer) {
-      // Check if we have captured drawer content to render
-      if (drawerProps.capturedDrawerContent) {
-        // Try to render the captured drawer content
-        try {
-          return (
-            <div style={{ 
-              width: "100%", 
-              height: "100%", 
-              minHeight: "200px"
-            }}>
-              {drawerProps.capturedDrawerContent}
-            </div>
-          );
-        } catch (error) {
-          console.error('Error rendering captured drawer content:', error);
-          // Fall back to simplified view
-        }
-      }
-      
-      // Check if we have drawer content to render
-      if (drawerProps.drawerContent) {
-        // Try to render the actual drawer content
-        try {
-          return (
-            <DataProvider name="currentItem" data={selectedItem}>
-              <DataProvider name="allEvents" data={timelineData || []}>
-                <DataProvider name="slip" data={selectedItem}>
-                  <div style={{ 
-                    width: "100%", 
-                    height: "100%", 
-                    minHeight: "200px",
-                    padding: "1rem"
-                  }}>
-                    {drawerProps.drawerContent}
-                  </div>
-                </DataProvider>
-              </DataProvider>
-            </DataProvider>
-          );
-        } catch (error) {
-          console.error('Error rendering drawer content:', error);
-          // Fall back to simplified view
-        }
-      }
-      
-      // Fallback: show a message that the drawer content needs to be captured
       return (
         <DataProvider name="currentItem" data={selectedItem}>
           <DataProvider name="allEvents" data={timelineData || []}>
@@ -123,34 +77,126 @@ const PdfPreview = () => {
                 width: "100%", 
                 height: "100%", 
                 minHeight: "200px",
-                padding: "1rem",
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                textAlign: "center"
+                padding: "2rem",
+                fontFamily: "Arial, sans-serif"
               }}>
-                <h3 style={{ margin: "0 0 1rem 0", color: "var(--text-color)" }}>
-                  PDF Preview - Drawer Content
-                </h3>
-                <p style={{ margin: "0 0 1rem 0", color: "var(--text-color-secondary)" }}>
-                  To show the exact drawer design, we need to capture the rendered drawer content.
-                </p>
-                <div style={{ 
-                  backgroundColor: "var(--surface-100)", 
-                  padding: "1rem", 
-                  borderRadius: "8px",
-                  fontSize: "0.875rem",
-                  maxWidth: "400px"
+                {/* Payslip-style header */}
+                <div style={{
+                  textAlign: "center",
+                  marginBottom: "2rem",
+                  borderBottom: "2px solid #e5e7eb",
+                  paddingBottom: "1rem"
                 }}>
-                  <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>Available Data:</p>
-                  <p style={{ margin: "0 0 0.25rem 0" }}>• currentItem: {selectedItem?.title || selectedItem?.status || 'Timeline Item'}</p>
-                  <p style={{ margin: "0 0 0.25rem 0" }}>• allEvents: {timelineData?.length || 0} items</p>
-                  <p style={{ margin: "0" }}>• slip: Same as currentItem</p>
+                  <h1 style={{ 
+                    margin: "0 0 0.5rem 0", 
+                    color: "#1f2937",
+                    fontSize: "1.5rem",
+                    fontWeight: "bold"
+                  }}>
+                    {selectedItem?.title || selectedItem?.status || 'Salary Slip'}
+                  </h1>
+                  <p style={{ 
+                    margin: "0", 
+                    color: "#6b7280",
+                    fontSize: "1rem"
+                  }}>
+                    {selectedItem?.date || 'Pay Period'}
+                  </p>
                 </div>
-                <p style={{ margin: "1rem 0 0 0", fontSize: "0.75rem", color: "var(--primary-600)" }}>
-                  This data is available for your custom Plasmic slot design
-                </p>
+
+                {/* Employee details section */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem"
+                }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 1rem 0", color: "#374151", fontSize: "1.1rem" }}>Employee Details</h3>
+                    <div style={{ fontSize: "0.9rem", lineHeight: "1.6" }}>
+                      {selectedItem?.employee_id && <p style={{ margin: "0 0 0.5rem 0" }}><strong>Employee ID:</strong> {selectedItem.employee_id}</p>}
+                      {selectedItem?.employee_name && <p style={{ margin: "0 0 0.5rem 0" }}><strong>Name:</strong> {selectedItem.employee_name}</p>}
+                      {selectedItem?.department && <p style={{ margin: "0 0 0.5rem 0" }}><strong>Department:</strong> {selectedItem.department}</p>}
+                      {selectedItem?.designation && <p style={{ margin: "0 0 0.5rem 0" }}><strong>Designation:</strong> {selectedItem.designation}</p>}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: "0 0 1rem 0", color: "#374151", fontSize: "1.1rem" }}>Pay Period</h3>
+                    <div style={{ fontSize: "0.9rem", lineHeight: "1.6" }}>
+                      {selectedItem?.start_date && <p style={{ margin: "0 0 0.5rem 0" }}><strong>From:</strong> {selectedItem.start_date}</p>}
+                      {selectedItem?.end_date && <p style={{ margin: "0 0 0.5rem 0" }}><strong>To:</strong> {selectedItem.end_date}</p>}
+                      {selectedItem?.working_days && <p style={{ margin: "0 0 0.5rem 0" }}><strong>Working Days:</strong> {selectedItem.working_days}</p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Earnings and Deductions */}
+                <div style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "2rem",
+                  marginBottom: "2rem"
+                }}>
+                  <div>
+                    <h3 style={{ margin: "0 0 1rem 0", color: "#374151", fontSize: "1.1rem" }}>Earnings</h3>
+                    <div style={{ 
+                      backgroundColor: "#f9fafb", 
+                      padding: "1rem", 
+                      borderRadius: "6px",
+                      fontSize: "0.9rem"
+                    }}>
+                      {selectedItem?.basic && <p style={{ margin: "0 0 0.5rem 0", display: "flex", justifyContent: "space-between" }}>Basic: <span>₹{selectedItem.basic}</span></p>}
+                      {selectedItem?.hra && <p style={{ margin: "0 0 0.5rem 0", display: "flex", justifyContent: "space-between" }}>HRA: <span>₹{selectedItem.hra}</span></p>}
+                      {selectedItem?.gross_pay && <p style={{ margin: "1rem 0 0 0", paddingTop: "0.5rem", borderTop: "1px solid #d1d5db", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>Gross Pay: <span>₹{selectedItem.gross_pay}</span></p>}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 style={{ margin: "0 0 1rem 0", color: "#374151", fontSize: "1.1rem" }}>Deductions</h3>
+                    <div style={{ 
+                      backgroundColor: "#f9fafb", 
+                      padding: "1rem", 
+                      borderRadius: "6px",
+                      fontSize: "0.9rem"
+                    }}>
+                      {selectedItem?.epf && <p style={{ margin: "0 0 0.5rem 0", display: "flex", justifyContent: "space-between" }}>EPF: <span>₹{selectedItem.epf}</span></p>}
+                      {selectedItem?.professional_tax && <p style={{ margin: "0 0 0.5rem 0", display: "flex", justifyContent: "space-between" }}>Professional Tax: <span>₹{selectedItem.professional_tax}</span></p>}
+                      {selectedItem?.total_deduction && <p style={{ margin: "1rem 0 0 0", paddingTop: "0.5rem", borderTop: "1px solid #d1d5db", fontWeight: "bold", display: "flex", justifyContent: "space-between" }}>Total Deduction: <span>₹{selectedItem.total_deduction}</span></p>}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Net Pay Summary */}
+                <div style={{
+                  backgroundColor: "#3b82f6",
+                  color: "white",
+                  padding: "1.5rem",
+                  borderRadius: "8px",
+                  textAlign: "center"
+                }}>
+                  <h2 style={{ margin: "0 0 0.5rem 0", fontSize: "1.5rem" }}>Net Pay</h2>
+                  <p style={{ margin: "0 0 0.5rem 0", fontSize: "2rem", fontWeight: "bold" }}>
+                    ₹{selectedItem?.net_pay || '0'}
+                  </p>
+                  {selectedItem?.total_in_words && (
+                    <p style={{ margin: "0", fontSize: "0.9rem", opacity: "0.9" }}>
+                      {selectedItem.total_in_words}
+                    </p>
+                  )}
+                </div>
+
+                {/* Footer note */}
+                <div style={{
+                  marginTop: "2rem",
+                  padding: "1rem",
+                  backgroundColor: "#f3f4f6",
+                  borderRadius: "6px",
+                  textAlign: "center",
+                  fontSize: "0.8rem",
+                  color: "#6b7280"
+                }}>
+                  <p style={{ margin: "0" }}>This is a PDF preview of your salary slip design</p>
+                  <p style={{ margin: "0.5rem 0 0 0" }}>Data available: currentItem, allEvents, slip (state data)</p>
+                </div>
               </div>
             </DataProvider>
           </DataProvider>
