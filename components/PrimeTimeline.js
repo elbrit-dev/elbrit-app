@@ -142,6 +142,7 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
+  const [capturedDrawerContent, setCapturedDrawerContent] = useState(null);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -158,6 +159,13 @@ const PrimeTimeline = ({
     if (!obj || !path) return undefined;
     if (path.indexOf(".") === -1) return obj?.[path];
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
+  };
+
+  // Function to capture drawer content for PDF preview
+  const captureDrawerContent = (content) => {
+    if (useEmptyDrawer && content) {
+      setCapturedDrawerContent(content);
+    }
   };
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
@@ -390,7 +398,10 @@ const PrimeTimeline = ({
                 const pdfData = {
                   timelineData,
                   selectedItem,
-                  drawerProps,
+                  drawerProps: {
+                    ...drawerProps,
+                    capturedDrawerContent: capturedDrawerContent
+                  },
                   timestamp
                 };
                 
@@ -472,7 +483,7 @@ const PrimeTimeline = ({
 
     // If useEmptyDrawer is true, render the drawerContent slot with data context
     if (useEmptyDrawer) {
-      return (
+      const content = (
         <DataProvider name="currentItem" data={dialogItem}>
           <DataProvider name="allEvents" data={events}>
             <DataProvider name="slip" data={dialogItem}>
@@ -501,6 +512,11 @@ const PrimeTimeline = ({
           </DataProvider>
         </DataProvider>
       );
+      
+      // Capture the content for PDF preview
+      captureDrawerContent(content);
+      
+      return content;
     }
 
     const isDesktop = typeof window !== "undefined" && window.innerWidth >= 768;

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { Sidebar } from "primereact/sidebar";
 import { DataProvider } from "@plasmicapp/host";
 import DrawerContentRenderer from "../components/DrawerContentRenderer";
 
 const PdfPreview = () => {
-  const [drawerVisible, setDrawerVisible] = useState(false);
   const [timelineData, setTimelineData] = useState(null);
   const [selectedItem, setSelectedItem] = useState(null);
   const [drawerProps, setDrawerProps] = useState({});
@@ -63,17 +61,60 @@ const PdfPreview = () => {
       }
     }
 
-    // Auto-open drawer after a short delay
-    setTimeout(() => {
-      setDrawerVisible(true);
-    }, 500);
+    // No need to auto-open drawer since we're showing content directly
   }, []);
 
   const renderDrawerContent = () => {
     if (!selectedItem) return null;
 
-    // If useEmptyDrawer is true, show a simplified version since we can't render Plasmic slots
+    // If useEmptyDrawer is true, try to render the actual drawer content
     if (drawerProps.useEmptyDrawer) {
+      // Check if we have captured drawer content to render
+      if (drawerProps.capturedDrawerContent) {
+        // Try to render the captured drawer content
+        try {
+          return (
+            <div style={{ 
+              width: "100%", 
+              height: "100%", 
+              minHeight: "200px"
+            }}>
+              {drawerProps.capturedDrawerContent}
+            </div>
+          );
+        } catch (error) {
+          console.error('Error rendering captured drawer content:', error);
+          // Fall back to simplified view
+        }
+      }
+      
+      // Check if we have drawer content to render
+      if (drawerProps.drawerContent) {
+        // Try to render the actual drawer content
+        try {
+          return (
+            <DataProvider name="currentItem" data={selectedItem}>
+              <DataProvider name="allEvents" data={timelineData || []}>
+                <DataProvider name="slip" data={selectedItem}>
+                  <div style={{ 
+                    width: "100%", 
+                    height: "100%", 
+                    minHeight: "200px",
+                    padding: "1rem"
+                  }}>
+                    {drawerProps.drawerContent}
+                  </div>
+                </DataProvider>
+              </DataProvider>
+            </DataProvider>
+          );
+        } catch (error) {
+          console.error('Error rendering drawer content:', error);
+          // Fall back to simplified view
+        }
+      }
+      
+      // Fallback: show a message that the drawer content needs to be captured
       return (
         <DataProvider name="currentItem" data={selectedItem}>
           <DataProvider name="allEvents" data={timelineData || []}>
@@ -82,81 +123,34 @@ const PdfPreview = () => {
                 width: "100%", 
                 height: "100%", 
                 minHeight: "200px",
-                padding: "1rem"
+                padding: "1rem",
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "center",
+                textAlign: "center"
               }}>
-                <div style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "1rem"
+                <h3 style={{ margin: "0 0 1rem 0", color: "var(--text-color)" }}>
+                  PDF Preview - Drawer Content
+                </h3>
+                <p style={{ margin: "0 0 1rem 0", color: "var(--text-color-secondary)" }}>
+                  To show the exact drawer design, we need to capture the rendered drawer content.
+                </p>
+                <div style={{ 
+                  backgroundColor: "var(--surface-100)", 
+                  padding: "1rem", 
+                  borderRadius: "8px",
+                  fontSize: "0.875rem",
+                  maxWidth: "400px"
                 }}>
-                  <h3 style={{ margin: 0, color: "var(--text-color)" }}>
-                    {selectedItem?.status || selectedItem?.title || 'Timeline Item'}
-                  </h3>
-                  
-                  {selectedItem?.date && (
-                    <p style={{ margin: 0, color: "var(--text-color-secondary)" }}>
-                      Date: {selectedItem.date}
-                    </p>
-                  )}
-                  
-                  {selectedItem?.description && (
-                    <p style={{ margin: 0, color: "var(--text-color)" }}>
-                      {selectedItem.description}
-                    </p>
-                  )}
-                  
-                  {selectedItem?.start_date && (
-                    <p style={{ margin: 0, color: "var(--text-color-secondary)" }}>
-                      Period: {selectedItem.start_date} to {selectedItem.end_date}
-                    </p>
-                  )}
-                  
-                  {/* Show all available data in a simple format */}
-                  <div style={{ marginTop: "1rem" }}>
-                    <h4 style={{ margin: "0 0 0.5rem 0", color: "var(--text-color)" }}>Item Details:</h4>
-                    <div style={{ 
-                      backgroundColor: "var(--surface-100)", 
-                      padding: "1rem", 
-                      borderRadius: "8px",
-                      fontSize: "0.875rem"
-                    }}>
-                      {Object.entries(selectedItem).map(([key, value]) => (
-                        <div key={key} style={{ 
-                          display: "flex", 
-                          justifyContent: "space-between", 
-                          marginBottom: "0.25rem",
-                          padding: "0.25rem 0",
-                          borderBottom: "1px solid var(--surface-border)"
-                        }}>
-                          <span style={{ fontWeight: 500, color: "var(--text-color-secondary)" }}>
-                            {key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}:
-                          </span>
-                          <span style={{ color: "var(--text-color)" }}>
-                            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div style={{ 
-                    marginTop: "2rem", 
-                    padding: "1rem", 
-                    backgroundColor: "var(--primary-50)", 
-                    borderRadius: "8px",
-                    textAlign: "center"
-                  }}>
-                    <p style={{ margin: 0, color: "var(--primary-700)" }}>
-                      PDF Preview - Empty Slot Content
-                    </p>
-                    <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.875rem", color: "var(--primary-600)" }}>
-                      This shows the data that would be available in your custom Plasmic slot design
-                    </p>
-                    <p style={{ margin: "0.5rem 0 0 0", fontSize: "0.75rem", color: "var(--primary-500)" }}>
-                      Data available: currentItem, allEvents, slip (state data)
-                    </p>
-                  </div>
+                  <p style={{ margin: "0 0 0.5rem 0", fontWeight: 600 }}>Available Data:</p>
+                  <p style={{ margin: "0 0 0.25rem 0" }}>• currentItem: {selectedItem?.title || selectedItem?.status || 'Timeline Item'}</p>
+                  <p style={{ margin: "0 0 0.25rem 0" }}>• allEvents: {timelineData?.length || 0} items</p>
+                  <p style={{ margin: "0" }}>• slip: Same as currentItem</p>
                 </div>
+                <p style={{ margin: "1rem 0 0 0", fontSize: "0.75rem", color: "var(--primary-600)" }}>
+                  This data is available for your custom Plasmic slot design
+                </p>
               </div>
             </DataProvider>
           </DataProvider>
@@ -178,40 +172,24 @@ const PdfPreview = () => {
     <div style={{ 
       width: "100vw", 
       height: "100vh", 
-      backgroundColor: "#f5f5f5",
-      position: "relative"
+      backgroundColor: "#ffffff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      padding: "2rem"
     }}>
-      {/* Main content area */}
+      {/* Show only the drawer content without the drawer container */}
       <div style={{
         width: "100%",
-        height: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        maxWidth: "50rem",
+        minHeight: "80vh",
         backgroundColor: "#ffffff",
-        marginRight: "0"
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        borderRadius: "8px",
+        overflow: "hidden"
       }}>
-        <div style={{ textAlign: "center", padding: "2rem" }}>
-          <h2>PDF Preview Mode</h2>
-          <p>This shows how the drawer content will appear in PDF format</p>
-          <p>Selected Item: <strong>{selectedItem?.status || 'None'}</strong></p>
-        </div>
-      </div>
-
-      {/* Right drawer - this will contain the actual content */}
-      <Sidebar
-        visible={drawerVisible}
-        position="right"
-        onHide={() => setDrawerVisible(false)}
-        style={{ 
-          width: "50rem",
-          height: "100vh"
-        }}
-        header={`PDF Preview - ${selectedItem?.status || 'Timeline Item'}`}
-        showCloseIcon={false}
-      >
         {renderDrawerContent()}
-      </Sidebar>
+      </div>
     </div>
   );
 };
