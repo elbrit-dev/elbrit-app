@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import { DataProvider } from "@plasmicapp/host";
 import { Timeline } from "primereact/timeline";
 import { Button } from "primereact/button";
@@ -7,8 +7,6 @@ import { Sidebar } from "primereact/sidebar";
 import { Image } from "primereact/image";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 /**
  * PrimeTimeline
@@ -22,8 +20,7 @@ import jsPDF from "jspdf";
  * `useEmptyDrawer` is set to true, the drawer will render empty content that can
  * be used as a slot in Plasmic Studio for custom content design. The "Read more"
  * button will automatically open the drawer with the clicked item's data available
- * in the slot via the 'currentItem' data context. The "View PDF" button will generate
- * a PDF with the exact design from the drawer slot using the timeline item data.
+ * in the slot via the 'currentItem' data context.
  */
 const PrimeTimeline = ({
   // Data
@@ -161,113 +158,6 @@ const PrimeTimeline = ({
     if (!obj || !path) return undefined;
     if (path.indexOf(".") === -1) return obj?.[path];
     return path.split(".").reduce((acc, key) => (acc == null ? undefined : acc[key]), obj);
-  };
-
-  // PDF generation function
-  const generatePDFFromDrawerContent = async (item) => {
-    try {
-      // Create a temporary container to render the drawer content
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'absolute';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.top = '-9999px';
-      tempContainer.style.width = '800px'; // Fixed width for consistent rendering
-      tempContainer.style.backgroundColor = '#ffffff';
-      tempContainer.style.padding = '20px';
-      document.body.appendChild(tempContainer);
-
-      // Create a temporary React root to render the drawer content
-      const { createRoot } = await import('react-dom/client');
-      const root = createRoot(tempContainer);
-
-      // Render the drawer content temporarily
-      const DrawerContentForPDF = () => {
-        if (useEmptyDrawer) {
-          return (
-            <DataProvider name="currentItem" data={item}>
-              <DataProvider name="allEvents" data={events}>
-                <div 
-                  style={{ 
-                    width: "100%", 
-                    height: "100%", 
-                    minHeight: "200px",
-                    padding: "1rem"
-                  }}
-                >
-                  {drawerContent || (
-                    <div style={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      color: "var(--text-color-secondary)",
-                      fontSize: "0.875rem",
-                      textAlign: "center"
-                    }}>
-                      Empty drawer - design via drawerContent slot. Use data: currentItem (clicked item) or allEvents (all timeline data)
-                    </div>
-                  )}
-                </div>
-              </DataProvider>
-            </DataProvider>
-          );
-        }
-        return null;
-      };
-
-      // Render the content
-      root.render(<DrawerContentForPDF />);
-      
-      // Wait for the content to render
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // Generate canvas from the temporary content
-      const canvas = await html2canvas(tempContainer, {
-        scale: 2, // Higher quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#ffffff',
-        width: 800,
-        height: tempContainer.scrollHeight
-      });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      // Calculate dimensions to fit the content
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 295; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional pages if content is longer than one page
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      // Generate filename using salary slip data
-      const filename = `payslip_${item?.title || item?.name || 'document'}_${item?.date || new Date().toISOString().split('T')[0]}.pdf`;
-      
-      // Open PDF in new tab
-      pdf.save(filename);
-      
-      // Cleanup
-      root.unmount();
-      document.body.removeChild(tempContainer);
-      
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      alert("Error generating PDF. Please try again.");
-    }
   };
 
   // PDF generation is intentionally removed. The PDF button will emit data via onPdfView.
@@ -441,17 +331,11 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
-                // If useEmptyDrawer is true, generate PDF from drawer content
-                if (useEmptyDrawer) {
-                  generatePDFFromDrawerContent(item);
-                } else {
-                  // Original PDF behavior
-                  const resolvedData =
-                    typeof pdfData === "function"
-                      ? pdfData(item)
-                      : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
-                  if (onPdfView) onPdfView({ item, data: resolvedData });
-                }
+                const resolvedData =
+                  typeof pdfData === "function"
+                    ? pdfData(item)
+                    : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
+                if (onPdfView) onPdfView({ item, data: resolvedData });
               }}
             />
           ) : null}
