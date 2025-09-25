@@ -142,6 +142,8 @@ const PrimeTimeline = ({
 }) => {
   const [dialogVisible, setDialogVisible] = useState(false);
   const [dialogItem, setDialogItem] = useState(null);
+  const [pdfDrawerVisible, setPdfDrawerVisible] = useState(false);
+  const [pdfDrawerItem, setPdfDrawerItem] = useState(null);
   
   // Responsive drawer position
   const getDrawerPosition = () => {
@@ -331,11 +333,18 @@ const PrimeTimeline = ({
               }}
               className={pdfButtonClassName}
               onClick={() => {
-                const resolvedData =
-                  typeof pdfData === "function"
-                    ? pdfData(item)
-                    : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
-                if (onPdfView) onPdfView({ item, data: resolvedData });
+                // If useEmptyDrawer is true, open PDF drawer from left
+                if (useEmptyDrawer) {
+                  setPdfDrawerItem(item);
+                  setPdfDrawerVisible(true);
+                } else {
+                  // Original PDF functionality
+                  const resolvedData =
+                    typeof pdfData === "function"
+                      ? pdfData(item)
+                      : (pdfDataField ? getValue(item, pdfDataField) : pdfData);
+                  if (onPdfView) onPdfView({ item, data: resolvedData });
+                }
               }}
             />
           ) : null}
@@ -1027,6 +1036,20 @@ const PrimeTimeline = ({
           header={dialogItem ? (dialogHeaderField ? dialogItem?.[dialogHeaderField] : dialogItem?.[titleField]) : ""}
         >
           {renderDialogContent()}
+        </Sidebar>
+      )}
+      {useEmptyDrawer && (
+        <Sidebar
+          visible={pdfDrawerVisible}
+          position="left"
+          onHide={() => setPdfDrawerVisible(false)}
+          style={{ 
+            width: drawerSize,
+            height: "100vh"
+          }}
+          header={pdfDrawerItem ? (dialogHeaderField ? pdfDrawerItem?.[dialogHeaderField] : pdfDrawerItem?.[titleField]) + " - PDF Preview" : "PDF Preview"}
+        >
+          {renderPdfDrawerContent()}
         </Sidebar>
       )}
       </div>
