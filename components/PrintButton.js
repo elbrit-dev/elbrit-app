@@ -58,6 +58,31 @@ const PrintButton = ({
   ...otherProps
 }) => {
   
+  // Function to immediately trigger print with A3 page size - NO SETUP REQUIRED
+  const triggerAutoPrint = () => {
+    // Apply A3 page size styles instantly
+    let printStyle = document.getElementById('auto-print-a3-styles');
+    if (!printStyle) {
+      printStyle = document.createElement('style');
+      printStyle.id = 'auto-print-a3-styles';
+      printStyle.textContent = `
+        @media print {
+          @page {
+            size: A3 !important;
+            margin: 0.3in !important;
+          }
+        }
+      `;
+      document.head.appendChild(printStyle);
+    }
+
+    // IMMEDIATE print trigger - no delays
+    window.print();
+    
+    // Call callback if provided
+    if (onPrint) onPrint();
+  };
+
   // Set up message listener for parent window communication
   useEffect(() => {
     // Only add listener in parent window (not iframe)
@@ -69,8 +94,7 @@ const PrintButton = ({
         }
         
         if (event.data?.action === 'print-page') {
-          window.print();
-          if (onPrint) onPrint();
+          triggerAutoPrint();
         }
       };
 
@@ -85,12 +109,9 @@ const PrintButton = ({
       // We're inside an iframe - send message to parent
       window.parent.postMessage({ action: 'print-page' }, parentWindowOrigin);
     } else {
-      // We're in the main window - print directly
-      window.print();
+      // We're in the main window - automatically print with A3
+      triggerAutoPrint();
     }
-    
-    // Call the onPrint callback
-    if (onPrint) onPrint();
   };
 
   // Map size prop to PrimeReact size classes
