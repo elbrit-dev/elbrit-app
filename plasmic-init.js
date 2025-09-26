@@ -16,6 +16,7 @@ const TagFilterPrimeReact = dynamic(() => import("./components/TagFilterPrimeRea
 const PrimeTimeline = dynamic(() => import("./components/PrimeTimeline"), { ssr: false, loading: () => null });
 const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
 const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
+const PrintButton = dynamic(() => import("./components/PrintButton"), { ssr: false, loading: () => null });
 const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), { ssr: false, loading: () => null });
 const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
@@ -3023,6 +3024,116 @@ PLASMIC.registerComponent(SimpleButton, {
     }
   },
   importPath: "./components/SimpleButton"
+});
+
+// Register the Print Button component
+PLASMIC.registerComponent(PrintButton, {
+  name: "PrintButton",
+  displayName: "Print Button",
+  description: "A ready-made button for printing documents with smart iframe detection for Plasmic contexts",
+  props: {
+    label: {
+      type: "string",
+      description: "Button text",
+      defaultValue: "Print"
+    },
+    icon: {
+      type: "string",
+      description: "Icon class name (e.g., 'pi pi-print', 'pi pi-file-export')",
+      defaultValue: "pi pi-print"
+    },
+    iconPos: {
+      type: "choice",
+      options: ["left", "right"],
+      description: "Icon position relative to label",
+      defaultValue: "left"
+    },
+    severity: {
+      type: "choice",
+      options: ["primary", "secondary", "success", "info", "warning", "danger", "help"],
+      description: "Button color theme",
+      defaultValue: "primary"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Button size",
+      defaultValue: "normal"
+    },
+    outlined: {
+      type: "boolean",
+      description: "Show as outlined button (no fill)",
+      defaultValue: false
+    },
+    rounded: {
+      type: "boolean",
+      description: "Show with rounded corners",
+      defaultValue: false
+    },
+    text: {
+      type: "boolean",
+      description: "Show as text-only button (no background)",
+      defaultValue: false
+    },
+    raised: {
+      type: "boolean",
+      description: "Show with shadow/elevation",
+      defaultValue: false
+    },
+    loading: {
+      type: "boolean",
+      description: "Show loading spinner",
+      defaultValue: false
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the button",
+      defaultValue: false
+    },
+    tooltip: {
+      type: "string",
+      description: "Tooltip text to show on hover",
+      defaultValue: "Print this page"
+    },
+    badge: {
+      type: "string",
+      description: "Badge value to display (e.g., '5', 'New')",
+      defaultValue: null
+    },
+    badgeClass: {
+      type: "choice",
+      options: ["p-badge-danger", "p-badge-success", "p-badge-info", "p-badge-warning"],
+      description: "Badge color class",
+      defaultValue: "p-badge-danger"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles",
+      defaultValue: {}
+    },
+    parentWindowOrigin: {
+      type: "string",
+      description: "Origin for postMessage security (default: '*' for any origin)",
+      defaultValue: "*"
+    },
+    onPrint: {
+      type: "eventHandler",
+      description: "Callback fired when print is initiated",
+      argTypes: [
+        {
+          name: "event",
+          type: "object",
+          description: "Print event data"
+        }
+      ]
+    }
+  },
+  importPath: "./components/PrintButton"
 });
 
 // Register the Simple Card component
