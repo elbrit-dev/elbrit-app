@@ -17,6 +17,7 @@ const PrimeTimeline = dynamic(() => import("./components/PrimeTimeline"), { ssr:
 const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
 const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
 const PrintButton = dynamic(() => import("./components/PrintButton"), { ssr: false, loading: () => null });
+const PrintWrapper = dynamic(() => import("./components/PrintWrapper"), { ssr: false, loading: () => null });
 const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), { ssr: false, loading: () => null });
 const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
@@ -3134,6 +3135,62 @@ PLASMIC.registerComponent(PrintButton, {
     }
   },
   importPath: "./components/PrintButton"
+});
+
+// Register the Print Wrapper component
+PLASMIC.registerComponent(PrintWrapper, {
+  name: "PrintWrapper",
+  displayName: "Print Wrapper", 
+  description: "A wrapper that triggers A3 printing when any content inside is clicked. Perfect for custom icons, images, or text",
+  props: {
+    children: {
+      type: "slot",
+      description: "Content to be wrapped (icons, images, text, etc.)"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for wrapper",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline styles for wrapper",
+      defaultValue: {}
+    },
+    cursor: {
+      type: "choice",
+      options: ["pointer", "default", "grab", "not-allowed"],
+      description: "Cursor style for the wrapper",
+      defaultValue: "pointer"
+    },
+    parentWindowOrigin: {
+      type: "string", 
+      description: "Origin for postMessage security (default: '*' for any origin)",
+      defaultValue: "*"
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the print functionality",
+      defaultValue: false
+    },
+    tooltip: {
+      type: "string",
+      description: "Tooltip text to show on hover",
+      defaultValue: "Click to print this page"
+    },
+    onPrint: {
+      type: "eventHandler",
+      description: "Callback fired when print is initiated",
+      argTypes: [
+        {
+          name: "event",
+          type: "object", 
+          description: "Print event data"
+        }
+      ]
+    }
+  },
+  importPath: "./components/PrintWrapper"
 });
 
 // Register the Simple Card component
