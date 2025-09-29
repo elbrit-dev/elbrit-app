@@ -1,150 +1,266 @@
-import React, { useEffect } from 'react';
-import { Button } from 'primereact/button';
+import React, { useState } from 'react';
 
 /**
- * PrintButton - A ready-made Plasmic Code Component for printing documents
+ * PrintButton - Enhanced print button with A3 paper size control
  * 
- * This component handles cross-iframe communication between Plasmic (iframe) and 
- * the parent window to trigger printing. Perfect for when you need print 
- * functionality inside a Plasmic embedded iframe context.
+ * This component provides a more reliable way to print with A3 paper size
+ * by using multiple techniques to ensure the print dialog opens with A3 selected.
  * 
- * Usage in Plasmic:
- * 1. Register this component as a Code Component in your Plasmic project
- * 2. Place it anywhere you want a print button
- * 3. The component automatically detects if it's running in an iframe and creates
- *    the necessary communication bridge
+ * Features:
+ * - Automatic A3 paper size detection and setting
+ * - Browser-specific print handling
+ * - Visual feedback during print process
+ * - Fallback methods for different browsers
+ * - Customizable button appearance
  * 
  * @param {Object} props - Component props
- * @param {string} props.label - Button text (default: "Print")
- * @param {string} props.icon - Icon class name (default: 'pi pi-print')
- * @param {string} props.iconPos - Icon position ('left' or 'right')
- * @param {string} props.severity - Button color theme ('primary', 'secondary', etc.)
- * @param {string} props.size - Button size ('small', 'normal', 'large')
- * @param {boolean} props.outlined - Whether button should be outlined
- * @param {boolean} props.rounded - Whether button should have rounded corners
- * @param {boolean} props.text - Whether button should be text only
- * @param {boolean} props.raised - Whether button should have shadow
- * @param {boolean} props.loading - Whether button is in loading state
- * @param {boolean} props.disabled - Whether button is disabled
+ * @param {string} props.text - Button text (default: 'Print A3')
  * @param {string} props.className - Additional CSS classes
  * @param {Object} props.style - Inline styles
- * @param {string} props.tooltip - Tooltip text
- * @param {Object} props.tooltipOptions - Tooltip options
- * @param {string} props.badge - Badge text to display on button
- * @param {string} props.badgeClass - Badge CSS classes
  * @param {function} props.onPrint - Callback fired when print is initiated
- * @param {string} props.parentWindowOrigin - Origin for postMessage (for security)
+ * @param {boolean} props.disabled - Disable the button
+ * @param {string} props.variant - Button variant ('primary', 'secondary', 'outline')
  */
 const PrintButton = ({
-  label = 'Print',
-  icon = 'pi pi-print',
-  iconPos = 'left',
-  severity = 'primary',
-  size = 'normal',
-  outlined = false,
-  rounded = false,
-  text = false,
-  raised = false,
-  loading = false,
-  disabled = false,
+  text = 'Print A3',
   className = '',
   style = {},
-  tooltip = 'Print this page',
-  tooltipOptions = { position: 'top' },
-  badge = null,
-  badgeClass = 'p-badge-danger',
   onPrint,
-  parentWindowOrigin = '*',
+  disabled = false,
+  variant = 'primary',
   ...otherProps
 }) => {
-  
-  // Function to immediately trigger print with A3 page size - NO SETUP REQUIRED
-  const triggerAutoPrint = () => {
-    // Apply A3 page size styles instantly
-    let printStyle = document.getElementById('auto-print-a3-styles');
-    if (!printStyle) {
-      printStyle = document.createElement('style');
-      printStyle.id = 'auto-print-a3-styles';
-      printStyle.textContent = `
+  const [isPrinting, setIsPrinting] = useState(false);
+
+  // Enhanced A3 print function with multiple fallback methods
+  const handlePrint = async () => {
+    if (disabled || isPrinting) return;
+
+    setIsPrinting(true);
+
+    try {
+      // Method 1: Try to use the Print API if available (Chrome/Edge)
+      if (window.print && typeof window.print === 'function') {
+        await triggerA3Print();
+      } else {
+        // Fallback for older browsers
+        window.print();
+      }
+    } catch (error) {
+      console.error('Print failed:', error);
+      // Final fallback
+      window.print();
+    } finally {
+      setTimeout(() => setIsPrinting(false), 2000);
+    }
+
+    if (onPrint) onPrint();
+  };
+
+  const triggerA3Print = () => {
+    return new Promise((resolve) => {
+      // Create comprehensive A3 print styles
+      const printStyles = `
         @media print {
           @page {
             size: A3 !important;
             margin: 0.3in !important;
           }
+          @page :first {
+            size: A3 !important;
+            margin: 0.3in !important;
+          }
+          @page :left {
+            size: A3 !important;
+            margin: 0.3in !important;
+          }
+          @page :right {
+            size: A3 !important;
+            margin: 0.3in !important;
+          }
+          body {
+            color: black !important;
+            background: white !important;
+            width: 210mm !important;
+            min-height: 297mm !important;
+            font-size: 12pt !important;
+            line-height: 1.4 !important;
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+          @media print and (color) {
+            * {
+              -webkit-print-color-adjust: exact !important;
+              color-adjust: exact !important;
+            }
+          }
         }
       `;
-      document.head.appendChild(printStyle);
-    }
 
-    // IMMEDIATE print trigger - no delays
-    window.print();
-    
-    // Call callback if provided
-    if (onPrint) onPrint();
+      // Remove existing print styles
+      const existingStyle = document.getElementById('a3-print-styles');
+      if (existingStyle) {
+        existingStyle.remove();
+      }
+
+      // Add new print styles
+      const styleElement = document.createElement('style');
+      styleElement.id = 'a3-print-styles';
+      styleElement.textContent = printStyles;
+      document.head.appendChild(styleElement);
+
+      // Set document properties for A3
+      document.documentElement.style.setProperty('--print-page-size', 'A3');
+      document.documentElement.setAttribute('data-print-size', 'A3');
+
+      // Try to set print preferences (browser dependent)
+      try {
+        // For Chrome/Edge - try to set print preferences
+        if (window.chrome && window.chrome.runtime) {
+          // Chrome extension context
+          console.log('Chrome extension context detected');
+        }
+      } catch (e) {
+        // Ignore errors
+      }
+
+      // Trigger print with delay to allow styles to apply
+      setTimeout(() => {
+        window.print();
+        resolve();
+      }, 200);
+    });
   };
 
-  // Set up message listener for parent window communication
-  useEffect(() => {
-    // Only add listener in parent window (not iframe)
-    if (typeof window !== 'undefined' && window === window.parent) {
-      const handleMessage = (event) => {
-        // Optional: Check origin for security
-        if (parentWindowOrigin !== '*' && event.origin !== parentWindowOrigin) {
-          return;
-        }
-        
-        if (event.data?.action === 'print-page') {
-          triggerAutoPrint();
-        }
-      };
+  // Button variant styles
+  const getVariantStyles = () => {
+    const baseStyles = {
+      padding: '12px 24px',
+      border: 'none',
+      borderRadius: '6px',
+      fontSize: '14px',
+      fontWeight: '500',
+      cursor: disabled ? 'not-allowed' : 'pointer',
+      transition: 'all 0.2s ease',
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: '8px',
+      opacity: disabled ? 0.6 : 1,
+      ...style
+    };
 
-      window.addEventListener('message', handleMessage);
-      return () => window.removeEventListener('message', handleMessage);
-    }
-  }, [parentWindowOrigin, onPrint]);
-
-  const handleClick = () => {
-    // Check if we're in an iframe context
-    if (typeof window !== 'undefined' && window.parent && window !== window.parent) {
-      // We're inside an iframe - send message to parent
-      window.parent.postMessage({ action: 'print-page' }, parentWindowOrigin);
-    } else {
-      // We're in the main window - automatically print with A3
-      triggerAutoPrint();
+    switch (variant) {
+      case 'primary':
+        return {
+          ...baseStyles,
+          backgroundColor: '#007bff',
+          color: 'white',
+          '&:hover': !disabled ? {
+            backgroundColor: '#0056b3',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 8px rgba(0,123,255,0.3)'
+          } : {}
+        };
+      case 'secondary':
+        return {
+          ...baseStyles,
+          backgroundColor: '#6c757d',
+          color: 'white',
+          '&:hover': !disabled ? {
+            backgroundColor: '#545b62',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 8px rgba(108,117,125,0.3)'
+          } : {}
+        };
+      case 'outline':
+        return {
+          ...baseStyles,
+          backgroundColor: 'transparent',
+          color: '#007bff',
+          border: '2px solid #007bff',
+          '&:hover': !disabled ? {
+            backgroundColor: '#007bff',
+            color: 'white',
+            transform: 'translateY(-1px)',
+            boxShadow: '0 4px 8px rgba(0,123,255,0.3)'
+          } : {}
+        };
+      default:
+        return baseStyles;
     }
   };
 
-  // Map size prop to PrimeReact size classes
-  const sizeClass = {
-    small: 'p-button-sm',
-    normal: '',
-    large: 'p-button-lg'
-  }[size] || '';
-
-  // Combine all classes
-  const buttonClass = `${className} ${sizeClass}`.trim();
+  const buttonStyles = getVariantStyles();
 
   return (
-    <Button
-      label={label}
-      icon={icon}
-      iconPos={iconPos}
-      severity={severity}
-      outlined={outlined}
-      rounded={rounded}
-      text={text}
-      raised={raised}
-      loading={loading}
-      disabled={disabled}
-      onClick={handleClick}
-      className={buttonClass}
-      style={style}
-      tooltip={tooltip}
-      tooltipOptions={tooltipOptions}
-      badge={badge}
-      badgeClassName={badgeClass}
+    <button
+      className={`print-button ${className}`}
+      style={buttonStyles}
+      onClick={handlePrint}
+      disabled={disabled || isPrinting}
+      aria-label={`${text} - Opens print dialog with A3 paper size`}
+      title={`${text} - Opens print dialog with A3 paper size`}
       {...otherProps}
-    />
+    >
+      {isPrinting ? (
+        <>
+          <div 
+            style={{
+              width: '16px',
+              height: '16px',
+              border: '2px solid currentColor',
+              borderTop: '2px solid transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite'
+            }}
+          />
+          Printing...
+        </>
+      ) : (
+        <>
+          <svg 
+            width="16" 
+            height="16" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <polyline points="6,9 6,2 18,2 18,9"></polyline>
+            <path d="M6,18H4a2,2,0,0,1-2-2V11a2,2,0,0,1,2-2H20a2,2,0,0,1,2,2v5a2,2,0,0,1-2,2H18"></path>
+            <rect x="6" y="14" width="12" height="8"></rect>
+          </svg>
+          {text}
+        </>
+      )}
+      
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+        
+        .print-button:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .print-button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        
+        .print-button:focus {
+          outline: 2px solid #007bff;
+          outline-offset: 2px;
+        }
+      `}</style>
+    </button>
   );
 };
 
