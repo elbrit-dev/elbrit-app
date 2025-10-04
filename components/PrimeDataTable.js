@@ -4281,6 +4281,13 @@ const PrimeDataTable = ({
               column.isCategorical
             );
 
+            // Dynamic editor logic - automatically attach editor if column is in editableColumns
+            const isEditable = editMode && (
+              column.editable === true || 
+              editableColumns.includes(column.key) || 
+              column.editor
+            );
+
             return (
               <Column
                 key={column.uniqueKey || column.key}
@@ -4289,20 +4296,8 @@ const PrimeDataTable = ({
                 sortable={column.sortable !== false && enableSorting}
                 filter={column.filterable !== false && enableColumnFilter}
                 filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
-                editable={editMode && (
-                  // Column is editable if:
-                  // 1. Column explicitly has editable: true, OR
-                  // 2. Column key is in editableColumns array, OR  
-                  // 3. Column has custom editor defined
-                  column.editable === true || 
-                  editableColumns.includes(column.key) || 
-                  column.editor
-                )}
-                editor={editMode && (
-                  column.editable === true || 
-                  editableColumns.includes(column.key) || 
-                  column.editor
-                ) ? (column.editor || createAutoEditor(column)) : undefined}
+                editable={isEditable}
+                editor={isEditable ? (column.editor || createAutoEditor(column)) : undefined}
                 filterElement={
                   // Use custom filter elements for supported types; otherwise fall back to default
                   (column.filterable !== false && enableColumnFilter && 
