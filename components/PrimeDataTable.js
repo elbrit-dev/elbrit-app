@@ -2561,6 +2561,11 @@ const PrimeDataTable = ({
 
   // Universal row edit completion handler - works with any dataset dynamically
   const handleRowEditComplete = useCallback((event) => {
+    // Force blur before processing the save
+    if (document.activeElement) {
+      document.activeElement.blur();
+    }
+
     const { newData, index } = event;
     if (!Array.isArray(data)) return;
 
@@ -2585,14 +2590,6 @@ const PrimeDataTable = ({
     // Optional debug log (can be removed after verification)
     console.log("✅ Row updated:", updated[index]);
   }, [data, onRowEditSave]);
-
-  // Force current input to lose focus before Save
-  const handleBeforeRowEditSave = useCallback(() => {
-    // Force current input (the one being edited) to lose focus before Save
-    if (document.activeElement) {
-      document.activeElement.blur();
-    }
-  }, []);
 
   // Universal field update handler for card views and inline editing
   const handleFieldUpdate = useCallback((item, fieldKey, newValue) => {
@@ -4183,7 +4180,6 @@ const PrimeDataTable = ({
         filterLocale={filterLocale}
         editingRows={editMode ? localEditingRows : undefined}
         onRowEditComplete={editMode ? handleRowEditComplete : undefined}
-        onBeforeSaveEdit={editMode ? handleBeforeRowEditSave : undefined}
         onRowEditSave={editMode ? handleRowEditSave : undefined}
         onRowEditCancel={editMode ? handleRowEditCancel : undefined}
         onRowEditInit={editMode ? handleRowEditInit : undefined}
