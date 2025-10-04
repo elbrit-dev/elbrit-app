@@ -2559,6 +2559,64 @@ const PrimeDataTable = ({
     rightToolbarSize || toolbarSize
   );
 
+  // Universal row edit completion handler - works with any dataset dynamically
+  const handleRowEditComplete = useCallback((event) => {
+    const { newData, index } = event;
+    if (!Array.isArray(data)) return;
+
+    // Clone the current dataset
+    const updated = [...data];
+
+    // Dynamically merge all editable fields, keeping old values if not edited
+    updated[index] = {
+      ...updated[index],
+      ...Object.entries(newData || {}).reduce((acc, [key, val]) => {
+        acc[key] = val !== undefined ? val : updated[index][key];
+        return acc;
+      }, {})
+    };
+
+    // Notify Plasmic / parent callback with the full updated dataset
+    onRowEditSave?.({
+      ...event,
+      data: updated
+    });
+
+    // Optional debug log (can be removed after verification)
+    console.log("✅ Row updated:", updated[index]);
+  }, [data, onRowEditSave]);
+
+  // Universal field update handler for card views and inline editing
+  const handleFieldUpdate = useCallback((item, fieldKey, newValue) => {
+    if (!Array.isArray(data)) return;
+
+    // Find the item index in the data array
+    const itemIndex = data.findIndex(row => {
+      if (resolvedDataKey) {
+        return row[resolvedDataKey] === item[resolvedDataKey];
+      }
+      return row === item;
+    });
+
+    if (itemIndex === -1) return;
+
+    // Create updated data with the new field value
+    const updatedData = [...data];
+    updatedData[itemIndex] = {
+      ...updatedData[itemIndex],
+      [fieldKey]: newValue
+    };
+
+    // Notify parent (Plasmic) or callback
+    if (typeof onRowEditSave === 'function') {
+      onRowEditSave({
+        newData: updatedData[itemIndex],
+        data: item,
+        index: itemIndex
+      });
+    }
+  }, [data, onRowEditSave, resolvedDataKey]);
+
   // Auto-create editors for editable columns based on data type
   const createAutoEditor = useCallback((column) => {
     const columnType = getEffectiveColumnType(column);
@@ -2573,10 +2631,12 @@ const PrimeDataTable = ({
         <InputNumber 
           value={options.value} 
           onValueChange={(e) => options.editorCallback(e.value)}
+          onBlur={(e) => options.editorCallback(e.value)} // ensures last edit is saved
           mode="decimal"
           minFractionDigits={isCurrency ? 2 : 0}
           maxFractionDigits={isCurrency ? 2 : 0}
           useGrouping={true}
+          style={{ width: "100%" }}
         />
       );
     }
@@ -2613,11 +2673,14 @@ const PrimeDataTable = ({
       );
     }
     
-    // Default to text input
+    // Default to text input with onBlur for better UX
     return (options) => (
       <InputText 
+        type={typeof options.value === "number" ? "number" : "text"}
         value={options.value ?? ''} 
-        onChange={(e) => options.editorCallback(e.target.value)} 
+        onChange={(e) => options.editorCallback(e.target.value)}
+        onBlur={(e) => options.editorCallback(e.target.value)} // ensures last edit is saved
+        style={{ width: "100%" }}
       />
     );
   }, [getEffectiveColumnType, finalTableData, getUniqueValues]);
@@ -2961,16 +3024,8 @@ const PrimeDataTable = ({
                             <InputNumber
                              value={value || 0}
                              onValueChange={(e) => {
-                               // Auto-save changes through row editing system
-                               if (onRowEditSave) {
-                                 const updatedData = { ...item, [column.key]: e.value };
-                                 const mockEvent = {
-                                   newData: updatedData,
-                                   data: item,
-                                   index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                 };
-                                 onRowEditSave(mockEvent);
-                               }
+                               // Use universal field update handler
+                               handleFieldUpdate(item, column.key, e.value);
                              }}
                             style={{
                               width: '100%',
@@ -2997,16 +3052,8 @@ const PrimeDataTable = ({
                           <Calendar
                             value={value ? new Date(value) : null}
                             onChange={(e) => {
-                              // Auto-save changes through row editing system
-                              if (onRowEditSave) {
-                                const updatedData = { ...item, [column.key]: e.value };
-                                const mockEvent = {
-                                  newData: updatedData,
-                                  data: item,
-                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                };
-                                onRowEditSave(mockEvent);
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.value);
                             }}
                             style={{
                               width: '100%'
@@ -3029,16 +3076,8 @@ const PrimeDataTable = ({
                           <Checkbox
                             checked={!!value}
                             onChange={(e) => {
-                              // Auto-save changes through row editing system
-                              if (onRowEditSave) {
-                                const updatedData = { ...item, [column.key]: e.checked };
-                                const mockEvent = {
-                                  newData: updatedData,
-                                  data: item,
-                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                };
-                                onRowEditSave(mockEvent);
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.checked);
                             }}
                             style={{
                               display: 'flex',
@@ -3224,16 +3263,8 @@ const PrimeDataTable = ({
                                 <InputText
                                  value={value || ''}
                                  onChange={(e) => {
-                                   // Auto-save changes through row editing system
-                                   if (onRowEditSave) {
-                                     const updatedData = { ...item, [column.key]: e.target.value };
-                                     const mockEvent = {
-                                       newData: updatedData,
-                                       data: item,
-                                       index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                     };
-                                     onRowEditSave(mockEvent);
-                                   }
+                                   // Use universal field update handler
+                                   handleFieldUpdate(item, column.key, e.target.value);
                                  }}
                                 style={{
                                   width: '100%',
@@ -3518,16 +3549,8 @@ const PrimeDataTable = ({
                           <Calendar
                             value={value ? new Date(value) : null}
                             onChange={(e) => {
-                              // Auto-save changes through row editing system
-                              if (onRowEditSave) {
-                                const updatedData = { ...item, [column.key]: e.value };
-                                const mockEvent = {
-                                  newData: updatedData,
-                                  data: item,
-                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                };
-                                onRowEditSave(mockEvent);
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.value);
                             }}
                             style={{
                               width: '100%'
@@ -3550,16 +3573,8 @@ const PrimeDataTable = ({
                           <Checkbox
                             checked={!!value}
                             onChange={(e) => {
-                              // Auto-save changes through row editing system
-                              if (onRowEditSave) {
-                                const updatedData = { ...item, [column.key]: e.checked };
-                                const mockEvent = {
-                                  newData: updatedData,
-                                  data: item,
-                                  index: finalTableData.findIndex(row => row[resolvedDataKey] === item[resolvedDataKey])
-                                };
-                                onRowEditSave(mockEvent);
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.checked);
                             }}
                             style={{
                               display: 'flex',
@@ -4159,6 +4174,7 @@ const PrimeDataTable = ({
         globalFilterPlaceholder={globalFilterPlaceholder}
         filterLocale={filterLocale}
         editingRows={editMode ? localEditingRows : undefined}
+        onRowEditComplete={editMode ? handleRowEditComplete : undefined}
         onRowEditSave={editMode ? handleRowEditSave : undefined}
         onRowEditCancel={editMode ? handleRowEditCancel : undefined}
         onRowEditInit={editMode ? handleRowEditInit : undefined}
