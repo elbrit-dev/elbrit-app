@@ -2,7 +2,6 @@ import React from 'react';
 import Head from 'next/head';
 import PrintWrapper from '../components/PrintWrapper';
 import PrintButton from '../components/PrintButton';
-import '../styles/PrintA3.css';
 
 /**
  * Test page for A3 printing functionality
