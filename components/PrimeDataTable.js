@@ -3095,14 +3095,8 @@ const PrimeDataTable = ({
                           <InputText
                             value={safeCell(value)}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
-                                  data: item,
-                                  field: column.key,
-                                  newValue: e.target.value,
-                                  originalValue: value
-                                });
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.target.value);
                             }}
                             style={{
                               width: '100%',
@@ -3234,14 +3228,8 @@ const PrimeDataTable = ({
                               <InputNumber
                                 value={value || 0}
                                 onValueChange={(e) => {
-                                  if (onCellEditComplete) {
-                                    onCellEditComplete({
-                                      data: item,
-                                      field: column.key,
-                                      newValue: e.value,
-                                      originalValue: value
-                                    });
-                                  }
+                                  // Use universal field update handler
+                                  handleFieldUpdate(item, column.key, e.value);
                                 }}
                                 style={{
                                   width: '100%',
@@ -3520,14 +3508,8 @@ const PrimeDataTable = ({
                           <InputNumber
                             value={value || 0}
                             onValueChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
-                                  data: item,
-                                  field: column.key,
-                                  newValue: e.value,
-                                  originalValue: value
-                                });
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.value);
                             }}
                             style={{
                               width: '100%',
@@ -3592,14 +3574,8 @@ const PrimeDataTable = ({
                           <InputText
                             value={safeCell(value)}
                             onChange={(e) => {
-                              if (onCellEditComplete) {
-                                onCellEditComplete({
-                                  data: item,
-                                  field: column.key,
-                                  newValue: e.target.value,
-                                  originalValue: value
-                                });
-                              }
+                              // Use universal field update handler
+                              handleFieldUpdate(item, column.key, e.target.value);
                             }}
                             style={{
                               width: '100%',
