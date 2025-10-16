@@ -22,6 +22,9 @@ const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), 
 const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
 const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
+const RavenEmbed = dynamic(() => import("./components/RavenEmbed"), { ssr: false, loading: () => null });
+const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), { ssr: false, loading: () => null });
+const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -3449,6 +3452,94 @@ PLASMIC.registerComponent(CircleSkeleton, {
     style: { type: "object", defaultValue: {} }
   },
   importPath: "./components/CircleSkeleton"
+});
+
+// Register Raven Embed component
+PLASMIC.registerComponent(RavenEmbed, {
+  name: "RavenEmbed",
+  displayName: "Raven Chat Embed",
+  description: "Embeds Raven chat application with seamless auto-login using stored authentication credentials",
+  props: {
+    ravenUrl: {
+      type: "string",
+      defaultValue: "https://erp.elbrit.org/raven",
+      description: "Raven application URL"
+    },
+    height: {
+      type: "string", 
+      defaultValue: "90vh",
+      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
+    },
+    width: {
+      type: "string",
+      defaultValue: "100%", 
+      description: "Width of the iframe (e.g., '100%', '800px')"
+    },
+    showLoading: {
+      type: "boolean",
+      defaultValue: true,
+      description: "Show loading indicator while Raven loads"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for custom styling"
+    }
+  },
+  importPath: "./components/RavenEmbed"
+});
+
+// Register Raven Embed Simple component (alternative approach)
+PLASMIC.registerComponent(RavenEmbedSimple, {
+  name: "RavenEmbedSimple",
+  displayName: "Raven Chat Simple",
+  description: "Simplified Raven chat embed with better authentication handling",
+  props: {
+    ravenUrl: {
+      type: "string",
+      defaultValue: "https://erp.elbrit.org/raven",
+      description: "Raven application URL"
+    },
+    height: {
+      type: "string", 
+      defaultValue: "90vh",
+      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
+    },
+    width: {
+      type: "string",
+      defaultValue: "100%", 
+      description: "Width of the iframe (e.g., '100%', '800px')"
+    },
+    showLoading: {
+      type: "boolean",
+      defaultValue: true,
+      description: "Show loading indicator while Raven loads"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for custom styling"
+    }
+  },
+  importPath: "./components/RavenEmbedSimple"
+});
+
+// Register Token Checker component
+PLASMIC.registerComponent(TokenChecker, {
+  name: "TokenChecker",
+  displayName: "Token Status Checker",
+  description: "Shows real-time authentication token status and validation",
+  props: {
+    showDetails: {
+      type: "boolean",
+      defaultValue: true,
+      description: "Show detailed token information"
+    },
+    compact: {
+      type: "boolean",
+      defaultValue: false,
+      description: "Show compact version (just status indicator)"
+    }
+  },
+  importPath: "./components/TokenChecker"
 });
 
 // Register PrimeReact Timeline component
