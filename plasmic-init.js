@@ -26,6 +26,7 @@ const RavenEmbed = dynamic(() => import("./components/RavenEmbed"), { ssr: false
 const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), { ssr: false, loading: () => null });
 const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
 const RavenLauncher = dynamic(() => import("./components/RavenLauncher"), { ssr: false, loading: () => null });
+const RavenModal = dynamic(() => import("./components/RavenModal"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -3570,6 +3571,40 @@ PLASMIC.registerComponent(RavenLauncher, {
     }
   },
   importPath: "./components/RavenLauncher"
+});
+
+// Register Raven Modal component (opens Raven in modal inside app)
+PLASMIC.registerComponent(RavenModal, {
+  name: "RavenModal",
+  displayName: "Raven Chat Modal",
+  description: "Opens Raven chat in a modal popup inside your app (bypasses iframe restrictions)",
+  props: {
+    ravenUrl: {
+      type: "string",
+      defaultValue: "https://erp.elbrit.org/raven",
+      description: "Raven application URL"
+    },
+    buttonText: {
+      type: "string",
+      defaultValue: "Open Raven Chat",
+      description: "Text to display on the button"
+    },
+    modalTitle: {
+      type: "string",
+      defaultValue: "Raven Chat",
+      description: "Title to display in the modal header"
+    },
+    buttonStyle: {
+      type: "object",
+      defaultValue: {},
+      description: "Custom styles for the button"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes"
+    }
+  },
+  importPath: "./components/RavenModal"
 });
 
 // Register PrimeReact Timeline component
