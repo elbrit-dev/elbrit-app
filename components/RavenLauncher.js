@@ -11,7 +11,7 @@ import { useAuth } from './AuthContext';
  */
 const RavenLauncher = ({ 
   ravenUrl = "https://erp.elbrit.org/raven",
-  buttonText = "Open Raven Chat",
+  buttonText = null, // Will be set based on device
   buttonStyle = {},
   className = "",
   onOpen = null,
@@ -64,7 +64,12 @@ const RavenLauncher = ({
     return `${ravenUrl}?${params.toString()}`;
   }, [ravenUrl]);
 
-  // Open Raven in new window
+  // Detect mobile device
+  const isMobile = useCallback(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  }, []);
+
+  // Open Raven (mobile app or web)
   const openRaven = useCallback(() => {
     if (!isAuthenticated) {
       setError('Please log in first to access Raven chat');
@@ -86,29 +91,60 @@ const RavenLauncher = ({
       const url = buildRavenUrl(authData);
       console.log('🔗 Opening Raven URL:', url.replace(authData.token, '[TOKEN_REDACTED]'));
 
-      // Open Raven in new window
-      const newWindow = window.open(
-        url,
-        'raven-chat',
-        'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
-      );
+      if (isMobile()) {
+        // Mobile: Try to open Raven mobile app
+        console.log('📱 Mobile detected - opening Raven mobile app');
+        
+        // iOS App Store link
+        const iosAppUrl = 'https://apps.apple.com/app/id6741682327';
+        // Android Play Store link (you'll need to get the actual link)
+        const androidAppUrl = 'https://play.google.com/store/apps/details?id=com.raven.app';
+        
+        // Try to open the mobile app with deep link
+        const mobileAppUrl = `raven://open?url=${encodeURIComponent(url)}`;
+        
+        // First try the mobile app deep link
+        const mobileWindow = window.open(mobileAppUrl, '_self');
+        
+        // If mobile app doesn't open, fallback to app store
+        setTimeout(() => {
+          if (navigator.userAgent.includes('iPhone') || navigator.userAgent.includes('iPad')) {
+            window.open(iosAppUrl, '_blank');
+          } else if (navigator.userAgent.includes('Android')) {
+            window.open(androidAppUrl, '_blank');
+          } else {
+            // Fallback to web version
+            window.open(url, '_blank');
+          }
+        }, 1000);
+        
+      } else {
+        // Desktop: Open Raven in new window
+        console.log('💻 Desktop detected - opening Raven in new window');
+        
+        const newWindow = window.open(
+          url,
+          'raven-chat',
+          'width=1200,height=800,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
+        );
 
-      if (!newWindow) {
-        throw new Error('Popup blocked. Please allow popups for this site.');
+        if (!newWindow) {
+          throw new Error('Popup blocked. Please allow popups for this site.');
+        }
+
+        setRavenWindow(newWindow);
+        
+        // Check if window is still open
+        const checkWindow = setInterval(() => {
+          if (newWindow.closed) {
+            clearInterval(checkWindow);
+            setRavenWindow(null);
+            console.log('🪶 Raven window closed');
+          }
+        }, 1000);
       }
 
-      setRavenWindow(newWindow);
-      
-      // Check if window is still open
-      const checkWindow = setInterval(() => {
-        if (newWindow.closed) {
-          clearInterval(checkWindow);
-          setRavenWindow(null);
-          console.log('🪶 Raven window closed');
-        }
-      }, 1000);
-
-      if (onOpen) onOpen(newWindow);
+      if (onOpen) onOpen();
 
     } catch (error) {
       console.error('❌ Error opening Raven:', error);
@@ -117,7 +153,7 @@ const RavenLauncher = ({
     } finally {
       setIsLoading(false);
     }
-  }, [isAuthenticated, getAuthData, buildRavenUrl, onOpen, onError]);
+  }, [isAuthenticated, getAuthData, buildRavenUrl, isMobile, onOpen, onError]);
 
   // Close Raven window
   const closeRaven = useCallback(() => {
@@ -151,6 +187,17 @@ const RavenLauncher = ({
   };
 
   const [isHovered, setIsHovered] = useState(false);
+
+  // Set button text based on device
+  const getButtonText = useCallback(() => {
+    if (buttonText) return buttonText; // Use custom text if provided
+    
+    if (isMobile()) {
+      return "📱 Open Raven App";
+    } else {
+      return "🪶 Open Raven Chat";
+    }
+  }, [buttonText, isMobile]);
 
   if (authLoading) {
     return (
@@ -222,11 +269,11 @@ const RavenLauncher = ({
               }} />
               Opening Raven...
             </>
-          ) : (
-            <>
-              🪶 {buttonText}
-            </>
-          )}
+        ) : (
+          <>
+            {getButtonText()}
+          </>
+        )}
         </button>
 
         {ravenWindow && !ravenWindow.closed && (

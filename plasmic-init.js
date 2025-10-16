@@ -3548,7 +3548,7 @@ PLASMIC.registerComponent(TokenChecker, {
 PLASMIC.registerComponent(RavenLauncher, {
   name: "RavenLauncher",
   displayName: "Raven Chat Launcher",
-  description: "Opens Raven chat in a new window/tab (use when iframe is blocked)",
+  description: "Opens Raven chat in new window (desktop) or mobile app (mobile) - use when iframe is blocked",
   props: {
     ravenUrl: {
       type: "string",
