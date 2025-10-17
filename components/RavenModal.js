@@ -11,7 +11,7 @@ import { useAuth } from './AuthContext';
  * 4. Provides full-screen or customizable modal size
  */
 const RavenModal = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://elbrit-ls.m.erpnext.com/raven",
   buttonText = "Open Raven Chat",
   modalTitle = "Raven Chat",
   buttonStyle = {},
