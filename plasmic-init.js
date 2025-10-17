@@ -27,6 +27,7 @@ const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), 
 const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
 const RavenLauncher = dynamic(() => import("./components/RavenLauncher"), { ssr: false, loading: () => null });
 const RavenModal = dynamic(() => import("./components/RavenModal"), { ssr: false, loading: () => null });
+const RavenAutoLogin = dynamic(() => import("./components/RavenAutoLogin"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -3605,6 +3606,46 @@ PLASMIC.registerComponent(RavenModal, {
     }
   },
   importPath: "./components/RavenModal"
+});
+
+// Register Raven Auto Login component (enhanced authentication)
+PLASMIC.registerComponent(RavenAutoLogin, {
+  name: "RavenAutoLogin",
+  displayName: "Raven Auto Login",
+  description: "Enhanced Raven integration with automatic login using ERPNext authentication",
+  props: {
+    ravenUrl: {
+      type: "string",
+      defaultValue: "https://erp.elbrit.org/raven",
+      description: "Raven application URL"
+    },
+    height: {
+      type: "string", 
+      defaultValue: "90vh",
+      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
+    },
+    width: {
+      type: "string",
+      defaultValue: "100%", 
+      description: "Width of the iframe (e.g., '100%', '800px')"
+    },
+    showLoading: {
+      type: "boolean",
+      defaultValue: true,
+      description: "Show loading indicator while Raven loads"
+    },
+    mode: {
+      type: "choice",
+      options: ["iframe", "window"],
+      defaultValue: "iframe",
+      description: "Display mode: iframe or new window"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for custom styling"
+    }
+  },
+  importPath: "./components/RavenAutoLogin"
 });
 
 // Register PrimeReact Timeline component
