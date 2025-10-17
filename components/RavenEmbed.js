@@ -30,6 +30,7 @@ const RavenEmbed = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [authStep, setAuthStep] = useState('initializing');
   const maxRetries = 3;
 
   // Get authentication data from localStorage
@@ -67,7 +68,7 @@ const RavenEmbed = ({
     }
   }, []);
 
-  // Build Raven URL with authentication
+  // Enhanced authentication with multiple methods
   const buildRavenUrl = useCallback(async (authData) => {
     if (!authData || !authData.token) {
       console.warn('⚠️ No auth data available, redirecting to login');
@@ -75,32 +76,62 @@ const RavenEmbed = ({
     }
 
     try {
-      // Use our API endpoint to create a proper Frappe session
+      console.log('🔐 Starting enhanced Raven authentication...');
+      setAuthStep('authenticating');
+
+      // Method 1: Try ERPNext API authentication
+      try {
+        const erpnextResponse = await fetch('/api/erpnext/auth', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: authData.email,
+            phoneNumber: authData.phoneNumber,
+            authProvider: authData.provider
+          })
+        });
+
+        if (erpnextResponse.ok) {
+          console.log('✅ ERPNext authentication successful');
+        }
+      } catch (erpnextError) {
+        console.warn('⚠️ ERPNext API auth failed:', erpnextError);
+      }
+
+      // Method 2: Try Raven API authentication
+      try {
+        const ravenAuthResponse = await fetch('/api/raven/auth', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authData.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (ravenAuthResponse.ok) {
+          console.log('✅ Raven session created successfully');
+          return ravenUrl; // Return base URL for iframe
+        }
+      } catch (ravenError) {
+        console.warn('⚠️ Raven API auth failed:', ravenError);
+      }
+
+      // Method 3: Enhanced URL with authentication parameters
       const params = new URLSearchParams();
       params.append('token', authData.token);
-      if (authData.email) params.append('email', authData.email);
+      params.append('email', authData.email);
       if (authData.phoneNumber) params.append('phone', authData.phoneNumber);
       if (authData.provider) params.append('provider', authData.provider);
-      
-      // Call our API to authenticate and get session
-      const response = await fetch(`/api/raven/auth?${params.toString()}`);
-      
-      if (response.ok) {
-        // API will set cookies and redirect, so we just use the base Raven URL
-        console.log('✅ Raven authentication successful via API');
-        return ravenUrl;
-      } else {
-        console.warn('⚠️ API auth failed, trying direct approach');
-        // Fallback to direct URL with token
-        const directParams = new URLSearchParams();
-        directParams.append('token', authData.token);
-        if (authData.email) directParams.append('email', authData.email);
-        directParams.append('_t', Date.now().toString());
-        return `${ravenUrl}?${directParams.toString()}`;
-      }
+      params.append('auto_login', 'true');
+      params.append('_t', Date.now().toString());
+
+      const authenticatedUrl = `${ravenUrl}?${params.toString()}`;
+      console.log('🔗 Built enhanced authenticated Raven URL');
+      return authenticatedUrl;
+
     } catch (error) {
-      console.error('❌ Error in Raven auth:', error);
-      // Fallback to direct approach
+      console.error('❌ Error in enhanced Raven auth:', error);
+      // Fallback to basic approach
       const params = new URLSearchParams();
       params.append('token', authData.token);
       if (authData.email) params.append('email', authData.email);
@@ -148,6 +179,7 @@ const RavenEmbed = ({
     const initializeRaven = async () => {
       if (authLoading) {
         console.log('⏳ Waiting for authentication to load...');
+        setAuthStep('initializing');
         return;
       }
 
@@ -155,16 +187,19 @@ const RavenEmbed = ({
         console.warn('⚠️ User not authenticated, redirecting to Raven login');
         setIframeUrl(`${ravenUrl}/login`);
         setIsLoading(false);
+        setAuthStep('ready');
         return;
       }
 
-      console.log('🔐 User authenticated, building Raven URL...');
+      console.log('🔐 User authenticated, building enhanced Raven URL...');
+      setAuthStep('initializing');
       const authData = getAuthData();
       
       if (!authData) {
         console.error('❌ No auth data found in localStorage');
         setError('Authentication data not found. Please log in again.');
         setIsLoading(false);
+        setAuthStep('error');
         return;
       }
 
@@ -172,17 +207,19 @@ const RavenEmbed = ({
         const url = await buildRavenUrl(authData);
         setIframeUrl(url);
         setIsLoading(false);
+        setAuthStep('ready');
       } catch (error) {
         console.error('❌ Error building Raven URL:', error);
         setError('Failed to build Raven URL. Please try again.');
         setIsLoading(false);
+        setAuthStep('error');
       }
     };
 
     initializeRaven();
   }, [authLoading, isAuthenticated, getAuthData, buildRavenUrl, ravenUrl]);
 
-  // Loading component
+  // Enhanced loading component with authentication steps
   const LoadingComponent = () => (
     <div 
       style={{
@@ -206,8 +243,13 @@ const RavenEmbed = ({
         animation: 'spin 1s linear infinite',
         marginBottom: '16px'
       }} />
-      <p style={{ color: '#666', fontSize: '14px', margin: 0 }}>
-        Loading Raven Chat...
+      <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
+        {authStep === 'initializing' && 'Initializing Raven Chat...'}
+        {authStep === 'authenticating' && 'Authenticating with Raven...'}
+        {authStep === 'ready' && 'Loading Raven Chat...'}
+      </p>
+      <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
+        Step: {authStep}
       </p>
       <style jsx>{`
         @keyframes spin {

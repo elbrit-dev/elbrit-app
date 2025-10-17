@@ -3461,7 +3461,7 @@ PLASMIC.registerComponent(CircleSkeleton, {
 PLASMIC.registerComponent(RavenEmbed, {
   name: "RavenEmbed",
   displayName: "Raven Chat Embed",
-  description: "Embeds Raven chat application with seamless auto-login using stored authentication credentials",
+  description: "Enhanced Raven chat embed with multiple authentication methods for seamless auto-login",
   props: {
     ravenUrl: {
       type: "string",
