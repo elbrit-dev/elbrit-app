@@ -27,7 +27,6 @@ const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), 
 const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
 const RavenLauncher = dynamic(() => import("./components/RavenLauncher"), { ssr: false, loading: () => null });
 const RavenModal = dynamic(() => import("./components/RavenModal"), { ssr: false, loading: () => null });
-const RavenBasic = dynamic(() => import("./components/RavenBasic"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -3465,7 +3464,7 @@ PLASMIC.registerComponent(RavenEmbed, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://elbrit-ls.m.erpnext.com/raven",
+      defaultValue: "https://erp.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
@@ -3499,7 +3498,7 @@ PLASMIC.registerComponent(RavenEmbedSimple, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://elbrit-ls.m.erpnext.com/raven",
+      defaultValue: "https://erp.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
@@ -3553,7 +3552,7 @@ PLASMIC.registerComponent(RavenLauncher, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://elbrit-ls.m.erpnext.com/raven",
+      defaultValue: "https://erp.elbrit.org/raven",
       description: "Raven application URL"
     },
     buttonText: {
@@ -3582,7 +3581,7 @@ PLASMIC.registerComponent(RavenModal, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://elbrit-ls.m.erpnext.com/raven",
+      defaultValue: "https://erp.elbrit.org/raven",
       description: "Raven application URL"
     },
     buttonText: {
@@ -3606,40 +3605,6 @@ PLASMIC.registerComponent(RavenModal, {
     }
   },
   importPath: "./components/RavenModal"
-});
-
-// Register Raven Basic component (simple iframe without auth)
-PLASMIC.registerComponent(RavenBasic, {
-  name: "RavenBasic",
-  displayName: "Raven Chat Basic",
-  description: "Simple Raven chat iframe embed without authentication - users login manually",
-  props: {
-    ravenUrl: {
-      type: "string",
-      defaultValue: "https://elbrit-ls.m.erpnext.com/raven",
-      description: "Raven application URL"
-    },
-    height: {
-      type: "string", 
-      defaultValue: "90vh",
-      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
-    },
-    width: {
-      type: "string",
-      defaultValue: "100%", 
-      description: "Width of the iframe (e.g., '100%', '800px')"
-    },
-    showLoading: {
-      type: "boolean",
-      defaultValue: true,
-      description: "Show loading indicator while Raven loads"
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes for custom styling"
-    }
-  },
-  importPath: "./components/RavenBasic"
 });
 
 // Register PrimeReact Timeline component

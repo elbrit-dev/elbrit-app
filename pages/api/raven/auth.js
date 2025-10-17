@@ -131,7 +131,7 @@ export default async function handler(req, res) {
       });
 
       // Get Raven URL from environment or use default
-      const ravenUrl = process.env.RAVEN_URL || 'https://elbrit-ls.m.erpnext.com/raven';
+      const ravenUrl = process.env.RAVEN_URL || 'https://erp.elbrit.org/raven';
       
       // Create Frappe session for Raven
       // This will be handled by Raven's backend when the user accesses the app

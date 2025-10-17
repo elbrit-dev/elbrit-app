@@ -62,7 +62,7 @@ export default function TestRaven() {
       <div style={{ marginBottom: '20px' }}>
         <h2>🪶 Raven Chat Embed</h2>
         <p>Below is the embedded Raven chat application with auto-login:</p>
-        <p><strong>Raven URL:</strong> https://elbrit-ls.m.erpnext.com/raven</p>
+        <p><strong>Raven URL:</strong> https://erp.elbrit.org/raven</p>
         
         <RavenEmbed 
           height="600px"
