@@ -22,6 +22,19 @@ const RavenBasic = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Add timeout to detect stuck loading
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (isLoading) {
+        console.error('⏰ Raven iframe loading timeout after 10 seconds');
+        setError('Raven iframe loading timeout. This usually means iframe is blocked by X-Frame-Options or CORS.');
+        setIsLoading(false);
+      }
+    }, 10000); // 10 second timeout
+
+    return () => clearTimeout(timeout);
+  }, [isLoading]);
+
   // Handle iframe load
   const handleIframeLoad = useCallback(() => {
     console.log('✅ Raven iframe loaded successfully');
@@ -31,12 +44,19 @@ const RavenBasic = ({
   }, [onLoad]);
 
   // Handle iframe error
-  const handleIframeError = useCallback(() => {
-    console.error('❌ Raven iframe failed to load');
-    setError('Failed to load Raven chat. Please check your connection.');
+  const handleIframeError = useCallback((event) => {
+    console.error('❌ Raven iframe failed to load:', event);
+    console.error('❌ Error details:', {
+      type: event?.type,
+      target: event?.target,
+      currentTarget: event?.currentTarget,
+      src: event?.target?.src,
+      ravenUrl: ravenUrl
+    });
+    setError('Failed to load Raven chat. Check console for details.');
     setIsLoading(false);
-    if (onError) onError();
-  }, [onError]);
+    if (onError) onError(event);
+  }, [onError, ravenUrl]);
 
   // Loading component
   const LoadingComponent = () => (
