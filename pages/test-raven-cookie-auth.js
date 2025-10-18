@@ -126,7 +126,10 @@ export default function TestRavenCookieAuth() {
         {erpLoginStatus === 'not_logged_in' && (
           <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
             <p style={{ margin: '0 0 10px 0', color: '#e65100' }}>
-              ⚠️ You need to log into ERP system first to get cookie data
+              🔄 ERP authentication will happen automatically in the background
+            </p>
+            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '12px' }}>
+              A hidden iframe will handle the ERP login process without interrupting your workflow
             </p>
             <button
               onClick={() => redirectToERPLogin(window.location.href)}
@@ -140,7 +143,7 @@ export default function TestRavenCookieAuth() {
                 fontSize: '14px'
               }}
             >
-              Go to ERP Login
+              Manual ERP Login (if needed)
             </button>
           </div>
         )}
@@ -248,24 +251,30 @@ export default function TestRavenCookieAuth() {
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f1f8e9', borderRadius: '8px' }}>
-        <h2>✅ Benefits of ERP Cookie Authentication</h2>
+        <h2>✅ Benefits of Background ERP Cookie Authentication</h2>
         <ul>
+          <li><strong>Seamless Experience:</strong> ERP login happens in background without interrupting user workflow</li>
           <li><strong>Shared Domain:</strong> Both Raven and ERP use the same cookie domain (.elbrit.org)</li>
           <li><strong>Automatic Authentication:</strong> Cookies are automatically sent by the browser</li>
           <li><strong>Secure:</strong> No need to pass sensitive tokens in URLs</li>
           <li><strong>Consistent:</strong> User is authenticated in both ERP and Raven systems</li>
           <li><strong>Real-time:</strong> Cookie changes are monitored automatically</li>
+          <li><strong>Hidden Process:</strong> Uses hidden iframe for background ERP login</li>
+          <li><strong>Fallback Support:</strong> Uses stored cookie data if fresh cookies aren't available</li>
         </ul>
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fce4ec', borderRadius: '8px' }}>
-        <h2>📋 Requirements for ERP Cookie Authentication</h2>
-        <ul>
-          <li>✅ <strong>Must be logged into ERP system</strong> (erp.elbrit.org)</li>
-          <li>✅ <strong>ERP cookies must be present</strong> (full_name, user_id, sid, etc.)</li>
-          <li>✅ <strong>Same domain access</strong> (.elbrit.org)</li>
-          <li>✅ <strong>Browser must support cookies</strong></li>
-        </ul>
+        <h2>📋 How Background ERP Login Works</h2>
+        <ol>
+          <li><strong>Initial Check:</strong> System checks if user is logged into ERP</li>
+          <li><strong>Background Process:</strong> If not logged in, hidden iframe loads ERP login page</li>
+          <li><strong>Automatic Login:</strong> User can login through the hidden iframe (if needed)</li>
+          <li><strong>Cookie Detection:</strong> System monitors for ERP cookies to be set</li>
+          <li><strong>Data Storage:</strong> ERP cookie data is extracted and stored in localStorage</li>
+          <li><strong>Raven Authentication:</strong> Uses ERP cookies to authenticate with Raven</li>
+          <li><strong>Fallback:</strong> Uses stored cookie data if fresh cookies aren't available</li>
+        </ol>
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>

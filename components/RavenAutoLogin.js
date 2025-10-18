@@ -356,7 +356,7 @@ const RavenAutoLogin = ({
   // Wrap with ERP Login Handler
   return (
     <ERPLoginHandler
-      onERPLoginSuccess={(cookieData) => {
+      onERPLoginSuccess={(cookieData, userInfo) => {
         console.log('✅ ERP login successful, initializing Raven...');
         // Re-initialize Raven when ERP login is successful
         const authData = getAuthData();
@@ -375,11 +375,11 @@ const RavenAutoLogin = ({
       }}
       onERPLoginError={(error) => {
         console.error('❌ ERP login error:', error);
-        setError('ERP login failed. Please try again.');
+        setError('Background ERP login failed. Will retry automatically.');
         setIsLoading(false);
         setAuthStep('error');
       }}
-      redirectToLogin={true}
+      enableBackgroundLogin={true}
       showLoading={false}
     >
       <RavenComponent />

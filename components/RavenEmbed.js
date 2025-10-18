@@ -344,7 +344,7 @@ const RavenEmbed = ({
   // Wrap with ERP Login Handler
   return (
     <ERPLoginHandler
-      onERPLoginSuccess={(cookieData) => {
+      onERPLoginSuccess={(cookieData, userInfo) => {
         console.log('✅ ERP login successful for Raven Embed, initializing...');
         // Re-initialize Raven when ERP login is successful
         const authData = getAuthData();
@@ -363,11 +363,11 @@ const RavenEmbed = ({
       }}
       onERPLoginError={(error) => {
         console.error('❌ ERP login error for Raven Embed:', error);
-        setError('ERP login failed. Please try again.');
+        setError('Background ERP login failed. Will retry automatically.');
         setIsLoading(false);
         setAuthStep('error');
       }}
-      redirectToLogin={true}
+      enableBackgroundLogin={true}
       showLoading={false}
     >
       <RavenEmbedComponent />

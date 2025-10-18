@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import BackgroundERPLogin from './BackgroundERPLogin';
 import { 
   isUserLoggedIntoERP, 
   getERPCookieData, 
   getStoredERPCookieData,
-  redirectToERPLogin,
   isERPCookieAuthAvailable 
 } from './utils/erpCookieAuth';
 
@@ -12,95 +12,96 @@ import {
  * 
  * This component:
  * 1. Checks if user is logged into erp.elbrit.org
- * 2. Redirects to ERP login if not logged in
+ * 2. Uses background ERP login process (no redirects)
  * 3. Stores ERP cookie data in localStorage
  * 4. Provides loading states and error handling
+ * 
+ * The ERP login happens in the background using a hidden iframe,
+ * so the user never leaves the current site.
  */
 const ERPLoginHandler = ({ 
   children, 
   onERPLoginSuccess = null,
   onERPLoginError = null,
-  redirectToLogin = true,
-  showLoading = true
+  showLoading = true,
+  enableBackgroundLogin = true
 }) => {
   const [erpLoginStatus, setErpLoginStatus] = useState('checking');
   const [erpCookieData, setErpCookieData] = useState(null);
+  const [userInfo, setUserInfo] = useState(null);
   const [error, setError] = useState(null);
 
-  // Check ERP login status
-  const checkERPLoginStatus = useCallback(() => {
-    try {
-      console.log('🔍 Checking ERP login status...');
-      
-      // Check if user is logged into ERP
-      const isLoggedIn = isUserLoggedIntoERP();
-      
-      if (isLoggedIn) {
-        console.log('✅ User is logged into ERP');
+  // Handle successful ERP login
+  const handleERPLoginSuccess = useCallback((cookieData, extractedUserInfo) => {
+    console.log('✅ ERP Login Handler - Login successful');
+    setErpCookieData(cookieData);
+    setUserInfo(extractedUserInfo);
+    setErpLoginStatus('logged_in');
+    setError(null);
+    
+    if (onERPLoginSuccess) {
+      onERPLoginSuccess(cookieData, extractedUserInfo);
+    }
+  }, [onERPLoginSuccess]);
+
+  // Handle ERP login error
+  const handleERPLoginError = useCallback((error) => {
+    console.error('❌ ERP Login Handler - Login error:', error);
+    setError('Background ERP login failed');
+    setErpLoginStatus('error');
+    
+    if (onERPLoginError) {
+      onERPLoginError(error);
+    }
+  }, [onERPLoginError]);
+
+  // Initial check for existing ERP login
+  useEffect(() => {
+    const checkInitialStatus = () => {
+      try {
+        console.log('🔍 ERP Login Handler - Initial status check...');
         
-        // Get ERP cookie data and store it
-        const cookieData = getERPCookieData();
+        // Check if user is already logged into ERP
+        const isLoggedIn = isUserLoggedIntoERP();
         
-        if (cookieData) {
-          setErpCookieData(cookieData);
-          setErpLoginStatus('logged_in');
+        if (isLoggedIn) {
+          console.log('✅ ERP Login Handler - User already logged into ERP');
           
-          if (onERPLoginSuccess) {
-            onERPLoginSuccess(cookieData);
+          // Get ERP cookie data
+          let cookieData = getERPCookieData();
+          
+          // If no fresh data, try stored data
+          if (!cookieData) {
+            cookieData = getStoredERPCookieData();
           }
-        } else {
-          console.warn('⚠️ User logged into ERP but no cookie data found');
-          setErpLoginStatus('no_cookies');
-          setError('ERP login detected but cookie data not available');
+          
+          if (cookieData) {
+            const extractedUserInfo = extractUserInfoFromCookies(cookieData);
+            handleERPLoginSuccess(cookieData, extractedUserInfo);
+            return;
+          }
         }
-      } else {
-        console.log('❌ User not logged into ERP');
-        setErpLoginStatus('not_logged_in');
         
-        // Try to get stored cookie data as fallback
+        // Check for stored data as fallback
         const storedData = getStoredERPCookieData();
         if (storedData) {
-          console.log('📦 Found stored ERP cookie data, using fallback');
-          setErpCookieData(storedData);
-          setErpLoginStatus('using_stored');
-        } else {
-          console.log('🔄 No stored data, need to redirect to ERP login');
-          setError('Please log into ERP system first');
-          
-          // Auto-redirect to ERP login if enabled
-          if (redirectToLogin) {
-            setTimeout(() => {
-              redirectToERPLogin(window.location.href);
-            }, 2000); // Give user 2 seconds to see the message
-          }
+          console.log('📦 ERP Login Handler - Using stored data as fallback');
+          const extractedUserInfo = extractUserInfoFromCookies(storedData);
+          handleERPLoginSuccess(storedData, extractedUserInfo);
+          return;
         }
+        
+        console.log('❌ ERP Login Handler - No ERP login found, will start background process');
+        setErpLoginStatus('not_logged_in');
+        
+      } catch (error) {
+        console.error('❌ ERP Login Handler - Error in initial check:', error);
+        handleERPLoginError(error);
       }
-    } catch (error) {
-      console.error('❌ Error checking ERP login status:', error);
-      setError('Failed to check ERP login status');
-      setErpLoginStatus('error');
-      
-      if (onERPLoginError) {
-        onERPLoginError(error);
-      }
-    }
-  }, [onERPLoginSuccess, onERPLoginError, redirectToLogin]);
+    };
 
-  // Initial check
-  useEffect(() => {
-    checkERPLoginStatus();
-  }, [checkERPLoginStatus]);
-
-  // Periodic check for ERP login status changes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (erpLoginStatus === 'not_logged_in' || erpLoginStatus === 'no_cookies') {
-        checkERPLoginStatus();
-      }
-    }, 5000); // Check every 5 seconds
-
-    return () => clearInterval(interval);
-  }, [erpLoginStatus, checkERPLoginStatus]);
+    checkInitialStatus();
+  }, [handleERPLoginSuccess, handleERPLoginError]);
 
   // Loading component
   const LoadingComponent = () => (
@@ -138,6 +139,43 @@ const ERPLoginHandler = ({
     </div>
   );
 
+  // Background process component
+  const BackgroundProcessComponent = () => (
+    <div style={{
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '40px',
+      backgroundColor: '#fff3e0',
+      borderRadius: '8px',
+      border: '1px solid #ffb74d',
+      textAlign: 'center'
+    }}>
+      <div style={{ fontSize: '24px', marginBottom: '12px' }}>🔄</div>
+      <p style={{ color: '#e65100', fontSize: '14px', margin: '0 0 8px 0' }}>
+        Setting up ERP authentication in background...
+      </p>
+      <p style={{ color: '#666', fontSize: '12px', margin: '0 0 16px 0' }}>
+        This happens automatically without interrupting your workflow
+      </p>
+      <div style={{
+        width: '20px',
+        height: '20px',
+        border: '2px solid #f3f3f3',
+        borderTop: '2px solid #ff9800',
+        borderRadius: '50%',
+        animation: 'spin 1s linear infinite'
+      }} />
+      <style jsx>{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
+    </div>
+  );
+
   // Error component
   const ErrorComponent = () => (
     <div style={{
@@ -155,27 +193,9 @@ const ERPLoginHandler = ({
       <p style={{ color: '#e53e3e', fontSize: '14px', margin: '0 0 16px 0' }}>
         {error}
       </p>
-      {redirectToLogin && (
-        <div>
-          <p style={{ color: '#666', fontSize: '12px', margin: '0 0 16px 0' }}>
-            Redirecting to ERP login in a few seconds...
-          </p>
-          <button
-            onClick={() => redirectToERPLogin(window.location.href)}
-            style={{
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              padding: '8px 16px',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Go to ERP Login Now
-          </button>
-        </div>
-      )}
+      <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
+        Background ERP login will retry automatically
+      </p>
     </div>
   );
 
@@ -199,10 +219,10 @@ const ERPLoginHandler = ({
       <p style={{ color: '#666', fontSize: '12px', margin: 0 }}>
         Status: {erpLoginStatus === 'logged_in' ? 'Live ERP session' : 'Using stored data'}
       </p>
-      {erpCookieData && (
+      {userInfo && (
         <div style={{ marginTop: '10px', fontSize: '12px', color: '#666' }}>
-          <p>User: {erpCookieData.full_name || 'Unknown'}</p>
-          <p>ID: {erpCookieData.user_id || 'Unknown'}</p>
+          <p>User: {userInfo.fullName || 'Unknown'}</p>
+          <p>ID: {userInfo.userId || 'Unknown'}</p>
         </div>
       )}
     </div>
@@ -213,11 +233,35 @@ const ERPLoginHandler = ({
     return <LoadingComponent />;
   }
 
-  if (erpLoginStatus === 'error' || erpLoginStatus === 'not_logged_in') {
-    return <ErrorComponent />;
+  if (erpLoginStatus === 'error') {
+    return (
+      <div>
+        <ErrorComponent />
+        {enableBackgroundLogin && (
+          <BackgroundERPLogin
+            onERPLoginSuccess={handleERPLoginSuccess}
+            onERPLoginError={handleERPLoginError}
+          />
+        )}
+      </div>
+    );
   }
 
-  if (erpLoginStatus === 'logged_in' || erpLoginStatus === 'using_stored') {
+  if (erpLoginStatus === 'not_logged_in') {
+    return (
+      <div>
+        <BackgroundProcessComponent />
+        {enableBackgroundLogin && (
+          <BackgroundERPLogin
+            onERPLoginSuccess={handleERPLoginSuccess}
+            onERPLoginError={handleERPLoginError}
+          />
+        )}
+      </div>
+    );
+  }
+
+  if (erpLoginStatus === 'logged_in') {
     return (
       <div>
         <SuccessComponent />
@@ -227,7 +271,7 @@ const ERPLoginHandler = ({
   }
 
   // Default fallback
-  return <ErrorComponent />;
+  return <LoadingComponent />;
 };
 
 export default ERPLoginHandler;
