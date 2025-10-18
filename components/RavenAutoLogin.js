@@ -1,14 +1,28 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { 
+  getERPCookieData, 
+  buildRavenUrlWithCookieAuth, 
+  validateERPCookieData,
+  extractUserInfoFromCookies,
+  isERPCookieAuthAvailable
+} from './utils/erpCookieAuth';
 
 /**
- * RavenAutoLogin Component - Enhanced auto-login for Raven
+ * RavenAutoLogin Component - Enhanced auto-login for Raven using ERP Cookie Data
  * 
  * This component:
- * 1. Uses ERPNext API to authenticate with Raven
- * 2. Creates proper session for auto-login
- * 3. Handles both iframe and new window approaches
- * 4. Provides better error handling and retry logic
+ * 1. Uses ERP cookie data for authentication (shared domain with Raven)
+ * 2. Extracts user information from ERP cookies (full_name, user_id, sid, etc.)
+ * 3. Builds authenticated Raven URL with cookie-based auth parameters
+ * 4. Handles both iframe and new window approaches
+ * 5. Provides better error handling and retry logic
+ * 
+ * Benefits of using ERP cookies:
+ * - Both Raven and ERP share the same cookie domain (.elbrit.org)
+ * - No need to pass sensitive authentication tokens in URLs
+ * - More secure as cookies are automatically sent by the browser
+ * - Ensures user is properly authenticated in both systems
  */
 const RavenAutoLogin = ({ 
   ravenUrl = "https://erp.elbrit.org/raven",
@@ -28,88 +42,76 @@ const RavenAutoLogin = ({
   const [authStep, setAuthStep] = useState('initializing');
   const [ravenWindow, setRavenWindow] = useState(null);
 
-  // Get authentication data from localStorage
+  // Get authentication data from ERP cookies
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      const erpnextToken = localStorage.getItem('erpnextAuthToken');
-      const erpnextUser = localStorage.getItem('erpnextUser');
-      const userEmail = localStorage.getItem('userEmail');
-      const userPhoneNumber = localStorage.getItem('userPhoneNumber');
-      const authProvider = localStorage.getItem('authProvider');
+      // Get ERP cookie data
+      const erpCookieData = getERPCookieData();
+      
+      if (!erpCookieData) {
+        console.warn('⚠️ No ERP cookie data available');
+        return null;
+      }
+
+      // Validate cookie data
+      if (!validateERPCookieData(erpCookieData)) {
+        console.warn('⚠️ ERP cookie data is invalid');
+        return null;
+      }
+
+      // Extract user information from cookies
+      const userInfo = extractUserInfoFromCookies(erpCookieData);
+      
+      console.log('🍪 ERP Cookie Auth Data:', {
+        hasCookieData: !!erpCookieData,
+        userInfo,
+        cookieKeys: Object.keys(erpCookieData)
+      });
       
       return {
-        token: erpnextToken,
-        user: erpnextUser ? JSON.parse(erpnextUser) : null,
-        email: userEmail,
-        phoneNumber: userPhoneNumber,
-        provider: authProvider
+        cookieData: erpCookieData,
+        userInfo: userInfo,
+        email: userInfo?.email,
+        fullName: userInfo?.fullName,
+        userId: userInfo?.userId,
+        sessionId: userInfo?.sessionId,
+        systemUser: userInfo?.systemUser
       };
     } catch (error) {
-      console.error('❌ Error reading auth data from localStorage:', error);
+      console.error('❌ Error reading ERP cookie data:', error);
       return null;
     }
   }, []);
 
-  // Enhanced authentication with ERPNext API
+  // Enhanced authentication using ERP cookie data
   const authenticateWithRaven = useCallback(async (authData) => {
     try {
       setAuthStep('authenticating');
-      console.log('🔐 Starting Raven authentication...');
+      console.log('🔐 Starting Raven authentication with ERP cookies...');
 
-      // Method 1: Try ERPNext API authentication
-      const erpnextResponse = await fetch('/api/erpnext/auth', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: authData.email,
-          phoneNumber: authData.phoneNumber,
-          authProvider: authData.provider
-        })
-      });
-
-      if (erpnextResponse.ok) {
-        const erpnextData = await erpnextResponse.json();
-        console.log('✅ ERPNext authentication successful');
-        
-        // Method 2: Try to create Raven session
-        try {
-          const ravenAuthResponse = await fetch('/api/raven/auth', {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${authData.token}`,
-              'Content-Type': 'application/json'
-            }
-          });
-
-          if (ravenAuthResponse.ok) {
-            console.log('✅ Raven session created successfully');
-            return ravenUrl; // Return base URL for iframe
-          }
-        } catch (ravenError) {
-          console.warn('⚠️ Raven API auth failed, using direct approach:', ravenError);
-        }
-
-        // Method 3: Build URL with enhanced authentication
-        const params = new URLSearchParams();
-        params.append('token', authData.token);
-        params.append('email', authData.email);
-        if (authData.phoneNumber) params.append('phone', authData.phoneNumber);
-        if (authData.provider) params.append('provider', authData.provider);
-        params.append('auto_login', 'true');
-        params.append('_t', Date.now().toString());
-
-        const authenticatedUrl = `${ravenUrl}?${params.toString()}`;
-        console.log('🔗 Built authenticated Raven URL');
-        return authenticatedUrl;
-
-      } else {
-        throw new Error('ERPNext authentication failed');
+      // Check if ERP cookie authentication is available
+      if (!isERPCookieAuthAvailable()) {
+        console.warn('⚠️ ERP cookie authentication not available');
+        throw new Error('ERP cookie authentication not available');
       }
 
+      // Build Raven URL using ERP cookie data
+      const authenticatedUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData);
+      
+      console.log('✅ Built Raven URL with ERP cookie authentication');
+      console.log('🍪 Using ERP cookie data:', {
+        user_id: authData.userId,
+        full_name: authData.fullName,
+        system_user: authData.systemUser,
+        session_id: authData.sessionId ? 'available' : 'missing'
+      });
+
+      return authenticatedUrl;
+
     } catch (error) {
-      console.error('❌ Authentication error:', error);
+      console.error('❌ ERP cookie authentication error:', error);
       throw error;
     }
   }, [ravenUrl]);
@@ -130,12 +132,12 @@ const RavenAutoLogin = ({
         return;
       }
 
-      console.log('🔐 User authenticated, initializing Raven with auto-login...');
+      console.log('🔐 User authenticated, initializing Raven with ERP cookie auto-login...');
       const authData = getAuthData();
       
       if (!authData) {
-        console.error('❌ No auth data found in localStorage');
-        setError('Authentication data not found. Please log in again.');
+        console.error('❌ No ERP cookie data found');
+        setError('ERP authentication data not found. Please ensure you are logged into ERP system.');
         setIsLoading(false);
         setAuthStep('error');
         return;
@@ -148,8 +150,8 @@ const RavenAutoLogin = ({
         setIsLoading(false);
         setAuthStep('ready');
       } catch (error) {
-        console.error('❌ Error initializing Raven:', error);
-        setError('Failed to authenticate with Raven. Please try again.');
+        console.error('❌ Error initializing Raven with ERP cookies:', error);
+        setError('Failed to authenticate with Raven using ERP cookies. Please ensure you are logged into ERP system.');
         setIsLoading(false);
         setAuthStep('error');
       }
@@ -227,8 +229,8 @@ const RavenAutoLogin = ({
         marginBottom: '16px'
       }} />
       <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
-        {authStep === 'initializing' && 'Initializing Raven Chat...'}
-        {authStep === 'authenticating' && 'Authenticating with Raven...'}
+        {authStep === 'initializing' && 'Initializing Raven Chat with ERP Cookies...'}
+        {authStep === 'authenticating' && 'Authenticating with ERP Cookie Data...'}
         {authStep === 'ready' && 'Loading Raven Chat...'}
       </p>
       <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
