@@ -3,10 +3,13 @@ import { useAuth } from '../components/AuthContext';
 import dynamic from 'next/dynamic';
 import { 
   getERPCookieData, 
+  getStoredERPCookieData,
   validateERPCookieData,
   extractUserInfoFromCookies,
   isERPCookieAuthAvailable,
-  buildRavenUrlWithCookieAuth
+  isUserLoggedIntoERP,
+  buildRavenUrlWithCookieAuth,
+  redirectToERPLogin
 } from '../components/utils/erpCookieAuth';
 
 // Dynamically import Raven components to avoid SSR issues
@@ -45,15 +48,27 @@ const RavenEmbed = dynamic(() => import('../components/RavenEmbed'), {
 export default function TestRavenCookieAuth() {
   const { user, loading, isAuthenticated } = useAuth();
   const [cookieData, setCookieData] = useState(null);
+  const [storedCookieData, setStoredCookieData] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [cookieStatus, setCookieStatus] = useState('checking');
+  const [erpLoginStatus, setErpLoginStatus] = useState('checking');
   const [ravenUrl, setRavenUrl] = useState('');
 
   // Check ERP cookie data
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const checkCookies = () => {
+        // Check ERP login status
+        const isLoggedIn = isUserLoggedIntoERP();
+        setErpLoginStatus(isLoggedIn ? 'logged_in' : 'not_logged_in');
+
+        // Get fresh ERP cookie data
         const erpCookies = getERPCookieData();
+        
+        // Get stored ERP cookie data as fallback
+        const storedCookies = getStoredERPCookieData();
+        setStoredCookieData(storedCookies);
+
         const isValid = validateERPCookieData(erpCookies);
         const userInfo = extractUserInfoFromCookies(erpCookies);
         const isAvailable = isERPCookieAuthAvailable();
@@ -62,9 +77,10 @@ export default function TestRavenCookieAuth() {
         setUserInfo(userInfo);
         setCookieStatus(isAvailable ? 'available' : 'unavailable');
 
-        // Build Raven URL if cookies are available
-        if (isAvailable && erpCookies) {
-          const url = buildRavenUrlWithCookieAuth('https://erp.elbrit.org/raven', erpCookies);
+        // Build Raven URL if cookies are available (fresh or stored)
+        const cookiesToUse = erpCookies || storedCookies;
+        if (isAvailable && cookiesToUse) {
+          const url = buildRavenUrlWithCookieAuth('https://erp.elbrit.org/raven', cookiesToUse);
           setRavenUrl(url);
         }
       };
@@ -96,20 +112,62 @@ export default function TestRavenCookieAuth() {
       </div>
 
       <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '8px' }}>
-        <h2>🍪 ERP Cookie Status</h2>
+        <h2>🍪 ERP Login & Cookie Status</h2>
+        <p><strong>ERP Login Status:</strong> {
+          erpLoginStatus === 'checking' ? '⏳ Checking...' :
+          erpLoginStatus === 'logged_in' ? '✅ Logged In' : '❌ Not Logged In'
+        }</p>
         <p><strong>Cookie Status:</strong> {
           cookieStatus === 'checking' ? '⏳ Checking...' :
           cookieStatus === 'available' ? '✅ Available' : '❌ Unavailable'
         }</p>
         <p><strong>ERP Cookie Auth Available:</strong> {isERPCookieAuthAvailable() ? '✅ Yes' : '❌ No'}</p>
         
+        {erpLoginStatus === 'not_logged_in' && (
+          <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
+            <p style={{ margin: '0 0 10px 0', color: '#e65100' }}>
+              ⚠️ You need to log into ERP system first to get cookie data
+            </p>
+            <button
+              onClick={() => redirectToERPLogin(window.location.href)}
+              style={{
+                backgroundColor: '#ff9800',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '14px'
+              }}
+            >
+              Go to ERP Login
+            </button>
+          </div>
+        )}
+        
         {cookieData && (
           <div style={{ marginTop: '10px' }}>
-            <h3>Available ERP Cookies:</h3>
+            <h3>Fresh ERP Cookies:</h3>
             <ul style={{ fontSize: '12px', fontFamily: 'monospace' }}>
               {Object.keys(cookieData).map(key => (
                 <li key={key}>
                   <strong>{key}:</strong> {cookieData[key] ? '✅ Available' : '❌ Missing'}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {storedCookieData && !cookieData && (
+          <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
+            <h3>📦 Stored ERP Cookie Data (Fallback):</h3>
+            <p style={{ fontSize: '12px', color: '#2e7d32' }}>
+              Using stored cookie data as fallback (last updated: {storedCookieData.lastUpdated})
+            </p>
+            <ul style={{ fontSize: '12px', fontFamily: 'monospace' }}>
+              {Object.keys(storedCookieData).filter(key => key !== 'lastUpdated').map(key => (
+                <li key={key}>
+                  <strong>{key}:</strong> {storedCookieData[key] ? '✅ Available' : '❌ Missing'}
                 </li>
               ))}
             </ul>

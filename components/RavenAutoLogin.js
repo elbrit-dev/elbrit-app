@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import ERPLoginHandler from './ERPLoginHandler';
 import { 
   getERPCookieData, 
+  getStoredERPCookieData,
   buildRavenUrlWithCookieAuth, 
   validateERPCookieData,
   extractUserInfoFromCookies,
@@ -42,16 +44,22 @@ const RavenAutoLogin = ({
   const [authStep, setAuthStep] = useState('initializing');
   const [ravenWindow, setRavenWindow] = useState(null);
 
-  // Get authentication data from ERP cookies
+  // Get authentication data from ERP cookies (with fallback to stored data)
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // Get ERP cookie data
-      const erpCookieData = getERPCookieData();
+      // First try to get fresh ERP cookie data
+      let erpCookieData = getERPCookieData();
+      
+      // If no fresh data, try stored data
+      if (!erpCookieData) {
+        console.log('📦 No fresh ERP cookie data, trying stored data...');
+        erpCookieData = getStoredERPCookieData();
+      }
       
       if (!erpCookieData) {
-        console.warn('⚠️ No ERP cookie data available');
+        console.warn('⚠️ No ERP cookie data available (fresh or stored)');
         return null;
       }
 
@@ -67,7 +75,8 @@ const RavenAutoLogin = ({
       console.log('🍪 ERP Cookie Auth Data:', {
         hasCookieData: !!erpCookieData,
         userInfo,
-        cookieKeys: Object.keys(erpCookieData)
+        cookieKeys: Object.keys(erpCookieData),
+        dataSource: erpCookieData.lastUpdated ? 'fresh' : 'stored'
       });
       
       return {
@@ -330,16 +339,52 @@ const RavenAutoLogin = ({
     />
   );
 
-  // Render based on state
-  if (error) {
-    return <ErrorComponent />;
-  }
+  // Main Raven component
+  const RavenComponent = () => {
+    // Render based on state
+    if (error) {
+      return <ErrorComponent />;
+    }
 
-  if (showLoading && (isLoading || !iframeUrl)) {
-    return <LoadingComponent />;
-  }
+    if (showLoading && (isLoading || !iframeUrl)) {
+      return <LoadingComponent />;
+    }
 
-  return <IframeComponent />;
+    return <IframeComponent />;
+  };
+
+  // Wrap with ERP Login Handler
+  return (
+    <ERPLoginHandler
+      onERPLoginSuccess={(cookieData) => {
+        console.log('✅ ERP login successful, initializing Raven...');
+        // Re-initialize Raven when ERP login is successful
+        const authData = getAuthData();
+        if (authData) {
+          authenticateWithRaven(authData).then(url => {
+            setIframeUrl(url);
+            setIsLoading(false);
+            setAuthStep('ready');
+          }).catch(err => {
+            console.error('❌ Error initializing Raven after ERP login:', err);
+            setError('Failed to initialize Raven after ERP login');
+            setIsLoading(false);
+            setAuthStep('error');
+          });
+        }
+      }}
+      onERPLoginError={(error) => {
+        console.error('❌ ERP login error:', error);
+        setError('ERP login failed. Please try again.');
+        setIsLoading(false);
+        setAuthStep('error');
+      }}
+      redirectToLogin={true}
+      showLoading={false}
+    >
+      <RavenComponent />
+    </ERPLoginHandler>
+  );
 };
 
 export default RavenAutoLogin;
