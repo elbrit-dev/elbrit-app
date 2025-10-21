@@ -138,9 +138,15 @@ const checkERPLoginStatus = async () => {
           console.log('✅ User is logged into ERP system:', userData.message);
           return true;
         }
+      } else if (response.status === 403) {
+        // 403 is expected when user is not logged in - this is normal
+        console.log('ℹ️ User not logged into ERP system (403 - expected)');
       }
     } catch (fetchError) {
-      console.warn('⚠️ Could not check ERP login status via API:', fetchError.message);
+      // Only log as warning if it's not a CORS or network error
+      if (!fetchError.message.includes('CORS') && !fetchError.message.includes('Failed to fetch')) {
+        console.warn('⚠️ Could not check ERP login status via API:', fetchError.message);
+      }
     }
     
     console.log('❌ User is not logged into ERP system');

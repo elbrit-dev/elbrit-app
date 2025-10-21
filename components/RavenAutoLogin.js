@@ -331,7 +331,7 @@ const RavenAutoLogin = ({
       onLoad={handleIframeLoad}
       onError={handleIframeError}
       title="Raven Chat"
-      allow="camera; microphone; notifications; clipboard-read; clipboard-write"
+      allow="camera; microphone; clipboard-read; clipboard-write"
       sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
     />
   );
