@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
+import { getStoredERPData } from './utils/erpBackgroundLogin';
 import { 
-  getERPAuthData,
   buildRavenUrlWithCookieAuth, 
-  isERPCookieAuthAvailable
+  validateERPCookieData,
+  extractUserInfoFromCookies
 } from './utils/erpCookieAuth';
 
 /**
@@ -40,70 +41,83 @@ const RavenAutoLogin = ({
   const [authStep, setAuthStep] = useState('initializing');
   const [ravenWindow, setRavenWindow] = useState(null);
 
-  // Get authentication data from stored ERP data or live cookies
+  // Get authentication data from stored ERP data
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // Get ERP authentication data (tries stored data first, then live cookies)
-      const erpAuthData = getERPAuthData();
+      // Get stored ERP data from localStorage
+      const storedERPData = getStoredERPData();
       
-      if (!erpAuthData) {
-        console.warn('⚠️ No ERP authentication data available (stored or live)');
+      if (!storedERPData) {
+        console.warn('⚠️ No stored ERP data available');
         return null;
       }
 
-      console.log('🍪 ERP Auth Data:', {
-        source: erpAuthData.source,
-        hasCookieData: !!erpAuthData.cookieData,
-        userInfo: erpAuthData.userInfo,
-        cookieKeys: Object.keys(erpAuthData.cookieData || {})
+      const { erpnextData, cookieData, loginData } = storedERPData;
+
+      // Validate cookie data
+      if (!validateERPCookieData(cookieData)) {
+        console.warn('⚠️ Stored ERP cookie data is invalid');
+        return null;
+      }
+
+      // Extract user information from stored cookies
+      const userInfo = extractUserInfoFromCookies(cookieData);
+      
+      console.log('🍪 Stored ERP Auth Data:', {
+        hasStoredData: !!storedERPData,
+        hasCookieData: !!cookieData,
+        hasERPNextData: !!erpnextData,
+        userInfo,
+        cookieKeys: Object.keys(cookieData)
       });
       
       return {
-        cookieData: erpAuthData.cookieData,
-        userInfo: erpAuthData.userInfo,
-        email: erpAuthData.userInfo?.email,
-        fullName: erpAuthData.userInfo?.fullName,
-        userId: erpAuthData.userInfo?.userId,
-        sessionId: erpAuthData.userInfo?.sessionId,
-        systemUser: erpAuthData.userInfo?.systemUser,
-        source: erpAuthData.source
+        erpnextData,
+        cookieData,
+        loginData,
+        userInfo: userInfo,
+        email: userInfo?.email,
+        fullName: userInfo?.fullName,
+        userId: userInfo?.userId,
+        sessionId: userInfo?.sessionId,
+        systemUser: userInfo?.systemUser
       };
     } catch (error) {
-      console.error('❌ Error reading ERP authentication data:', error);
+      console.error('❌ Error reading stored ERP data:', error);
       return null;
     }
   }, []);
 
-  // Enhanced authentication using ERP cookie data
+  // Enhanced authentication using stored ERP data
   const authenticateWithRaven = useCallback(async (authData) => {
     try {
       setAuthStep('authenticating');
-      console.log('🔐 Starting Raven authentication with ERP cookies...');
+      console.log('🔐 Starting Raven authentication with stored ERP data...');
 
-      // Check if ERP cookie authentication is available
-      if (!isERPCookieAuthAvailable()) {
-        console.warn('⚠️ ERP cookie authentication not available');
-        throw new Error('ERP cookie authentication not available');
+      // Check if we have stored ERP data
+      if (!authData || !authData.cookieData) {
+        console.warn('⚠️ No stored ERP data available for Raven authentication');
+        throw new Error('No stored ERP data available');
       }
 
-      // Build Raven URL using ERP cookie data
+      // Build Raven URL using stored ERP cookie data
       const authenticatedUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData);
       
-      console.log('✅ Built Raven URL with ERP cookie authentication');
-      console.log('🍪 Using ERP data:', {
-        source: authData.source,
+      console.log('✅ Built Raven URL with stored ERP data');
+      console.log('🍪 Using stored ERP data:', {
         user_id: authData.userId,
         full_name: authData.fullName,
         system_user: authData.systemUser,
-        session_id: authData.sessionId ? 'available' : 'missing'
+        session_id: authData.sessionId ? 'available' : 'missing',
+        hasERPNextToken: !!authData.erpnextData?.token
       });
 
       return authenticatedUrl;
 
     } catch (error) {
-      console.error('❌ ERP cookie authentication error:', error);
+      console.error('❌ Stored ERP data authentication error:', error);
       throw error;
     }
   }, [ravenUrl]);
@@ -128,8 +142,8 @@ const RavenAutoLogin = ({
       const authData = getAuthData();
       
       if (!authData) {
-        console.error('❌ No ERP cookie data found');
-        setError('ERP authentication data not found. Please ensure you are logged into ERP system.');
+        console.error('❌ No stored ERP data found');
+        setError('Stored ERP authentication data not found. Please log in again to refresh ERP data.');
         setIsLoading(false);
         setAuthStep('error');
         return;
@@ -142,8 +156,8 @@ const RavenAutoLogin = ({
         setIsLoading(false);
         setAuthStep('ready');
       } catch (error) {
-        console.error('❌ Error initializing Raven with ERP cookies:', error);
-        setError('Failed to authenticate with Raven using ERP cookies. Please ensure you are logged into ERP system.');
+        console.error('❌ Error initializing Raven with stored ERP data:', error);
+        setError('Failed to authenticate with Raven using stored ERP data. Please log in again to refresh ERP data.');
         setIsLoading(false);
         setAuthStep('error');
       }
