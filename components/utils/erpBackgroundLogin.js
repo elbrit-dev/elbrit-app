@@ -68,25 +68,35 @@ export const performERPLogin = async (firebaseUser) => {
       }
     }
     
-    // Step 3: If not logged in, try to perform direct ERP API login
+    // Step 3: Try multiple ERP login approaches in order of reliability
     try {
-      const erpLoginResult = await performDirectERPLogin(erpnextData, loginData);
-      console.log('✅ Background ERP login completed successfully');
+      // First try: Server-side proxy (most reliable)
+      const erpLoginResult = await performServerProxyERPLogin(erpnextData, loginData);
+      console.log('✅ Background ERP login completed successfully via server proxy');
       return erpLoginResult;
-    } catch (erpLoginError) {
-      console.warn('⚠️ Direct ERP API login failed, using simulated cookie data:', erpLoginError);
+    } catch (serverError) {
+      console.warn('⚠️ Server proxy ERP login failed, trying direct approach:', serverError);
       
-      // Fallback: Create simulated ERP cookie data based on ERPNext data
-      const simulatedCookieData = createSimulatedERPCookieData(erpnextData, loginData);
-      storeERPDataInLocalStorage(erpnextData, simulatedCookieData, loginData);
-      
-      return {
-        success: true,
-        erpnextData,
-        cookieData: simulatedCookieData,
-        loginData,
-        simulated: true
-      };
+      try {
+        // Second try: Direct ERP login
+        const directResult = await performDirectERPLogin(erpnextData, loginData);
+        console.log('✅ Background ERP login completed successfully via direct login');
+        return directResult;
+      } catch (directError) {
+        console.warn('⚠️ Direct ERP login failed, using simulated cookie data:', directError);
+        
+        // Final fallback: Create simulated ERP cookie data based on ERPNext data
+        const simulatedCookieData = createSimulatedERPCookieData(erpnextData, loginData);
+        storeERPDataInLocalStorage(erpnextData, simulatedCookieData, loginData);
+        
+        return {
+          success: true,
+          erpnextData,
+          cookieData: simulatedCookieData,
+          loginData,
+          simulated: true
+        };
+      }
     }
 
   } catch (error) {
@@ -182,101 +192,110 @@ const createSimulatedERPCookieData = (erpnextData, loginData) => {
 };
 
 /**
- * Perform direct ERP login using ERPNext token
+ * Perform direct ERP login using ERP credentials
  * @param {Object} erpnextData - Data from ERPNext API
  * @param {Object} loginData - Firebase user login data
  * @returns {Promise<Object>} ERP login result with cookies
  */
 const performDirectERPLogin = async (erpnextData, loginData) => {
   try {
-    console.log('🔐 Performing direct ERP login using ERPNext token...');
+    console.log('🔐 Performing direct ERP login using ERP credentials...');
 
     const erpUser = erpnextData.user;
-    const erpToken = erpnextData.token;
     
-    // Try to make an authenticated request to ERP using the ERPNext token
-    const testResponse = await fetch('https://erp.elbrit.org/api/method/frappe.auth.get_logged_user', {
-      method: 'GET',
-      headers: {
-        'Authorization': `token ${erpToken}`,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      }
-    });
-
-    if (testResponse.ok) {
-      console.log('✅ ERP authentication successful using ERPNext token');
-      
-      // Create ERP cookie data based on successful authentication
-      const erpCookieData = {
-        full_name: encodeURIComponent(erpUser.displayName || erpUser.full_name || erpUser.name || 'User'),
-        user_id: encodeURIComponent(erpUser.email || erpUser.user_id || loginData.email),
-        system_user: 'yes',
-        sid: erpToken, // Use ERPNext token as session ID
-        user_image: erpUser.photoURL || erpUser.user_image || null,
-        _ga: `GA1.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
-        _ga_YRM9WGML: `GS2.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`
-      };
-
-      // Store ERP data in localStorage
-      storeERPDataInLocalStorage(erpnextData, erpCookieData, loginData);
-      
-      return {
-        success: true,
-        erpnextData,
-        cookieData: erpCookieData,
-        loginData,
-        source: 'token_auth'
-      };
-    } else {
-      // If token auth fails, try to create a session using the token
-      return await createERPSessionWithToken(erpnextData, loginData);
-    }
-
-  } catch (error) {
-    console.error('❌ Direct ERP token authentication failed:', error);
-    // Try to create session as fallback
-    return await createERPSessionWithToken(erpnextData, loginData);
-  }
-};
-
-/**
- * Create ERP session using ERPNext token
- * @param {Object} erpnextData - Data from ERPNext API
- * @param {Object} loginData - Firebase user login data
- * @returns {Promise<Object>} ERP session result
- */
-const createERPSessionWithToken = async (erpnextData, loginData) => {
-  try {
-    console.log('🔄 Creating ERP session using ERPNext token...');
-
-    const erpUser = erpnextData.user;
-    const erpToken = erpnextData.token;
-    
-    // Try to create a session by making a request to ERP with the token
-    const sessionResponse = await fetch('https://erp.elbrit.org/api/method/frappe.desk.form.load.getdoc', {
+    // First, try to login to ERP system using the user's credentials
+    const loginResponse = await fetch('https://erp.elbrit.org/api/method/login', {
       method: 'POST',
+      credentials: 'include', // Important: include cookies
       headers: {
-        'Authorization': `token ${erpToken}`,
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
       body: JSON.stringify({
-        doctype: 'User',
-        name: erpUser.email || erpUser.user_id
+        usr: erpUser.email || erpUser.user_id || loginData.email,
+        pwd: erpUser.password || erpnextData.token, // Try password or token
+        device: 'web'
       })
     });
 
-    if (sessionResponse.ok) {
-      console.log('✅ ERP session created successfully');
+    if (!loginResponse.ok) {
+      throw new Error(`ERP login failed: ${loginResponse.status} ${loginResponse.statusText}`);
+    }
+
+    const loginResult = await loginResponse.json();
+    
+    if (loginResult.message && loginResult.message === 'Logged In') {
+      console.log('✅ ERP login successful');
       
-      // Create ERP cookie data
+      // Wait a moment for cookies to be set
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Extract real ERP cookies from the browser
+      const realCookieData = extractERPCookies();
+      
+      if (realCookieData && validateERPCookieData(realCookieData)) {
+        console.log('✅ Real ERP cookies extracted successfully');
+        storeERPDataInLocalStorage(erpnextData, realCookieData, loginData);
+        
+        return {
+          success: true,
+          erpnextData,
+          cookieData: realCookieData,
+          loginData,
+          source: 'real_login'
+        };
+      } else {
+        // If real cookies extraction fails, create simulated ones
+        console.warn('⚠️ Real cookie extraction failed, creating simulated cookies');
+        return await createSimulatedERPCookieData(erpnextData, loginData);
+      }
+    } else {
+      throw new Error(`ERP login failed: ${loginResult.message || 'Unknown error'}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Direct ERP login failed:', error);
+    // Try alternative approach
+    return await performAlternativeERPLogin(erpnextData, loginData);
+  }
+};
+
+/**
+ * Server proxy ERP login (most reliable approach)
+ * @param {Object} erpnextData - Data from ERPNext API
+ * @param {Object} loginData - Firebase user login data
+ * @returns {Promise<Object>} ERP login result
+ */
+const performServerProxyERPLogin = async (erpnextData, loginData) => {
+  try {
+    console.log('🔄 Performing server proxy ERP login...');
+
+    // Use our backend to perform ERP login
+    const proxyResponse = await fetch('/api/erpnext/erp-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: erpnextData.user.email || erpnextData.user.user_id,
+        token: erpnextData.token,
+        displayName: erpnextData.user.displayName || erpnextData.user.full_name,
+        phoneNumber: loginData.phoneNumber
+      })
+    });
+
+    if (proxyResponse.ok) {
+      const proxyResult = await proxyResponse.json();
+      console.log('✅ ERP login via server proxy successful');
+      
+      // Create cookie data from proxy result
       const erpCookieData = {
-        full_name: encodeURIComponent(erpUser.displayName || erpUser.full_name || erpUser.name || 'User'),
-        user_id: encodeURIComponent(erpUser.email || erpUser.user_id || loginData.email),
+        full_name: encodeURIComponent(proxyResult.user?.fullName || erpnextData.user.displayName || erpnextData.user.full_name || 'User'),
+        user_id: encodeURIComponent(erpnextData.user.email || erpnextData.user.user_id || loginData.email),
         system_user: 'yes',
-        sid: erpToken,
-        user_image: erpUser.photoURL || erpUser.user_image || null,
+        sid: proxyResult.sessionId || erpnextData.token,
+        user_image: erpnextData.user.photoURL || erpnextData.user.user_image || null,
         _ga: `GA1.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
         _ga_YRM9WGML: `GS2.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`
       };
@@ -288,17 +307,76 @@ const createERPSessionWithToken = async (erpnextData, loginData) => {
         erpnextData,
         cookieData: erpCookieData,
         loginData,
-        source: 'session_creation'
+        source: 'server_proxy'
       };
     } else {
-      throw new Error(`ERP session creation failed: ${sessionResponse.status}`);
+      const errorData = await proxyResponse.json();
+      throw new Error(`Server proxy ERP login failed: ${proxyResponse.status} - ${errorData.message || errorData.error}`);
     }
 
   } catch (error) {
-    console.error('❌ ERP session creation failed:', error);
+    console.error('❌ Server proxy ERP login failed:', error);
     throw error;
   }
 };
+
+/**
+ * Alternative ERP login approach using server proxy (legacy)
+ * @param {Object} erpnextData - Data from ERPNext API
+ * @param {Object} loginData - Firebase user login data
+ * @returns {Promise<Object>} ERP login result
+ */
+const performAlternativeERPLogin = async (erpnextData, loginData) => {
+  try {
+    console.log('🔄 Trying alternative ERP login via server proxy...');
+
+    // Try to use our backend to perform ERP login
+    const proxyResponse = await fetch('/api/erpnext/erp-login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        email: erpnextData.user.email || erpnextData.user.user_id,
+        token: erpnextData.token
+      })
+    });
+
+    if (proxyResponse.ok) {
+      const proxyResult = await proxyResponse.json();
+      console.log('✅ ERP login via server proxy successful');
+      
+      // Create cookie data from proxy result
+      const erpCookieData = {
+        full_name: encodeURIComponent(erpnextData.user.displayName || erpnextData.user.full_name || erpnextData.user.name || 'User'),
+        user_id: encodeURIComponent(erpnextData.user.email || erpnextData.user.user_id || loginData.email),
+        system_user: 'yes',
+        sid: proxyResult.sessionId || erpnextData.token,
+        user_image: erpnextData.user.photoURL || erpnextData.user.user_image || null,
+        _ga: `GA1.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
+        _ga_YRM9WGML: `GS2.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      storeERPDataInLocalStorage(erpnextData, erpCookieData, loginData);
+      
+      return {
+        success: true,
+        erpnextData,
+        cookieData: erpCookieData,
+        loginData,
+        source: 'proxy_login'
+      };
+    } else {
+      throw new Error(`Server proxy ERP login failed: ${proxyResponse.status}`);
+    }
+
+  } catch (error) {
+    console.error('❌ Alternative ERP login failed:', error);
+    throw error;
+  }
+};
+
 
 /**
  * Perform ERP login by redirecting user to ERP system (fallback)

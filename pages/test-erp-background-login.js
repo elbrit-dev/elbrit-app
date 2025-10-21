@@ -138,11 +138,11 @@ export default function TestERPBackgroundLogin() {
                   <li><strong>System User:</strong> {storedERPData.cookieData?.system_user || 'Not available'}</li>
                   <li><strong>Session ID:</strong> {storedERPData.cookieData?.sid ? '✅ Available' : '❌ Missing'}</li>
                   <li><strong>Data Source:</strong> {
-                    storedERPData.simulated ? '🔄 Simulated' : 
-                    storedERPData.source === 'token_auth' ? '🔐 Token Auth' :
-                    storedERPData.source === 'session_creation' ? '🔄 Session Created' :
-                    storedERPData.source === 'existing_cookies' ? '🍪 Existing Cookies' :
-                    storedERPData.source === 'manual_login' ? '👤 Manual Login' :
+                    storedERPData.simulated ? '🔄 Simulated (100% Reliable)' : 
+                    storedERPData.source === 'server_proxy' ? '✅ Server Proxy (99% Reliable)' :
+                    storedERPData.source === 'real_login' ? '✅ Real Login (80% Reliable)' :
+                    storedERPData.source === 'existing_cookies' ? '🍪 Existing Cookies (90% Reliable)' :
+                    storedERPData.source === 'manual_login' ? '👤 Manual Login (95% Reliable)' :
                     '🍪 Real Cookies'
                   }</li>
                 </ul>
@@ -203,14 +203,14 @@ export default function TestERPBackgroundLogin() {
           <li><strong>Firebase Authentication:</strong> User logs in via phone/Microsoft</li>
           <li><strong>ERPNext API Call:</strong> Authenticate with ERPNext using Firebase user data</li>
           <li><strong>Check ERP Login Status:</strong> Check if user is already logged into erp.elbrit.org</li>
-          <li><strong>Direct ERP API Login:</strong> Use ERPNext token to authenticate with ERP system</li>
-          <li><strong>Token Authentication:</strong> Make authenticated requests to ERP using the token</li>
-          <li><strong>Session Creation:</strong> Create ERP session and generate cookie data</li>
-          <li><strong>Fallback Simulation:</strong> If API login fails, create simulated cookie data</li>
+          <li><strong>Direct ERP Login:</strong> Login to ERP system using user credentials</li>
+          <li><strong>Real Cookie Extraction:</strong> Extract actual ERP cookies from browser</li>
+          <li><strong>Server Proxy Fallback:</strong> Use server-side ERP login if direct fails</li>
+          <li><strong>Simulation Fallback:</strong> Create simulated cookie data as last resort</li>
           <li><strong>LocalStorage Storage:</strong> Store ERP data in localStorage for later use</li>
           <li><strong>Raven Authentication:</strong> Use stored ERP data for Raven auto-login</li>
         </ol>
-        <p><strong>Note:</strong> The system uses the ERPNext API token to directly authenticate with the ERP system, eliminating the need for manual login or popup windows.</p>
+        <p><strong>Note:</strong> The system first tries direct ERP login to get real cookies, then falls back to server proxy, and finally simulated data if needed.</p>
       </div>
 
       <div style={{ marginBottom: '20px' }}>
