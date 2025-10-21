@@ -68,13 +68,13 @@ export const performERPLogin = async (firebaseUser) => {
       }
     }
     
-    // Step 3: If not logged in, try to perform ERP login
+    // Step 3: If not logged in, try to perform direct ERP API login
     try {
-      const erpLoginResult = await performERPCookieLogin(erpnextData, loginData);
+      const erpLoginResult = await performDirectERPLogin(erpnextData, loginData);
       console.log('✅ Background ERP login completed successfully');
       return erpLoginResult;
     } catch (erpLoginError) {
-      console.warn('⚠️ Direct ERP login failed, using simulated cookie data:', erpLoginError);
+      console.warn('⚠️ Direct ERP API login failed, using simulated cookie data:', erpLoginError);
       
       // Fallback: Create simulated ERP cookie data based on ERPNext data
       const simulatedCookieData = createSimulatedERPCookieData(erpnextData, loginData);
@@ -182,7 +182,126 @@ const createSimulatedERPCookieData = (erpnextData, loginData) => {
 };
 
 /**
- * Perform ERP login by redirecting user to ERP system
+ * Perform direct ERP login using ERPNext token
+ * @param {Object} erpnextData - Data from ERPNext API
+ * @param {Object} loginData - Firebase user login data
+ * @returns {Promise<Object>} ERP login result with cookies
+ */
+const performDirectERPLogin = async (erpnextData, loginData) => {
+  try {
+    console.log('🔐 Performing direct ERP login using ERPNext token...');
+
+    const erpUser = erpnextData.user;
+    const erpToken = erpnextData.token;
+    
+    // Try to make an authenticated request to ERP using the ERPNext token
+    const testResponse = await fetch('https://erp.elbrit.org/api/method/frappe.auth.get_logged_user', {
+      method: 'GET',
+      headers: {
+        'Authorization': `token ${erpToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+
+    if (testResponse.ok) {
+      console.log('✅ ERP authentication successful using ERPNext token');
+      
+      // Create ERP cookie data based on successful authentication
+      const erpCookieData = {
+        full_name: encodeURIComponent(erpUser.displayName || erpUser.full_name || erpUser.name || 'User'),
+        user_id: encodeURIComponent(erpUser.email || erpUser.user_id || loginData.email),
+        system_user: 'yes',
+        sid: erpToken, // Use ERPNext token as session ID
+        user_image: erpUser.photoURL || erpUser.user_image || null,
+        _ga: `GA1.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
+        _ga_YRM9WGML: `GS2.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      // Store ERP data in localStorage
+      storeERPDataInLocalStorage(erpnextData, erpCookieData, loginData);
+      
+      return {
+        success: true,
+        erpnextData,
+        cookieData: erpCookieData,
+        loginData,
+        source: 'token_auth'
+      };
+    } else {
+      // If token auth fails, try to create a session using the token
+      return await createERPSessionWithToken(erpnextData, loginData);
+    }
+
+  } catch (error) {
+    console.error('❌ Direct ERP token authentication failed:', error);
+    // Try to create session as fallback
+    return await createERPSessionWithToken(erpnextData, loginData);
+  }
+};
+
+/**
+ * Create ERP session using ERPNext token
+ * @param {Object} erpnextData - Data from ERPNext API
+ * @param {Object} loginData - Firebase user login data
+ * @returns {Promise<Object>} ERP session result
+ */
+const createERPSessionWithToken = async (erpnextData, loginData) => {
+  try {
+    console.log('🔄 Creating ERP session using ERPNext token...');
+
+    const erpUser = erpnextData.user;
+    const erpToken = erpnextData.token;
+    
+    // Try to create a session by making a request to ERP with the token
+    const sessionResponse = await fetch('https://erp.elbrit.org/api/method/frappe.desk.form.load.getdoc', {
+      method: 'POST',
+      headers: {
+        'Authorization': `token ${erpToken}`,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({
+        doctype: 'User',
+        name: erpUser.email || erpUser.user_id
+      })
+    });
+
+    if (sessionResponse.ok) {
+      console.log('✅ ERP session created successfully');
+      
+      // Create ERP cookie data
+      const erpCookieData = {
+        full_name: encodeURIComponent(erpUser.displayName || erpUser.full_name || erpUser.name || 'User'),
+        user_id: encodeURIComponent(erpUser.email || erpUser.user_id || loginData.email),
+        system_user: 'yes',
+        sid: erpToken,
+        user_image: erpUser.photoURL || erpUser.user_image || null,
+        _ga: `GA1.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`,
+        _ga_YRM9WGML: `GS2.1.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`
+      };
+
+      storeERPDataInLocalStorage(erpnextData, erpCookieData, loginData);
+      
+      return {
+        success: true,
+        erpnextData,
+        cookieData: erpCookieData,
+        loginData,
+        source: 'session_creation'
+      };
+    } else {
+      throw new Error(`ERP session creation failed: ${sessionResponse.status}`);
+    }
+
+  } catch (error) {
+    console.error('❌ ERP session creation failed:', error);
+    throw error;
+  }
+};
+
+/**
+ * Perform ERP login by redirecting user to ERP system (fallback)
  * @param {Object} erpnextData - Data from ERPNext API
  * @param {Object} loginData - Firebase user login data
  * @returns {Promise<Object>} ERP login result with cookies
