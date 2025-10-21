@@ -1,12 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import ERPLoginHandler from './ERPLoginHandler';
 import { 
-  getERPCookieData, 
-  getStoredERPCookieData,
+  getERPAuthData,
   buildRavenUrlWithCookieAuth, 
-  validateERPCookieData,
-  extractUserInfoFromCookies,
   isERPCookieAuthAvailable
 } from './utils/erpCookieAuth';
 
@@ -49,52 +45,38 @@ const RavenEmbed = ({
   const [authStep, setAuthStep] = useState('initializing');
   const maxRetries = 3;
 
-  // Get authentication data from ERP cookies (with fallback to stored data)
+  // Get authentication data from stored ERP data or live cookies
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // First try to get fresh ERP cookie data
-      let erpCookieData = getERPCookieData();
+      // Get ERP authentication data (tries stored data first, then live cookies)
+      const erpAuthData = getERPAuthData();
       
-      // If no fresh data, try stored data
-      if (!erpCookieData) {
-        console.log('📦 No fresh ERP cookie data for Raven Embed, trying stored data...');
-        erpCookieData = getStoredERPCookieData();
-      }
-      
-      if (!erpCookieData) {
-        console.warn('⚠️ No ERP cookie data available for Raven Embed (fresh or stored)');
+      if (!erpAuthData) {
+        console.warn('⚠️ No ERP authentication data available for Raven Embed (stored or live)');
         return null;
       }
 
-      // Validate cookie data
-      if (!validateERPCookieData(erpCookieData)) {
-        console.warn('⚠️ ERP cookie data is invalid for Raven Embed');
-        return null;
-      }
-
-      // Extract user information from cookies
-      const userInfo = extractUserInfoFromCookies(erpCookieData);
-      
-      console.log('🔍 Raven Embed - ERP Cookie Auth data found:', {
-        hasCookieData: !!erpCookieData,
-        userInfo,
-        cookieKeys: Object.keys(erpCookieData),
-        dataSource: erpCookieData.lastUpdated ? 'fresh' : 'stored'
+      console.log('🔍 Raven Embed - ERP Auth data found:', {
+        source: erpAuthData.source,
+        hasCookieData: !!erpAuthData.cookieData,
+        userInfo: erpAuthData.userInfo,
+        cookieKeys: Object.keys(erpAuthData.cookieData || {})
       });
       
       return {
-        cookieData: erpCookieData,
-        userInfo: userInfo,
-        email: userInfo?.email,
-        fullName: userInfo?.fullName,
-        userId: userInfo?.userId,
-        sessionId: userInfo?.sessionId,
-        systemUser: userInfo?.systemUser
+        cookieData: erpAuthData.cookieData,
+        userInfo: erpAuthData.userInfo,
+        email: erpAuthData.userInfo?.email,
+        fullName: erpAuthData.userInfo?.fullName,
+        userId: erpAuthData.userInfo?.userId,
+        sessionId: erpAuthData.userInfo?.sessionId,
+        systemUser: erpAuthData.userInfo?.systemUser,
+        source: erpAuthData.source
       };
     } catch (error) {
-      console.error('❌ Error reading ERP cookie data for Raven Embed:', error);
+      console.error('❌ Error reading ERP authentication data for Raven Embed:', error);
       return null;
     }
   }, []);
@@ -120,7 +102,8 @@ const RavenEmbed = ({
       const authenticatedUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData);
       
       console.log('✅ Built enhanced Raven URL with ERP cookie authentication');
-      console.log('🍪 Using ERP cookie data for Raven Embed:', {
+      console.log('🍪 Using ERP data for Raven Embed:', {
+        source: authData.source,
         user_id: authData.userId,
         full_name: authData.fullName,
         system_user: authData.systemUser,
@@ -327,52 +310,16 @@ const RavenEmbed = ({
     />
   );
 
-  // Main Raven embed component
-  const RavenEmbedComponent = () => {
-    // Render based on state
-    if (error) {
-      return <ErrorComponent />;
-    }
+  // Render based on state
+  if (error) {
+    return <ErrorComponent />;
+  }
 
-    if (showLoading && (isLoading || !iframeUrl)) {
-      return <LoadingComponent />;
-    }
+  if (showLoading && (isLoading || !iframeUrl)) {
+    return <LoadingComponent />;
+  }
 
-    return <IframeComponent />;
-  };
-
-  // Wrap with ERP Login Handler
-  return (
-    <ERPLoginHandler
-      onERPLoginSuccess={(cookieData, userInfo) => {
-        console.log('✅ ERP login successful for Raven Embed, initializing...');
-        // Re-initialize Raven when ERP login is successful
-        const authData = getAuthData();
-        if (authData) {
-          buildRavenUrl(authData).then(url => {
-            setIframeUrl(url);
-            setIsLoading(false);
-            setAuthStep('ready');
-          }).catch(err => {
-            console.error('❌ Error building Raven URL after ERP login:', err);
-            setError('Failed to build Raven URL after ERP login');
-            setIsLoading(false);
-            setAuthStep('error');
-          });
-        }
-      }}
-      onERPLoginError={(error) => {
-        console.error('❌ ERP login error for Raven Embed:', error);
-        setError('Background ERP login failed. Will retry automatically.');
-        setIsLoading(false);
-        setAuthStep('error');
-      }}
-      enableBackgroundLogin={true}
-      showLoading={false}
-    >
-      <RavenEmbedComponent />
-    </ERPLoginHandler>
-  );
+  return <IframeComponent />;
 };
 
 export default RavenEmbed;

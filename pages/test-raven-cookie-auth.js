@@ -3,13 +3,10 @@ import { useAuth } from '../components/AuthContext';
 import dynamic from 'next/dynamic';
 import { 
   getERPCookieData, 
-  getStoredERPCookieData,
   validateERPCookieData,
   extractUserInfoFromCookies,
   isERPCookieAuthAvailable,
-  isUserLoggedIntoERP,
-  buildRavenUrlWithCookieAuth,
-  redirectToERPLogin
+  buildRavenUrlWithCookieAuth
 } from '../components/utils/erpCookieAuth';
 
 // Dynamically import Raven components to avoid SSR issues
@@ -48,27 +45,15 @@ const RavenEmbed = dynamic(() => import('../components/RavenEmbed'), {
 export default function TestRavenCookieAuth() {
   const { user, loading, isAuthenticated } = useAuth();
   const [cookieData, setCookieData] = useState(null);
-  const [storedCookieData, setStoredCookieData] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [cookieStatus, setCookieStatus] = useState('checking');
-  const [erpLoginStatus, setErpLoginStatus] = useState('checking');
   const [ravenUrl, setRavenUrl] = useState('');
 
   // Check ERP cookie data
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const checkCookies = () => {
-        // Check ERP login status
-        const isLoggedIn = isUserLoggedIntoERP();
-        setErpLoginStatus(isLoggedIn ? 'logged_in' : 'not_logged_in');
-
-        // Get fresh ERP cookie data
         const erpCookies = getERPCookieData();
-        
-        // Get stored ERP cookie data as fallback
-        const storedCookies = getStoredERPCookieData();
-        setStoredCookieData(storedCookies);
-
         const isValid = validateERPCookieData(erpCookies);
         const userInfo = extractUserInfoFromCookies(erpCookies);
         const isAvailable = isERPCookieAuthAvailable();
@@ -77,10 +62,9 @@ export default function TestRavenCookieAuth() {
         setUserInfo(userInfo);
         setCookieStatus(isAvailable ? 'available' : 'unavailable');
 
-        // Build Raven URL if cookies are available (fresh or stored)
-        const cookiesToUse = erpCookies || storedCookies;
-        if (isAvailable && cookiesToUse) {
-          const url = buildRavenUrlWithCookieAuth('https://erp.elbrit.org/raven', cookiesToUse);
+        // Build Raven URL if cookies are available
+        if (isAvailable && erpCookies) {
+          const url = buildRavenUrlWithCookieAuth('https://erp.elbrit.org/raven', erpCookies);
           setRavenUrl(url);
         }
       };
@@ -112,65 +96,20 @@ export default function TestRavenCookieAuth() {
       </div>
 
       <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: '#f3e5f5', borderRadius: '8px' }}>
-        <h2>🍪 ERP Login & Cookie Status</h2>
-        <p><strong>ERP Login Status:</strong> {
-          erpLoginStatus === 'checking' ? '⏳ Checking...' :
-          erpLoginStatus === 'logged_in' ? '✅ Logged In' : '❌ Not Logged In'
-        }</p>
+        <h2>🍪 ERP Cookie Status</h2>
         <p><strong>Cookie Status:</strong> {
           cookieStatus === 'checking' ? '⏳ Checking...' :
           cookieStatus === 'available' ? '✅ Available' : '❌ Unavailable'
         }</p>
         <p><strong>ERP Cookie Auth Available:</strong> {isERPCookieAuthAvailable() ? '✅ Yes' : '❌ No'}</p>
         
-        {erpLoginStatus === 'not_logged_in' && (
-          <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#fff3e0', borderRadius: '4px' }}>
-            <p style={{ margin: '0 0 10px 0', color: '#e65100' }}>
-              🔄 ERP authentication will happen automatically in the background
-            </p>
-            <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '12px' }}>
-              A hidden iframe will handle the ERP login process without interrupting your workflow
-            </p>
-            <button
-              onClick={() => redirectToERPLogin(window.location.href)}
-              style={{
-                backgroundColor: '#ff9800',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-            >
-              Manual ERP Login (if needed)
-            </button>
-          </div>
-        )}
-        
         {cookieData && (
           <div style={{ marginTop: '10px' }}>
-            <h3>Fresh ERP Cookies:</h3>
+            <h3>Available ERP Cookies:</h3>
             <ul style={{ fontSize: '12px', fontFamily: 'monospace' }}>
               {Object.keys(cookieData).map(key => (
                 <li key={key}>
                   <strong>{key}:</strong> {cookieData[key] ? '✅ Available' : '❌ Missing'}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {storedCookieData && !cookieData && (
-          <div style={{ marginTop: '10px', padding: '10px', backgroundColor: '#e8f5e8', borderRadius: '4px' }}>
-            <h3>📦 Stored ERP Cookie Data (Fallback):</h3>
-            <p style={{ fontSize: '12px', color: '#2e7d32' }}>
-              Using stored cookie data as fallback (last updated: {storedCookieData.lastUpdated})
-            </p>
-            <ul style={{ fontSize: '12px', fontFamily: 'monospace' }}>
-              {Object.keys(storedCookieData).filter(key => key !== 'lastUpdated').map(key => (
-                <li key={key}>
-                  <strong>{key}:</strong> {storedCookieData[key] ? '✅ Available' : '❌ Missing'}
                 </li>
               ))}
             </ul>
@@ -251,30 +190,24 @@ export default function TestRavenCookieAuth() {
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f1f8e9', borderRadius: '8px' }}>
-        <h2>✅ Benefits of Background ERP Cookie Authentication</h2>
+        <h2>✅ Benefits of ERP Cookie Authentication</h2>
         <ul>
-          <li><strong>Seamless Experience:</strong> ERP login happens in background without interrupting user workflow</li>
           <li><strong>Shared Domain:</strong> Both Raven and ERP use the same cookie domain (.elbrit.org)</li>
           <li><strong>Automatic Authentication:</strong> Cookies are automatically sent by the browser</li>
           <li><strong>Secure:</strong> No need to pass sensitive tokens in URLs</li>
           <li><strong>Consistent:</strong> User is authenticated in both ERP and Raven systems</li>
           <li><strong>Real-time:</strong> Cookie changes are monitored automatically</li>
-          <li><strong>Hidden Process:</strong> Uses hidden iframe for background ERP login</li>
-          <li><strong>Fallback Support:</strong> Uses stored cookie data if fresh cookies aren't available</li>
         </ul>
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fce4ec', borderRadius: '8px' }}>
-        <h2>📋 How Background ERP Login Works</h2>
-        <ol>
-          <li><strong>Initial Check:</strong> System checks if user is logged into ERP</li>
-          <li><strong>Background Process:</strong> If not logged in, hidden iframe loads ERP login page</li>
-          <li><strong>Automatic Login:</strong> User can login through the hidden iframe (if needed)</li>
-          <li><strong>Cookie Detection:</strong> System monitors for ERP cookies to be set</li>
-          <li><strong>Data Storage:</strong> ERP cookie data is extracted and stored in localStorage</li>
-          <li><strong>Raven Authentication:</strong> Uses ERP cookies to authenticate with Raven</li>
-          <li><strong>Fallback:</strong> Uses stored cookie data if fresh cookies aren't available</li>
-        </ol>
+        <h2>📋 Requirements for ERP Cookie Authentication</h2>
+        <ul>
+          <li>✅ <strong>Must be logged into ERP system</strong> (erp.elbrit.org)</li>
+          <li>✅ <strong>ERP cookies must be present</strong> (full_name, user_id, sid, etc.)</li>
+          <li>✅ <strong>Same domain access</strong> (.elbrit.org)</li>
+          <li>✅ <strong>Browser must support cookies</strong></li>
+        </ul>
       </div>
 
       <div style={{ marginTop: '20px', textAlign: 'center' }}>
