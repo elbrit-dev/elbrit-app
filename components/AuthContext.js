@@ -1,10 +1,4 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
-import { 
-  performERPLogin, 
-  getStoredERPData, 
-  isERPLoginNeeded, 
-  clearStoredERPData 
-} from './utils/erpBackgroundLogin';
 
 // Lazily load Firebase only on the client to cut initial JS and block time
 let __firebaseCache = null;
@@ -261,15 +255,6 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('authProvider', provider);
                   localStorage.setItem('authMethod', provider === 'phone' ? 'phone' : 'microsoft');
                   
-                  // Perform background ERP login to get cookies
-                  console.log('🍪 Starting background ERP login for cookie data...');
-                  try {
-                    const erpLoginResult = await performERPLogin(user);
-                    console.log('✅ Background ERP login successful, cookies stored');
-                  } catch (erpLoginError) {
-                    console.warn('⚠️ Background ERP login failed, but continuing with ERPNext auth:', erpLoginError);
-                  }
-                  
                   // Generate avatar from first letter
                   const firstLetter = finalUser.displayName?.charAt(0)?.toUpperCase() || finalUser.email?.charAt(0)?.toUpperCase() || 'U';
                   const avatarSvg = generateAvatarSvg(firstLetter);
@@ -369,9 +354,6 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('employeeData');
             localStorage.removeItem('phoneUserData');
             localStorage.removeItem('employeeId');
-            
-            // Clear ERP cookie data
-            clearStoredERPData();
             
             console.log('🧹 Cleared all auth data from localStorage');
           }
