@@ -175,10 +175,26 @@ export default function TestERPBackgroundLogin() {
               padding: '8px 16px',
               borderRadius: '4px',
               cursor: 'pointer',
-              fontSize: '14px'
+              fontSize: '14px',
+              marginRight: '10px'
             }}
           >
             🔄 Refresh ERP Data
+          </button>
+          <button
+            onClick={handleManualERPLogin}
+            style={{
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              marginRight: '10px'
+            }}
+          >
+            🔐 Manual ERP Login
           </button>
           <button
             onClick={handleClearERPData}
