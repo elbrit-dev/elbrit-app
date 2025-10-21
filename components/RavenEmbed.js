@@ -6,6 +6,8 @@ import {
   validateERPCookieData,
   extractUserInfoFromCookies
 } from './utils/erpCookieAuth';
+import { getStoredERPCredentials, hasStoredERPCredentials, createERPCookieData, validateERPCredentials } from './utils/erpOneTimeCredentials';
+import ERPOneTimeLogin from './ERPOneTimeLogin';
 
 /**
  * RavenEmbed Component - Embeds Raven chat application via iframe with ERP Cookie Auto-login
@@ -44,56 +46,62 @@ const RavenEmbed = ({
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [authStep, setAuthStep] = useState('initializing');
+  const [showERPLogin, setShowERPLogin] = useState(false);
+  const [erpCredentials, setErpCredentials] = useState(null);
   const maxRetries = 3;
 
-  // Get authentication data from stored ERP data
+  // Get authentication data - check one-time login first, then fallback to stored ERP data
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // Get stored ERP data from localStorage
+      // First, check for one-time ERP login credentials
+      const oneTimeCredentials = getStoredERPCredentials(user);
+      if (oneTimeCredentials) {
+        console.log('✅ Using one-time ERP login credentials for Raven');
+        const cookieData = createERPCookieData(user, oneTimeCredentials);
+        const userInfo = extractUserInfoFromCookies(cookieData);
+        
+        return {
+          cookieData,
+          source: 'one_time_login',
+          erpCredentials: oneTimeCredentials,
+          userInfo: userInfo,
+          email: userInfo?.email,
+          fullName: userInfo?.fullName,
+          userId: userInfo?.userId,
+          sessionId: userInfo?.sessionId,
+          systemUser: userInfo?.systemUser
+        };
+      }
+
+      // Fallback to stored ERP data from background login
       const storedERPData = getStoredERPData();
-      
-      if (!storedERPData) {
-        console.warn('⚠️ No stored ERP data available for Raven Embed');
-        return null;
+      if (storedERPData && storedERPData.cookieData) {
+        console.log('✅ Using stored ERP background login data for Raven');
+        const { erpnextData, cookieData, loginData } = storedERPData;
+        const userInfo = extractUserInfoFromCookies(cookieData);
+        
+        return {
+          erpnextData,
+          cookieData,
+          loginData,
+          userInfo: userInfo,
+          email: userInfo?.email,
+          fullName: userInfo?.fullName,
+          userId: userInfo?.userId,
+          sessionId: userInfo?.sessionId,
+          systemUser: userInfo?.systemUser
+        };
       }
 
-      const { erpnextData, cookieData, loginData } = storedERPData;
-
-      // Validate cookie data
-      if (!validateERPCookieData(cookieData)) {
-        console.warn('⚠️ Stored ERP cookie data is invalid for Raven Embed');
-        return null;
-      }
-
-      // Extract user information from stored cookies
-      const userInfo = extractUserInfoFromCookies(cookieData);
-      
-      console.log('🔍 Raven Embed - Stored ERP Auth data found:', {
-        hasStoredData: !!storedERPData,
-        hasCookieData: !!cookieData,
-        hasERPNextData: !!erpnextData,
-        userInfo,
-        cookieKeys: Object.keys(cookieData)
-      });
-      
-      return {
-        erpnextData,
-        cookieData,
-        loginData,
-        userInfo: userInfo,
-        email: userInfo?.email,
-        fullName: userInfo?.fullName,
-        userId: userInfo?.userId,
-        sessionId: userInfo?.sessionId,
-        systemUser: userInfo?.systemUser
-      };
+      console.warn('⚠️ No ERP credentials found - user needs one-time login');
+      return null;
     } catch (error) {
       console.error('❌ Error reading stored ERP data for Raven Embed:', error);
       return null;
     }
-  }, []);
+  }, [user]);
 
   // Enhanced authentication using stored ERP data
   const buildRavenUrl = useCallback(async (authData) => {
@@ -143,6 +151,36 @@ const RavenEmbed = ({
     if (onError) onError();
   }, [onError]);
 
+  // Handle successful ERP login
+  const handleERPLoginSuccess = useCallback(async (credentials) => {
+    console.log('✅ ERP login successful, storing credentials and building Raven URL');
+    setErpCredentials(credentials);
+    setShowERPLogin(false);
+    
+    // Rebuild the Raven URL with new credentials
+    const authData = getAuthData();
+    if (authData) {
+      try {
+        const url = await buildRavenUrl(authData);
+        setIframeUrl(url);
+        setIsLoading(false);
+        setAuthStep('ready');
+      } catch (error) {
+        console.error('❌ Error building Raven URL after ERP login:', error);
+        setError('Failed to build Raven URL after ERP login');
+        setAuthStep('error');
+      }
+    }
+  }, [getAuthData, buildRavenUrl]);
+
+  // Handle ERP login skip
+  const handleERPLoginSkip = useCallback(() => {
+    console.log('⏭️ User skipped ERP login');
+    setShowERPLogin(false);
+    setError('ERP login required for Raven chat. Please refresh the page to try again.');
+    setAuthStep('error');
+  }, []);
+
   // Retry mechanism
   const handleRetry = useCallback(() => {
     if (retryCount < maxRetries) {
@@ -178,15 +216,15 @@ const RavenEmbed = ({
         return;
       }
 
-      console.log('🔐 User authenticated, building enhanced Raven URL with ERP cookies...');
+      console.log('🔐 User authenticated, checking for ERP credentials...');
       setAuthStep('initializing');
       const authData = getAuthData();
       
       if (!authData) {
-        console.error('❌ No stored ERP data found');
-        setError('Stored ERP authentication data not found. Please log in again to refresh ERP data.');
+        console.log('⚠️ No ERP credentials found - showing one-time login popup');
+        setShowERPLogin(true);
         setIsLoading(false);
-        setAuthStep('error');
+        setAuthStep('needs_erp_login');
         return;
       }
 
@@ -327,7 +365,17 @@ const RavenEmbed = ({
     return <LoadingComponent />;
   }
 
-  return <IframeComponent />;
+  return (
+    <>
+      <IframeComponent />
+      {showERPLogin && (
+        <ERPOneTimeLogin
+          onLoginSuccess={handleERPLoginSuccess}
+          onSkip={handleERPLoginSkip}
+        />
+      )}
+    </>
+  );
 };
 
 export default RavenEmbed;
