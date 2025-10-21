@@ -4,7 +4,8 @@ import dynamic from 'next/dynamic';
 import { 
   getStoredERPData, 
   isERPLoginNeeded,
-  clearStoredERPData 
+  clearStoredERPData,
+  performERPLogin
 } from '../components/utils/erpBackgroundLogin';
 
 // Dynamically import Raven components to avoid SSR issues
@@ -73,6 +74,23 @@ export default function TestERPBackgroundLogin() {
     window.location.reload();
   };
 
+  const handleManualERPLogin = async () => {
+    if (!user) {
+      alert('Please log in first');
+      return;
+    }
+
+    try {
+      console.log('🔄 Starting manual ERP login...');
+      const result = await performERPLogin(user);
+      console.log('✅ Manual ERP login completed:', result);
+      setRefreshKey(prev => prev + 1);
+    } catch (error) {
+      console.error('❌ Manual ERP login failed:', error);
+      alert('ERP login failed: ' + error.message);
+    }
+  };
+
   if (loading) {
     return (
       <div style={{ padding: '20px' }}>
@@ -119,13 +137,28 @@ export default function TestERPBackgroundLogin() {
                   <li><strong>User ID:</strong> {storedERPData.cookieData?.user_id || 'Not available'}</li>
                   <li><strong>System User:</strong> {storedERPData.cookieData?.system_user || 'Not available'}</li>
                   <li><strong>Session ID:</strong> {storedERPData.cookieData?.sid ? '✅ Available' : '❌ Missing'}</li>
+                  <li><strong>Data Source:</strong> {storedERPData.simulated ? '🔄 Simulated' : '🍪 Real Cookies'}</li>
                 </ul>
               </div>
             </div>
           </div>
         )}
 
-        <div style={{ marginTop: '15px', display: 'flex', gap: '10px' }}>
+        <div style={{ marginTop: '15px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleManualERPLogin}
+            style={{
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '14px'
+            }}
+          >
+            🔐 Manual ERP Login
+          </button>
           <button
             onClick={handleRefreshERPData}
             style={{
@@ -162,11 +195,14 @@ export default function TestERPBackgroundLogin() {
         <ol>
           <li><strong>Firebase Authentication:</strong> User logs in via phone/Microsoft</li>
           <li><strong>ERPNext API Call:</strong> Authenticate with ERPNext using Firebase user data</li>
-          <li><strong>Background ERP Login:</strong> Perform hidden login to erp.elbrit.org to get cookies</li>
-          <li><strong>Cookie Extraction:</strong> Extract ERP cookies (full_name, user_id, sid, etc.)</li>
+          <li><strong>Check ERP Login Status:</strong> Check if user is already logged into erp.elbrit.org</li>
+          <li><strong>Manual ERP Login:</strong> If not logged in, open ERP login window for user to complete</li>
+          <li><strong>Cookie Extraction:</strong> Extract ERP cookies after user completes login</li>
+          <li><strong>Fallback Simulation:</strong> If manual login fails, create simulated cookie data</li>
           <li><strong>LocalStorage Storage:</strong> Store ERP data in localStorage for later use</li>
           <li><strong>Raven Authentication:</strong> Use stored ERP data for Raven auto-login</li>
         </ol>
+        <p><strong>Note:</strong> The system first checks if the user is already logged into ERP. If not, it opens a new window for the user to complete ERP login manually, then extracts the resulting cookies.</p>
       </div>
 
       <div style={{ marginBottom: '20px' }}>
