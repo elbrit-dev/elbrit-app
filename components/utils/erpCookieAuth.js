@@ -149,8 +149,52 @@ export const extractUserInfoFromCookies = (cookieData) => {
  * @returns {boolean} Whether ERP cookies are available for authentication
  */
 export const isERPCookieAuthAvailable = () => {
-  const cookieData = getERPCookieData();
-  return validateERPCookieData(cookieData);
+  try {
+    const cookieData = getERPCookieData();
+    const isValid = validateERPCookieData(cookieData);
+    
+    console.log('🔍 ERP Cookie Auth Check:', {
+      hasCookieData: !!cookieData,
+      isValid,
+      cookieKeys: cookieData ? Object.keys(cookieData) : []
+    });
+    
+    return isValid;
+  } catch (error) {
+    console.error('❌ Error checking ERP cookie auth availability:', error);
+    return false;
+  }
+};
+
+/**
+ * Debug function to log all available cookies
+ * @returns {Object} All cookies and their values
+ */
+export const debugAllCookies = () => {
+  if (typeof window === 'undefined') return {};
+
+  try {
+    const allCookies = document.cookie.split(';').reduce((acc, cookie) => {
+      const [name, value] = cookie.trim().split('=');
+      if (name && value) {
+        acc[name] = decodeURIComponent(value);
+      }
+      return acc;
+    }, {});
+
+    console.log('🍪 All Available Cookies:', allCookies);
+    console.log('🍪 ERP Domain Cookies:', Object.keys(allCookies).filter(key => 
+      key.includes('full_name') || 
+      key.includes('user_id') || 
+      key.includes('sid') || 
+      key.includes('system_user')
+    ));
+
+    return allCookies;
+  } catch (error) {
+    console.error('❌ Error debugging cookies:', error);
+    return {};
+  }
 };
 
 /**

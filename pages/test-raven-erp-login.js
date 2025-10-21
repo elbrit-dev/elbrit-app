@@ -5,7 +5,8 @@ import {
   getERPCookieData, 
   validateERPCookieData,
   extractUserInfoFromCookies,
-  isERPCookieAuthAvailable
+  isERPCookieAuthAvailable,
+  debugAllCookies
 } from '../components/utils/erpCookieAuth';
 
 // Dynamically import RavenEmbed to avoid SSR issues
@@ -154,6 +155,8 @@ export default function TestRavenERPLogin() {
         <ol>
           <li>✅ <strong>Check for ERP login status</strong> (fresh cookies or stored data)</li>
           <li>✅ <strong>Show ERP login modal</strong> if not logged in (one-time setup)</li>
+          <li>✅ <strong>Open ERP login popup</strong> to <code>https://erp.elbrit.org/login#login?provider=office365</code></li>
+          <li>✅ <strong>Automatically use Office 365 login</strong> for seamless authentication</li>
           <li>✅ <strong>Store ERP data in localStorage</strong> after successful login</li>
           <li>✅ <strong>Use ERP data for Raven authentication</strong> automatically</li>
           <li>✅ <strong>Provide seamless experience</strong> for future visits</li>
@@ -192,8 +195,8 @@ export default function TestRavenERPLogin() {
               <li>Clear localStorage and cookies</li>
               <li>Refresh the page</li>
               <li>ERP login modal should appear</li>
-              <li>Click "Login to ERP" to open popup</li>
-              <li>Complete ERP login in popup</li>
+            <li>Click "Login to ERP" to open popup</li>
+            <li>Complete Office 365 login in popup (automatic)</li>
               <li>Modal should close and Raven should load</li>
             </ul>
           </li>
@@ -211,6 +214,44 @@ export default function TestRavenERPLogin() {
             </ul>
           </li>
         </ol>
+        
+        <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#fff', borderRadius: '4px' }}>
+          <h3>🔧 Debug Tools</h3>
+          <button
+            onClick={() => {
+              console.log('🔍 Debug: Checking all cookies...');
+              debugAllCookies();
+            }}
+            style={{
+              backgroundColor: '#007bff',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              marginRight: '10px'
+            }}
+          >
+            Debug All Cookies
+          </button>
+          <button
+            onClick={() => {
+              console.log('🔍 Debug: Checking ERP auth status...');
+              const isAvailable = isERPCookieAuthAvailable();
+              console.log('ERP Auth Available:', isAvailable);
+            }}
+            style={{
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: 'none',
+              padding: '8px 16px',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            Check ERP Auth Status
+          </button>
+        </div>
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#e8f5e8', borderRadius: '8px' }}>

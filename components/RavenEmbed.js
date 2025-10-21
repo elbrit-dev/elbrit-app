@@ -410,7 +410,7 @@ const RavenEmbed = ({
         isOpen={showERPLoginModal}
         onClose={handleERPLoginClose}
         onLoginSuccess={handleERPLoginSuccess}
-        erpUrl="https://erp.elbrit.org"
+        erpUrl="https://erp.elbrit.org/login#login"
         title="ERP Login Required"
         description="Please log in to the ERP system to access Raven chat. This is a one-time setup."
       />

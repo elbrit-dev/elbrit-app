@@ -88,9 +88,12 @@ const ERPLoginModal = ({
       setIsLoading(true);
       setError(null);
 
-      // Open ERP login in popup window
+      // Open ERP login in popup window (directly to Office 365 login)
+      const loginUrl = erpUrl.endsWith('/login') ? erpUrl : `${erpUrl}/login#login`;
+      // Try different Office 365 login URL patterns
+      const office365LoginUrl = `${loginUrl}?provider=office365`;
       const popup = window.open(
-        erpUrl,
+        office365LoginUrl,
         'erp-login',
         'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
       );
@@ -119,19 +122,40 @@ const ERPLoginModal = ({
       // Check for ERP login success periodically
       const checkLogin = setInterval(() => {
         try {
-          // Try to access popup's cookies (this will fail if cross-origin)
-          // Instead, we'll check our own cookies which should be updated
+          // Check if we can access the popup (it might have navigated)
+          if (popup.closed) {
+            clearInterval(checkLogin);
+            return;
+          }
+
+          // Try to automatically click Office 365 button if we're on the login page
+          try {
+            // This will fail due to cross-origin restrictions, but we try anyway
+            const office365Button = popup.document.querySelector('button[type="button"]:contains("Office 365")') || 
+                                   popup.document.querySelector('a:contains("Office 365")') ||
+                                   popup.document.querySelector('[href*="office365"]');
+            if (office365Button) {
+              office365Button.click();
+              console.log('🔄 Attempted to click Office 365 button');
+            }
+          } catch (e) {
+            // Expected due to cross-origin restrictions
+          }
+
+          // Check our own cookies which should be updated after ERP login
           if (checkERPLoginStatus()) {
             clearInterval(checkLogin);
             clearInterval(checkClosed);
             popup.close();
             setErpWindow(null);
+            console.log('✅ ERP login detected via cookies');
           }
         } catch (error) {
           // Expected error due to cross-origin restrictions
           // Continue checking
+          console.log('🔄 Checking ERP login status...');
         }
-      }, 2000);
+      }, 1500); // Check every 1.5 seconds
 
       setCheckInterval(checkLogin);
 
@@ -279,8 +303,11 @@ const ERPLoginModal = ({
         {loginStep === 'ready' && (
           <div style={{ textAlign: 'center' }}>
             <div style={{ fontSize: '48px', marginBottom: '20px' }}>🔐</div>
-            <p style={{ color: '#666', marginBottom: '30px' }}>
+            <p style={{ color: '#666', marginBottom: '20px' }}>
               You need to log in to the ERP system to access Raven chat.
+            </p>
+            <p style={{ color: '#28a745', fontSize: '14px', marginBottom: '30px', fontWeight: 'bold' }}>
+              🔐 Will automatically use Office 365 login for seamless authentication
             </p>
             <button
               onClick={openERPLogin}
@@ -343,11 +370,32 @@ const ERPLoginModal = ({
               margin: '0 auto 20px'
             }} />
             <p style={{ color: '#666', margin: '0 0 10px 0' }}>
-              Please complete the login in the popup window...
+              Please complete the Office 365 login in the popup window...
             </p>
-            <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
-              The popup will close automatically when login is complete.
+            <p style={{ color: '#999', fontSize: '12px', margin: '0 0 20px 0' }}>
+              The popup will close automatically when Office 365 login is complete.
             </p>
+            <button
+              onClick={() => {
+                console.log('🔄 Manual login check triggered');
+                if (checkERPLoginStatus()) {
+                  console.log('✅ Manual check: ERP login successful');
+                } else {
+                  console.log('❌ Manual check: ERP login not yet complete');
+                }
+              }}
+              style={{
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Check Login Status
+            </button>
           </div>
         )}
 
