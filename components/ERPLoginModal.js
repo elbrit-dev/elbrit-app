@@ -82,96 +82,24 @@ const ERPLoginModal = ({
     }
   }, [onLoginSuccess]);
 
-  // Open ERP login in popup window
+  // Open ERP login in iframe within modal
   const openERPLogin = useCallback(() => {
     try {
       setLoginStep('opening');
       setIsLoading(true);
       setError(null);
 
-      // Open ERP login in popup window (directly to Office 365 login)
-      const loginUrl = erpUrl.endsWith('/login') ? erpUrl : `${erpUrl}/login#login`;
-      // Try different Office 365 login URL patterns
-      const office365LoginUrl = `${loginUrl}?provider=office365`;
-      const popup = window.open(
-        office365LoginUrl,
-        'erp-login',
-        'width=800,height=600,scrollbars=yes,resizable=yes,toolbar=no,menubar=no,location=no,status=no'
-      );
-
-      if (!popup) {
-        setError('Popup blocked. Please allow popups for this site and try again.');
-        setIsLoading(false);
-        setLoginStep('error');
-        return;
-      }
-
-      setErpWindow(popup);
+      // Set up iframe login
       setLoginStep('waiting');
+      setIsLoading(false);
 
-      // Check if popup is closed manually
-      const checkClosed = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(checkClosed);
-          setErpWindow(null);
-          setIsLoading(false);
-          setLoginStep('checking');
-          console.log('🪟 ERP login popup closed by user');
+      // Start checking for login success
+      const checkLogin = setInterval(() => {
+        if (checkERPLoginStatus()) {
+          clearInterval(checkLogin);
+          console.log('✅ ERP login detected via cookies');
         }
       }, 1000);
-
-      // Check for ERP login success periodically
-      const checkLogin = setInterval(() => {
-        try {
-          // Check if we can access the popup (it might have navigated)
-          if (popup.closed) {
-            clearInterval(checkLogin);
-            return;
-          }
-
-          // Check our own cookies which should be updated after ERP login
-          if (checkERPLoginStatus()) {
-            clearInterval(checkLogin);
-            clearInterval(checkClosed);
-            popup.close();
-            setErpWindow(null);
-            console.log('✅ ERP login detected via cookies');
-            return;
-          }
-
-          // Try to detect if popup has navigated to a success page
-          try {
-            const popupUrl = popup.location.href;
-            console.log('🔍 Popup URL:', popupUrl);
-            
-            // Check if popup is on a success page or dashboard
-            if (popupUrl.includes('erp.elbrit.org') && 
-                (popupUrl.includes('/app') || 
-                 popupUrl.includes('/dashboard') || 
-                 popupUrl.includes('/desk') ||
-                 !popupUrl.includes('/login'))) {
-              console.log('🔄 Popup navigated to ERP dashboard, checking cookies...');
-              
-              // Give a moment for cookies to be set
-              setTimeout(() => {
-                if (checkERPLoginStatus()) {
-                  clearInterval(checkLogin);
-                  clearInterval(checkClosed);
-                  popup.close();
-                  setErpWindow(null);
-                  console.log('✅ ERP login detected after navigation');
-                }
-              }, 2000);
-            }
-          } catch (e) {
-            // Expected due to cross-origin restrictions
-            console.log('🔄 Checking ERP login status...');
-          }
-        } catch (error) {
-          // Expected error due to cross-origin restrictions
-          console.log('🔄 Checking ERP login status...');
-        }
-      }, 1000); // Check every 1 second for faster detection
 
       setCheckInterval(checkLogin);
 
@@ -180,11 +108,6 @@ const ERPLoginModal = ({
         if (checkERPLoginStatus()) {
           clearInterval(aggressiveCheck);
           clearInterval(checkLogin);
-          clearInterval(checkClosed);
-          if (!popup.closed) {
-            popup.close();
-          }
-          setErpWindow(null);
         }
       }, 500);
 
@@ -192,12 +115,6 @@ const ERPLoginModal = ({
       setTimeout(() => {
         clearInterval(checkLogin);
         clearInterval(aggressiveCheck);
-        clearInterval(checkClosed);
-        if (!popup.closed) {
-          popup.close();
-        }
-        setErpWindow(null);
-        setIsLoading(false);
         if (loginStep === 'waiting') {
           setError('Login timeout. Please try again.');
           setLoginStep('error');
@@ -205,12 +122,12 @@ const ERPLoginModal = ({
       }, 300000); // 5 minutes
 
     } catch (error) {
-      console.error('❌ Error opening ERP login:', error);
-      setError('Failed to open ERP login. Please try again.');
+      console.error('❌ Error setting up ERP login:', error);
+      setError('Failed to set up ERP login. Please try again.');
       setIsLoading(false);
       setLoginStep('error');
     }
-  }, [erpUrl, checkERPLoginStatus, loginStep]);
+  }, [checkERPLoginStatus, loginStep]);
 
   // Initial check when modal opens
   useEffect(() => {
@@ -277,9 +194,9 @@ const ERPLoginModal = ({
         backgroundColor: 'white',
         borderRadius: '12px',
         padding: '30px',
-        maxWidth: '500px',
-        width: '90%',
-        maxHeight: '80vh',
+        maxWidth: '800px',
+        width: '95%',
+        maxHeight: '90vh',
         overflow: 'auto',
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.3)',
         position: 'relative'
@@ -337,7 +254,7 @@ const ERPLoginModal = ({
               You need to log in to the ERP system to access Raven chat.
             </p>
             <p style={{ color: '#28a745', fontSize: '14px', marginBottom: '30px', fontWeight: 'bold' }}>
-              🔐 Will automatically use Office 365 login for seamless authentication
+              🔐 Login form will open below with Office 365 authentication
             </p>
             <button
               onClick={openERPLogin}
@@ -400,21 +317,39 @@ const ERPLoginModal = ({
               margin: '0 auto 20px'
             }} />
             <p style={{ color: '#666', margin: '0 0 10px 0' }}>
-              Please complete the Office 365 login in the popup window...
+              Please complete the Office 365 login below...
             </p>
             <p style={{ color: '#999', fontSize: '12px', margin: '0 0 20px 0' }}>
-              The popup will close automatically when Office 365 login is complete.
+              The modal will close automatically when Office 365 login is complete.
             </p>
+            
+            {/* ERP Login Iframe */}
+            <div style={{
+              width: '100%',
+              height: '500px',
+              border: '1px solid #ddd',
+              borderRadius: '8px',
+              overflow: 'hidden',
+              marginBottom: '20px'
+            }}>
+              <iframe
+                src={`${erpUrl}?provider=office365`}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none'
+                }}
+                title="ERP Login"
+                allow="camera; microphone; notifications; clipboard-read; clipboard-write"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"
+              />
+            </div>
+
             <button
               onClick={() => {
                 console.log('🔄 Manual login check triggered');
                 if (checkERPLoginStatus()) {
                   console.log('✅ Manual check: ERP login successful');
-                  // Force close popup and trigger success
-                  if (erpWindow && !erpWindow.closed) {
-                    erpWindow.close();
-                  }
-                  setErpWindow(null);
                 } else {
                   console.log('❌ Manual check: ERP login not yet complete');
                   // Show current cookie status
@@ -437,20 +372,14 @@ const ERPLoginModal = ({
             </button>
             <button
               onClick={() => {
-                console.log('🔄 Force close popup and check');
-                if (erpWindow && !erpWindow.closed) {
-                  erpWindow.close();
+                console.log('🔄 Refresh iframe');
+                const iframe = document.querySelector('iframe[title="ERP Login"]');
+                if (iframe) {
+                  iframe.src = iframe.src;
                 }
-                setErpWindow(null);
-                // Check again after closing
-                setTimeout(() => {
-                  if (checkERPLoginStatus()) {
-                    console.log('✅ Login successful after force close');
-                  }
-                }, 1000);
               }}
               style={{
-                backgroundColor: '#dc3545',
+                backgroundColor: '#007bff',
                 color: 'white',
                 border: 'none',
                 padding: '8px 16px',
@@ -459,7 +388,7 @@ const ERPLoginModal = ({
                 cursor: 'pointer'
               }}
             >
-              Force Close & Check
+              Refresh Login
             </button>
           </div>
         )}
