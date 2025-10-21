@@ -43,7 +43,8 @@ const ERPLoginModal = ({
           fullName: userInfo.fullName,
           email: userInfo.email,
           systemUser: userInfo.systemUser
-        } : null
+        } : null,
+        allCookies: document.cookie.split(';').length
       });
 
       if (isLoggedIn && cookieData && userInfo) {
@@ -128,20 +129,6 @@ const ERPLoginModal = ({
             return;
           }
 
-          // Try to automatically click Office 365 button if we're on the login page
-          try {
-            // This will fail due to cross-origin restrictions, but we try anyway
-            const office365Button = popup.document.querySelector('button[type="button"]:contains("Office 365")') || 
-                                   popup.document.querySelector('a:contains("Office 365")') ||
-                                   popup.document.querySelector('[href*="office365"]');
-            if (office365Button) {
-              office365Button.click();
-              console.log('🔄 Attempted to click Office 365 button');
-            }
-          } catch (e) {
-            // Expected due to cross-origin restrictions
-          }
-
           // Check our own cookies which should be updated after ERP login
           if (checkERPLoginStatus()) {
             clearInterval(checkLogin);
@@ -149,19 +136,62 @@ const ERPLoginModal = ({
             popup.close();
             setErpWindow(null);
             console.log('✅ ERP login detected via cookies');
+            return;
+          }
+
+          // Try to detect if popup has navigated to a success page
+          try {
+            const popupUrl = popup.location.href;
+            console.log('🔍 Popup URL:', popupUrl);
+            
+            // Check if popup is on a success page or dashboard
+            if (popupUrl.includes('erp.elbrit.org') && 
+                (popupUrl.includes('/app') || 
+                 popupUrl.includes('/dashboard') || 
+                 popupUrl.includes('/desk') ||
+                 !popupUrl.includes('/login'))) {
+              console.log('🔄 Popup navigated to ERP dashboard, checking cookies...');
+              
+              // Give a moment for cookies to be set
+              setTimeout(() => {
+                if (checkERPLoginStatus()) {
+                  clearInterval(checkLogin);
+                  clearInterval(checkClosed);
+                  popup.close();
+                  setErpWindow(null);
+                  console.log('✅ ERP login detected after navigation');
+                }
+              }, 2000);
+            }
+          } catch (e) {
+            // Expected due to cross-origin restrictions
+            console.log('🔄 Checking ERP login status...');
           }
         } catch (error) {
           // Expected error due to cross-origin restrictions
-          // Continue checking
           console.log('🔄 Checking ERP login status...');
         }
-      }, 1500); // Check every 1.5 seconds
+      }, 1000); // Check every 1 second for faster detection
 
       setCheckInterval(checkLogin);
+
+      // Also start a more aggressive cookie check every 500ms
+      const aggressiveCheck = setInterval(() => {
+        if (checkERPLoginStatus()) {
+          clearInterval(aggressiveCheck);
+          clearInterval(checkLogin);
+          clearInterval(checkClosed);
+          if (!popup.closed) {
+            popup.close();
+          }
+          setErpWindow(null);
+        }
+      }, 500);
 
       // Cleanup after 5 minutes
       setTimeout(() => {
         clearInterval(checkLogin);
+        clearInterval(aggressiveCheck);
         clearInterval(checkClosed);
         if (!popup.closed) {
           popup.close();
@@ -380,8 +410,16 @@ const ERPLoginModal = ({
                 console.log('🔄 Manual login check triggered');
                 if (checkERPLoginStatus()) {
                   console.log('✅ Manual check: ERP login successful');
+                  // Force close popup and trigger success
+                  if (erpWindow && !erpWindow.closed) {
+                    erpWindow.close();
+                  }
+                  setErpWindow(null);
                 } else {
                   console.log('❌ Manual check: ERP login not yet complete');
+                  // Show current cookie status
+                  const cookieData = getERPCookieData();
+                  console.log('🍪 Current cookie data:', cookieData);
                 }
               }}
               style={{
@@ -391,10 +429,37 @@ const ERPLoginModal = ({
                 padding: '8px 16px',
                 borderRadius: '4px',
                 fontSize: '14px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                marginRight: '10px'
               }}
             >
               Check Login Status
+            </button>
+            <button
+              onClick={() => {
+                console.log('🔄 Force close popup and check');
+                if (erpWindow && !erpWindow.closed) {
+                  erpWindow.close();
+                }
+                setErpWindow(null);
+                // Check again after closing
+                setTimeout(() => {
+                  if (checkERPLoginStatus()) {
+                    console.log('✅ Login successful after force close');
+                  }
+                }, 1000);
+              }}
+              style={{
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                padding: '8px 16px',
+                borderRadius: '4px',
+                fontSize: '14px',
+                cursor: 'pointer'
+              }}
+            >
+              Force Close & Check
             </button>
           </div>
         )}
