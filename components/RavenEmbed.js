@@ -251,10 +251,12 @@ const RavenEmbed = ({
       
       if (!authData) {
         console.log('❌ No ERP data found, showing ERP login modal');
+        console.log('🔍 Setting ERP login required states...');
         setErpLoginRequired(true);
         setShowERPLoginModal(true);
         setIsLoading(false);
         setAuthStep('erp-login-required');
+        console.log('✅ ERP login modal should now be visible');
         return;
       }
 
@@ -276,7 +278,9 @@ const RavenEmbed = ({
 
   // Show ERP login modal when required
   useEffect(() => {
+    console.log('🔍 ERP Login Modal Effect:', { erpLoginRequired, showERPLoginModal });
     if (erpLoginRequired && !showERPLoginModal) {
+      console.log('🪟 Triggering ERP login modal display');
       setShowERPLoginModal(true);
     }
   }, [erpLoginRequired, showERPLoginModal]);
@@ -394,28 +398,44 @@ const RavenEmbed = ({
     />
   );
 
+  // Debug render state
+  console.log('🔍 RavenEmbed Render State:', {
+    error: !!error,
+    showERPLoginModal,
+    erpLoginRequired,
+    isLoading,
+    iframeUrl: !!iframeUrl,
+    authStep
+  });
+
   // Render based on state
   if (error) {
     return <ErrorComponent />;
+  }
+
+  // Show ERP login modal if required
+  if (showERPLoginModal) {
+    console.log('🪟 Rendering ERP login modal');
+    return (
+      <>
+        <LoadingComponent />
+        <ERPLoginModal
+          isOpen={showERPLoginModal}
+          onClose={handleERPLoginClose}
+          onLoginSuccess={handleERPLoginSuccess}
+          erpUrl="https://erp.elbrit.org/login#login"
+          title="ERP Login Required"
+          description="Please log in to the ERP system to access Raven chat. This is a one-time setup."
+        />
+      </>
+    );
   }
 
   if (showLoading && (isLoading || !iframeUrl)) {
     return <LoadingComponent />;
   }
 
-  return (
-    <>
-      <IframeComponent />
-      <ERPLoginModal
-        isOpen={showERPLoginModal}
-        onClose={handleERPLoginClose}
-        onLoginSuccess={handleERPLoginSuccess}
-        erpUrl="https://erp.elbrit.org/login#login"
-        title="ERP Login Required"
-        description="Please log in to the ERP system to access Raven chat. This is a one-time setup."
-      />
-    </>
-  );
+  return <IframeComponent />;
 };
 
 export default RavenEmbed;
