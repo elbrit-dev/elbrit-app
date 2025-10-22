@@ -19,7 +19,7 @@ const ERPLoginModal = ({
   isOpen, 
   onClose, 
   onLoginSuccess,
-  erpUrl = "https://erp.elbrit.org",
+  erpUrl = "https://uat.elbrit.org",
   title = "ERP Login Required",
   description = "Please log in to the ERP system to access Raven chat."
 }) => {

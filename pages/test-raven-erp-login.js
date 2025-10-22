@@ -155,7 +155,7 @@ export default function TestRavenERPLogin() {
         <ol>
           <li>✅ <strong>Check for ERP login status</strong> (fresh cookies or stored data)</li>
           <li>✅ <strong>Show ERP login modal</strong> if not logged in (one-time setup)</li>
-          <li>✅ <strong>Open ERP login popup</strong> to <code>https://erp.elbrit.org/login#login?provider=office365</code></li>
+          <li>✅ <strong>Open ERP login popup</strong> to <code>https://uat.elbrit.org/login#login?provider=office365</code></li>
           <li>✅ <strong>Automatically use Office 365 login</strong> for seamless authentication</li>
           <li>✅ <strong>Store ERP data in localStorage</strong> after successful login</li>
           <li>✅ <strong>Use ERP data for Raven authentication</strong> automatically</li>
