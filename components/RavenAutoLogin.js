@@ -25,7 +25,7 @@ import {
  * - Ensures user is properly authenticated in both systems
  */
 const RavenAutoLogin = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://uat.elbrit.org/raven",
   height = "90vh",
   width = "100%",
   showLoading = true,

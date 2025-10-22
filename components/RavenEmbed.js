@@ -34,7 +34,7 @@ import ERPLoginModal from './ERPLoginModal';
  * 3. Configure height/width as needed
  */
 const RavenEmbed = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://uat.elbrit.org/raven",
   height = "90vh",
   width = "100%",
   showLoading = true,

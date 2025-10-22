@@ -96,7 +96,7 @@ const token = Buffer.from(\`\${userData.uid}:\${Date.now()}\`).toString('base64'
           fontSize: '12px',
           overflow: 'auto'
         }}>
-{`https://erp.elbrit.org/raven?token=YOUR_BASE64_TOKEN&email=user@email.com&provider=microsoft&_t=timestamp`}
+{`https://uat.elbrit.org/raven?token=YOUR_BASE64_TOKEN&email=user@email.com&provider=microsoft&_t=timestamp`}
         </pre>
       </div>
 

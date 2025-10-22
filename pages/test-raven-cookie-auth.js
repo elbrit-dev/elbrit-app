@@ -64,7 +64,7 @@ export default function TestRavenCookieAuth() {
 
         // Build Raven URL if cookies are available
         if (isAvailable && erpCookies) {
-          const url = buildRavenUrlWithCookieAuth('https://erp.elbrit.org/raven', erpCookies);
+          const url = buildRavenUrlWithCookieAuth('https://uat.elbrit.org/raven', erpCookies);
           setRavenUrl(url);
         }
       };

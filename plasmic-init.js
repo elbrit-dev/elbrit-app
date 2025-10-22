@@ -3465,7 +3465,7 @@ PLASMIC.registerComponent(RavenEmbed, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org/raven",
+      defaultValue: "https://uat.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
@@ -3499,7 +3499,7 @@ PLASMIC.registerComponent(RavenEmbedSimple, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org/raven",
+      defaultValue: "https://uat.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
@@ -3553,7 +3553,7 @@ PLASMIC.registerComponent(RavenLauncher, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org/raven",
+      defaultValue: "https://uat.elbrit.org/raven",
       description: "Raven application URL"
     },
     buttonText: {
@@ -3582,7 +3582,7 @@ PLASMIC.registerComponent(RavenModal, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org/raven",
+      defaultValue: "https://uat.elbrit.org/raven",
       description: "Raven application URL"
     },
     buttonText: {
@@ -3616,7 +3616,7 @@ PLASMIC.registerComponent(RavenAutoLogin, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org/raven",
+      defaultValue: "https://uat.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
