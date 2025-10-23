@@ -60,12 +60,12 @@ export default function TestRavenAutoLogin() {
       </div>
 
       <div style={{ marginBottom: '20px' }}>
-        <h2>🪶 Enhanced Raven Auto-Login with ERP Cookies</h2>
-        <p>This component uses ERP cookie data to automatically log you into Raven:</p>
+        <h2>🪶 Enhanced Raven Auto-Login</h2>
+        <p>This component uses multiple authentication methods to automatically log you into Raven:</p>
         <ul>
-          <li>✅ <strong>ERP Cookie Authentication</strong> - Uses shared domain cookies</li>
-          <li>✅ <strong>Secure Cookie Data</strong> - Extracts user info from ERP cookies</li>
-          <li>✅ <strong>Enhanced URL Parameters</strong> - Passes ERP cookie data</li>
+          <li>✅ <strong>ERPNext API Authentication</strong> - Uses your existing token</li>
+          <li>✅ <strong>Raven Session Creation</strong> - Creates proper session</li>
+          <li>✅ <strong>Enhanced URL Parameters</strong> - Passes all auth data</li>
           <li>✅ <strong>Fallback Mechanisms</strong> - Multiple retry approaches</li>
         </ul>
         
@@ -85,13 +85,13 @@ export default function TestRavenAutoLogin() {
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fff3e0', borderRadius: '8px' }}>
-        <h2>How ERP Cookie Auto-Login Works</h2>
+        <h2>How Enhanced Auto-Login Works</h2>
         <ol>
-          <li><strong>ERP Cookie Extraction:</strong> Reads ERP cookies from browser (full_name, user_id, sid, etc.)</li>
-          <li><strong>Cookie Validation:</strong> Validates ERP cookie data for authentication</li>
-          <li><strong>Enhanced URL Building:</strong> Constructs URL with ERP cookie authentication parameters</li>
-          <li><strong>Auto-Login Parameters:</strong> Adds special flags for automatic login using shared domain</li>
-          <li><strong>Fallback Handling:</strong> If cookie auth fails, redirects to Raven login page</li>
+          <li><strong>ERPNext Authentication:</strong> Validates your token with ERPNext API</li>
+          <li><strong>Raven Session Creation:</strong> Attempts to create a proper Raven session</li>
+          <li><strong>Enhanced URL Building:</strong> Constructs URL with all authentication data</li>
+          <li><strong>Auto-Login Parameters:</strong> Adds special flags for automatic login</li>
+          <li><strong>Fallback Handling:</strong> If one method fails, tries alternative approaches</li>
         </ol>
       </div>
 
@@ -106,9 +106,8 @@ export default function TestRavenAutoLogin() {
       </div>
 
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#fce4ec', borderRadius: '8px' }}>
-        <h2>If ERP Cookie Auto-Login Doesn't Work</h2>
+        <h2>If Auto-Login Still Doesn't Work</h2>
         <p>The component will show an "Open in New Window" button as a fallback. This ensures users can always access Raven even if iframe embedding is blocked.</p>
-        <p><strong>Requirements:</strong> You must be logged into the ERP system (erp.elbrit.org) for the cookies to be available.</p>
         <p><strong>Next step:</strong> Contact your server administrator to fix the X-Frame-Options header on erp.elbrit.org</p>
       </div>
 

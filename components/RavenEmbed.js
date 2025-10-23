@@ -1,31 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useAuth } from './AuthContext';
-import { 
-  getERPCookieData, 
-  buildRavenUrlWithCookieAuth, 
-  validateERPCookieData,
-  extractUserInfoFromCookies,
-  isERPCookieAuthAvailable,
-  hasRavenAuthentication,
-  setRavenAuthentication,
-  getRavenAuthentication
-} from './utils/erpCookieAuth';
+import MicrosoftSSOLogin from './MicrosoftSSOLogin';
+import TruecallerSSOLogin from './TruecallerSSOLogin';
 
 /**
- * RavenEmbed Component - Embeds Raven chat application via iframe with ERP Cookie Auto-login
+ * RavenEmbed Component - Embeds Raven chat application via iframe with SSO login
  * 
  * This component:
- * 1. Reads user credentials from ERP cookies (shared domain authentication)
- * 2. Extracts user information from ERP cookie data (full_name, user_id, sid, etc.)
- * 3. Constructs Raven URL with ERP cookie authentication parameters
- * 4. Embeds Raven in an iframe with seamless auto-login
- * 5. Handles loading states and error scenarios
- * 
- * Benefits of using ERP cookies:
- * - Both Raven and ERP share the same cookie domain (.elbrit.org)
- * - No need to pass sensitive authentication tokens in URLs
- * - More secure as cookies are automatically sent by the browser
- * - Ensures user is properly authenticated in both systems
+ * 1. Checks if user is already authenticated
+ * 2. If not authenticated, shows SSO login options (Microsoft/Truecaller)
+ * 3. After successful login, embeds Raven in iframe with authentication
+ * 4. Handles loading states and error scenarios
  * 
  * Usage in Plasmic:
  * 1. Register this component in plasmic-init.js
@@ -40,7 +25,11 @@ const RavenEmbed = ({
   onLoad = null,
   onError = null,
   className = "",
-  style = {}
+  style = {},
+  showSSOOptions = true,
+  enableMicrosoftSSO = true,
+  enableTruecallerSSO = true,
+  apiUrl = "https://uat.elbrit.org"
 }) => {
   const { user, isAuthenticated, loading: authLoading } = useAuth();
   const [iframeUrl, setIframeUrl] = useState("");
@@ -48,116 +37,91 @@ const RavenEmbed = ({
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
   const [authStep, setAuthStep] = useState('initializing');
+  const [showLogin, setShowLogin] = useState(false);
   const maxRetries = 3;
 
-  // Get authentication data from ERP cookies
+  // Get authentication data from localStorage
   const getAuthData = useCallback(() => {
     if (typeof window === 'undefined') return null;
     
     try {
-      // Get ERP cookie data
-      const erpCookieData = getERPCookieData();
+      const erpnextToken = localStorage.getItem('erpnextAuthToken');
+      const erpnextUser = localStorage.getItem('erpnextUser');
+      const userEmail = localStorage.getItem('userEmail');
+      const userPhoneNumber = localStorage.getItem('userPhoneNumber');
+      const authProvider = localStorage.getItem('authProvider');
+      const authType = localStorage.getItem('authType');
       
-      if (!erpCookieData) {
-        console.warn('⚠️ No ERP cookie data available for Raven Embed');
-        return null;
-      }
-
-      // Validate cookie data
-      if (!validateERPCookieData(erpCookieData)) {
-        console.warn('⚠️ ERP cookie data is invalid for Raven Embed');
-        return null;
-      }
-
-      // Extract user information from cookies
-      const userInfo = extractUserInfoFromCookies(erpCookieData);
-      
-      console.log('🔍 Raven Embed - ERP Cookie Auth data found:', {
-        hasCookieData: !!erpCookieData,
-        userInfo,
-        cookieKeys: Object.keys(erpCookieData)
+      console.log('🔍 Raven Embed - Auth data found:', {
+        hasToken: !!erpnextToken,
+        hasUser: !!erpnextUser,
+        email: userEmail,
+        phoneNumber: userPhoneNumber,
+        provider: authProvider,
+        authType: authType
       });
       
       return {
-        cookieData: erpCookieData,
-        userInfo: userInfo,
-        email: userInfo?.email,
-        fullName: userInfo?.fullName,
-        userId: userInfo?.userId,
-        sessionId: userInfo?.sessionId,
-        systemUser: userInfo?.systemUser
+        token: erpnextToken,
+        user: erpnextUser ? JSON.parse(erpnextUser) : null,
+        email: userEmail,
+        phoneNumber: userPhoneNumber,
+        provider: authProvider,
+        authType: authType
       };
     } catch (error) {
-      console.error('❌ Error reading ERP cookie data for Raven Embed:', error);
+      console.error('❌ Error reading auth data from localStorage:', error);
       return null;
     }
   }, []);
 
-  // Enhanced authentication using ERP cookie data with SSO support
+  // Build Raven URL with authentication
   const buildRavenUrl = useCallback(async (authData) => {
-    if (!authData || !authData.cookieData) {
-      console.warn('⚠️ No ERP cookie data available, redirecting to login');
-      return `${ravenUrl}/login`;
+    if (!authData || !authData.token) {
+      console.warn('⚠️ No auth data available, showing login');
+      setShowLogin(true);
+      return null;
     }
 
     try {
-      console.log('🔐 Starting enhanced Raven authentication with ERP cookies and SSO...');
+      console.log('🔐 Building Raven URL with authentication...');
       setAuthStep('authenticating');
 
-      // Check if ERP cookie authentication is available
-      if (!isERPCookieAuthAvailable()) {
-        console.warn('⚠️ ERP cookie authentication not available');
-        return `${ravenUrl}/login`;
+      // Try Raven API authentication first
+      try {
+        const ravenAuthResponse = await fetch('/api/raven/auth', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authData.token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (ravenAuthResponse.ok) {
+          console.log('✅ Raven session created successfully');
+          return ravenUrl; // Return base URL for iframe
+        }
+      } catch (ravenError) {
+        console.warn('⚠️ Raven API auth failed:', ravenError);
       }
 
-      // Check if user already has Raven authentication
-      const hasRavenAuth = hasRavenAuthentication();
-      const ravenAuthData = getRavenAuthentication();
-      
-      console.log('🔍 Raven authentication status for Embed:', {
-        hasRavenAuth,
-        ravenAuthData: ravenAuthData ? 'available' : 'missing'
-      });
+      // Fallback: Build URL with authentication parameters
+      const params = new URLSearchParams();
+      params.append('token', authData.token);
+      params.append('email', authData.email);
+      if (authData.phoneNumber) params.append('phone', authData.phoneNumber);
+      if (authData.provider) params.append('provider', authData.provider);
+      params.append('sso_login', 'true');
+      params.append('_t', Date.now().toString());
 
-      // If user already has Raven authentication, use direct access
-      if (hasRavenAuth && ravenAuthData) {
-        console.log('✅ User already authenticated with Raven, using direct access for Embed');
-        return ravenUrl; // Direct access to Raven
-      }
-
-      // First-time login: Use SSO flow with UAT
-      console.log('🔄 First-time Raven login for Embed, using SSO flow with UAT');
-      const ssoUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData, true);
-      
-      // Set up message listener for SSO completion
-      const handleSSOComplete = (event) => {
-        if (event.origin !== 'https://uat.elbrit.org' && event.origin !== 'https://erp.elbrit.org') {
-          return;
-        }
-        
-        if (event.data && event.data.type === 'RAVEN_SSO_SUCCESS') {
-          console.log('✅ Raven SSO authentication successful for Embed');
-          setRavenAuthentication(true, event.data.userData);
-          window.removeEventListener('message', handleSSOComplete);
-        }
-      };
-
-      window.addEventListener('message', handleSSOComplete);
-      
-      console.log('✅ Built enhanced Raven SSO URL with ERP cookie authentication for Embed');
-      console.log('🍪 Using ERP cookie data for Raven Embed SSO:', {
-        user_id: authData.userId,
-        full_name: authData.fullName,
-        system_user: authData.systemUser,
-        session_id: authData.sessionId ? 'available' : 'missing'
-      });
-
-      return ssoUrl;
+      const authenticatedUrl = `${ravenUrl}?${params.toString()}`;
+      console.log('🔗 Built authenticated Raven URL');
+      return authenticatedUrl;
 
     } catch (error) {
-      console.error('❌ Error in ERP cookie Raven SSO authentication:', error);
-      // Fallback to login page
-      return `${ravenUrl}/login`;
+      console.error('❌ Error building Raven URL:', error);
+      setShowLogin(true);
+      return null;
     }
   }, [ravenUrl]);
 
@@ -184,16 +148,46 @@ const RavenEmbed = ({
       setRetryCount(prev => prev + 1);
       setIsLoading(true);
       setError(null);
+      setShowLogin(false);
       
       // Force refresh by updating URL with new timestamp
       const authData = getAuthData();
-      const newUrl = buildRavenUrl(authData);
-      setIframeUrl(newUrl);
+      buildRavenUrl(authData).then(url => {
+        if (url) {
+          setIframeUrl(url);
+        }
+      });
     } else {
       console.error('❌ Max retries reached for Raven iframe');
       setError('Failed to load Raven chat after multiple attempts. Please refresh the page.');
     }
   }, [retryCount, maxRetries, getAuthData, buildRavenUrl]);
+
+  // Handle successful SSO login
+  const handleSSOSuccess = useCallback(async (loginData) => {
+    console.log('✅ SSO login successful:', loginData);
+    setAuthStep('authenticating');
+    setIsLoading(true);
+    setShowLogin(false);
+    
+    // Wait a moment for auth context to update
+    setTimeout(async () => {
+      const authData = getAuthData();
+      if (authData) {
+        const url = await buildRavenUrl(authData);
+        if (url) {
+          setIframeUrl(url);
+        }
+      }
+    }, 1000);
+  }, [getAuthData, buildRavenUrl]);
+
+  // Handle SSO login error
+  const handleSSOError = useCallback((error) => {
+    console.error('❌ SSO login failed:', error);
+    setError('Login failed. Please try again.');
+    setIsLoading(false);
+  }, []);
 
   // Initialize iframe URL when auth is ready
   useEffect(() => {
@@ -205,40 +199,42 @@ const RavenEmbed = ({
       }
 
       if (!isAuthenticated) {
-        console.warn('⚠️ User not authenticated, redirecting to Raven login');
-        setIframeUrl(`${ravenUrl}/login`);
+        console.log('⚠️ User not authenticated, showing SSO login options');
+        setShowLogin(true);
         setIsLoading(false);
         setAuthStep('ready');
         return;
       }
 
-      console.log('🔐 User authenticated, building enhanced Raven URL with ERP cookies...');
+      console.log('🔐 User authenticated, building Raven URL...');
       setAuthStep('initializing');
       const authData = getAuthData();
       
       if (!authData) {
-        console.error('❌ No ERP cookie data found');
-        setError('ERP authentication data not found. Please ensure you are logged into ERP system.');
+        console.error('❌ No auth data found in localStorage');
+        setShowLogin(true);
         setIsLoading(false);
-        setAuthStep('error');
+        setAuthStep('ready');
         return;
       }
 
       try {
         const url = await buildRavenUrl(authData);
-        setIframeUrl(url);
-        setIsLoading(false);
-        setAuthStep('ready');
+        if (url) {
+          setIframeUrl(url);
+          setIsLoading(false);
+          setAuthStep('ready');
+        }
       } catch (error) {
-        console.error('❌ Error building Raven URL with ERP cookies:', error);
-        setError('Failed to build Raven URL with ERP cookies. Please ensure you are logged into ERP system.');
+        console.error('❌ Error building Raven URL:', error);
+        setError('Failed to build Raven URL. Please try again.');
         setIsLoading(false);
         setAuthStep('error');
       }
     };
 
     initializeRaven();
-  }, [authLoading, isAuthenticated, getAuthData, buildRavenUrl, ravenUrl]);
+  }, [authLoading, isAuthenticated, getAuthData, buildRavenUrl]);
 
   // Enhanced loading component with authentication steps
   const LoadingComponent = () => (
@@ -265,8 +261,8 @@ const RavenEmbed = ({
         marginBottom: '16px'
       }} />
       <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
-        {authStep === 'initializing' && 'Initializing Raven Chat with ERP SSO...'}
-        {authStep === 'authenticating' && 'Authenticating with UAT SSO Login...'}
+        {authStep === 'initializing' && 'Initializing Raven Chat...'}
+        {authStep === 'authenticating' && 'Authenticating with Raven...'}
         {authStep === 'ready' && 'Loading Raven Chat...'}
       </p>
       <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
@@ -278,6 +274,89 @@ const RavenEmbed = ({
           100% { transform: rotate(360deg); }
         }
       `}</style>
+    </div>
+  );
+
+  // SSO Login component
+  const SSOLoginComponent = () => (
+    <div 
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: height,
+        width: width,
+        backgroundColor: '#f8f9fa',
+        borderRadius: '8px',
+        border: '1px solid #e0e0e0',
+        padding: '40px 20px'
+      }}
+    >
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '30px'
+      }}>
+        <h2 style={{
+          color: '#333',
+          fontSize: '24px',
+          margin: '0 0 8px 0',
+          fontWeight: '600'
+        }}>
+          Welcome to Raven Chat
+        </h2>
+        <p style={{
+          color: '#666',
+          fontSize: '16px',
+          margin: '0 0 20px 0'
+        }}>
+          Please sign in to access the chat
+        </p>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '16px',
+        width: '100%',
+        maxWidth: '300px'
+      }}>
+        {enableMicrosoftSSO && (
+          <div style={{
+            width: '100%'
+          }}>
+            <MicrosoftSSOLogin
+              onSuccess={handleSSOSuccess}
+              onError={handleSSOError}
+            />
+          </div>
+        )}
+
+        {enableTruecallerSSO && (
+          <div style={{
+            width: '100%'
+          }}>
+            <TruecallerSSOLogin
+              apiUrl={apiUrl}
+              onSuccess={handleSSOSuccess}
+              onError={handleSSOError}
+              enableAuthIntegration={true}
+              redirectOnSuccess={false}
+              buttonText="Continue with Truecaller"
+              fullWidth={true}
+            />
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        marginTop: '20px',
+        fontSize: '12px',
+        color: '#999',
+        textAlign: 'center'
+      }}>
+        Choose your preferred sign-in method
+      </div>
     </div>
   );
 
@@ -357,6 +436,10 @@ const RavenEmbed = ({
     return <ErrorComponent />;
   }
 
+  if (showLogin && showSSOOptions) {
+    return <SSOLoginComponent />;
+  }
+
   if (showLoading && (isLoading || !iframeUrl)) {
     return <LoadingComponent />;
   }
@@ -365,3 +448,5 @@ const RavenEmbed = ({
 };
 
 export default RavenEmbed;
+
+

@@ -1,10 +1,11 @@
 # RavenEmbed Component
 
-A React component that embeds the Raven chat application directly into your Plasmic app using an iframe with seamless auto-login functionality.
+A React component that embeds the Raven chat application directly into your Plasmic app using an iframe with SSO login functionality.
 
 ## 🎯 Features
 
-- **Seamless Auto-Login**: Automatically logs users into Raven using stored authentication credentials
+- **SSO Login Integration**: Shows Microsoft SSO and Truecaller login options for first-time users
+- **Seamless Authentication**: After initial login, users are automatically authenticated for future visits
 - **iframe Integration**: Embeds the full Raven web app (like Raven Mobile) directly in your app
 - **Authentication Integration**: Uses your existing ERPNext authentication system
 - **Error Handling**: Robust error handling with retry mechanism
@@ -13,19 +14,28 @@ A React component that embeds the Raven chat application directly into your Plas
 
 ## 🔧 How It Works
 
-1. **Reads Authentication Data**: Automatically reads user credentials from localStorage:
+1. **Checks Authentication Status**: 
+   - If user is already authenticated, proceeds to embed Raven
+   - If not authenticated, shows SSO login options
+
+2. **SSO Login Options** (for first-time users):
+   - **Microsoft SSO**: Uses existing Microsoft authentication
+   - **Truecaller SSO**: Uses Truecaller authentication
+   - Both options integrate with your ERPNext authentication system
+
+3. **Authentication Storage**: After successful login, stores credentials in localStorage:
    - `erpnextAuthToken` - Your ERPNext authentication token
    - `erpnextUser` - User data
    - `userEmail` - User's email address
    - `userPhoneNumber` - User's phone number
    - `authProvider` - Authentication provider (microsoft/phone)
 
-2. **Builds Authenticated URL**: Constructs Raven URL with authentication parameters:
+4. **Builds Authenticated URL**: Constructs Raven URL with authentication parameters:
    ```
-   https://raven.elbrit.in/app?token=YOUR_TOKEN&email=user@email.com&provider=microsoft&_t=timestamp
+   https://raven.elbrit.in/app?token=YOUR_TOKEN&email=user@email.com&provider=microsoft&sso_login=true&_t=timestamp
    ```
 
-3. **Embeds Raven**: Loads the actual Raven web app in an iframe with full functionality
+5. **Embeds Raven**: Loads the actual Raven web app in an iframe with full functionality
 
 ## 📋 Setup Instructions
 
@@ -81,10 +91,12 @@ PLASMIC.registerComponent(RavenEmbed, {
 
 ### Step 3: Test Integration
 
-1. **Login to your app** using Microsoft SSO or phone authentication
-2. **Navigate to the page** with the Raven embed
-3. **Verify auto-login** - you should be automatically logged into Raven
-4. **Test chat functionality** - send messages, create channels, etc.
+1. **Navigate to the page** with the Raven embed
+2. **If not logged in**: You'll see SSO login options (Microsoft/Truecaller)
+3. **Login using SSO**: Choose your preferred authentication method
+4. **Verify authentication** - you should be automatically logged into Raven
+5. **Test chat functionality** - send messages, create channels, etc.
+6. **Test persistence** - refresh the page, you should stay logged in
 
 ## 🎨 Customization Options
 
@@ -92,10 +104,14 @@ PLASMIC.registerComponent(RavenEmbed, {
 
 | Prop | Type | Default | Description |
 |------|------|---------|-------------|
-| `ravenUrl` | string | "https://raven.elbrit.in" | Base URL for Raven application |
+| `ravenUrl` | string | "https://erp.elbrit.org/raven" | Base URL for Raven application |
 | `height` | string | "90vh" | Height of the iframe |
 | `width` | string | "100%" | Width of the iframe |
 | `showLoading` | boolean | true | Show loading indicator |
+| `showSSOOptions` | boolean | true | Show SSO login options when not authenticated |
+| `enableMicrosoftSSO` | boolean | true | Enable Microsoft SSO login |
+| `enableTruecallerSSO` | boolean | true | Enable Truecaller SSO login |
+| `apiUrl` | string | "https://uat.elbrit.org" | API URL for Truecaller authentication |
 | `className` | string | "" | Additional CSS classes |
 | `style` | object | {} | Additional inline styles |
 | `onLoad` | function | null | Callback when iframe loads |
@@ -114,6 +130,19 @@ PLASMIC.registerComponent(RavenEmbed, {
   style={{ border: '2px solid #007bff' }}
 />
 
+// With SSO options disabled (auto-login only)
+<RavenEmbed 
+  showSSOOptions={false}
+  enableMicrosoftSSO={false}
+  enableTruecallerSSO={false}
+/>
+
+// With custom API URL for Truecaller
+<RavenEmbed 
+  apiUrl="https://your-api-url.com"
+  enableMicrosoftSSO={false}
+/>
+
 // With callbacks
 <RavenEmbed 
   onLoad={() => console.log('Raven loaded!')}
@@ -124,22 +153,37 @@ PLASMIC.registerComponent(RavenEmbed, {
 ## 🔐 Authentication Flow
 
 ```
-User logs into your app
+User visits page with RavenEmbed
        │
        ▼
-ERPNext authentication → stores token in localStorage
+Check if user is authenticated
        │
        ▼
-RavenEmbed component reads localStorage
-       │
-       ▼
-Builds authenticated Raven URL with token
-       │
-       ▼
-Embeds Raven iframe with auto-login
-       │
-       ▼
-User is automatically logged into Raven
+┌─────────────────┬─────────────────┐
+│ Not Authenticated │ Authenticated    │
+│                 │                 │
+│ ▼               │ ▼               │
+│ Show SSO Login  │ Read localStorage│
+│ Options:        │                 │
+│ - Microsoft     │ ▼               │
+│ - Truecaller    │ Build Raven URL │
+│                 │                 │
+│ ▼               │ ▼               │
+│ User chooses    │ Embed Raven     │
+│ SSO method      │ iframe          │
+│                 │                 │
+│ ▼               │ ▼               │
+│ Authenticate    │ User is logged  │
+│ with ERPNext    │ into Raven      │
+│                 │                 │
+│ ▼               │                 │
+│ Store token in  │                 │
+│ localStorage    │                 │
+│                 │                 │
+│ ▼               │                 │
+│ Embed Raven     │                 │
+│ iframe          │                 │
+└─────────────────┴─────────────────┘
 ```
 
 ## 🚨 Security Considerations
