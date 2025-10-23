@@ -23,7 +23,7 @@ export default function TestRavenSSO() {
             showSSOOptions={true}
             enableMicrosoftSSO={true}
             enableTruecallerSSO={true}
-            apiUrl="https://uat.elbrit.org"
+            apiUrl="https://erp.elbrit.org"
             onLoad={() => console.log('Raven loaded successfully')}
             onError={() => console.log('Raven failed to load')}
           />

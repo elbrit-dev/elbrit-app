@@ -32,7 +32,7 @@ A React component that embeds the Raven chat application directly into your Plas
 
 4. **Builds Authenticated URL**: Constructs Raven URL with authentication parameters:
    ```
-   https://raven.elbrit.in/app?token=YOUR_TOKEN&email=user@email.com&provider=microsoft&sso_login=true&_t=timestamp
+   https://erp.elbrit.org/raven?token=YOUR_TOKEN&email=user@email.com&provider=microsoft&sso_login=true&_t=timestamp
    ```
 
 5. **Embeds Raven**: Loads the actual Raven web app in an iframe with full functionality
@@ -54,7 +54,7 @@ PLASMIC.registerComponent(RavenEmbed, {
   props: {
     ravenUrl: {
       type: "string",
-      defaultValue: "https://raven.elbrit.in",
+      defaultValue: "https://erp.elbrit.org/raven",
       description: "Raven application URL"
     },
     height: {
@@ -111,7 +111,7 @@ PLASMIC.registerComponent(RavenEmbed, {
 | `showSSOOptions` | boolean | true | Show SSO login options when not authenticated |
 | `enableMicrosoftSSO` | boolean | true | Enable Microsoft SSO login |
 | `enableTruecallerSSO` | boolean | true | Enable Truecaller SSO login |
-| `apiUrl` | string | "https://uat.elbrit.org" | API URL for Truecaller authentication |
+| `apiUrl` | string | "https://erp.elbrit.org" | API URL for Truecaller authentication |
 | `className` | string | "" | Additional CSS classes |
 | `style` | object | {} | Additional inline styles |
 | `onLoad` | function | null | Callback when iframe loads |
