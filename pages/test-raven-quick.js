@@ -25,7 +25,7 @@ export default function TestRavenQuick() {
         if (provider) params.append('provider', provider);
         params.append('_t', Date.now().toString());
         
-        setRavenUrl(`https://uat.elbrit.org/raven?${params.toString()}`);
+        setRavenUrl(`https://erp.elbrit.org/raven?${params.toString()}`);
       }
     }
   }, []);

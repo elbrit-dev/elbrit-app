@@ -86,7 +86,7 @@ export const buildRavenUrlWithCookieAuth = (ravenBaseUrl, cookieData, useSSO = t
       ssoParams.append('redirect_to', ravenBaseUrl);
       ssoParams.append('_t', Date.now().toString());
 
-      const ssoUrl = `https://uat.elbrit.org/raven/login?${ssoParams.toString()}`;
+      const ssoUrl = `https://erp.elbrit.org/raven/login?${ssoParams.toString()}`;
       console.log('🔗 Built Raven SSO URL with ERP cookie auth');
       return ssoUrl;
     } else {

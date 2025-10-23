@@ -62,7 +62,7 @@ export default function TestRavenModal() {
       <div style={{ marginBottom: '20px' }}>
         <h2>🪶 Raven Chat Modal</h2>
         <p>Click the button below to open Raven in a modal popup <strong>inside your app</strong>:</p>
-        <p><strong>Raven URL:</strong> https://uat.elbrit.org/raven</p>
+        <p><strong>Raven URL:</strong> https://erp.elbrit.org/raven</p>
         <p><strong>Approach:</strong> Modal popup with iframe inside your app</p>
         
         <div style={{ marginTop: '20px' }}>

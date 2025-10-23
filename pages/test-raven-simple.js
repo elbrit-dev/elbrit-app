@@ -62,7 +62,7 @@ export default function TestRavenSimple() {
       <div style={{ marginBottom: '20px' }}>
         <h2>🪶 Raven Chat Simple Embed</h2>
         <p>Below is the simplified Raven chat application with improved authentication:</p>
-        <p><strong>Raven URL:</strong> https://uat.elbrit.org/raven</p>
+        <p><strong>Raven URL:</strong> https://erp.elbrit.org/raven</p>
         <p><strong>Approach:</strong> Session-based authentication with hidden iframe</p>
         
         <RavenEmbedSimple 
