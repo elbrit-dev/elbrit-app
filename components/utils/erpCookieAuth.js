@@ -57,34 +57,58 @@ export const getERPCookieData = () => {
 };
 
 /**
- * Build Raven authentication URL using ERP cookie data
+ * Build Raven authentication URL using ERP cookie data with SSO support
  * @param {string} ravenBaseUrl - Base URL for Raven
  * @param {Object} cookieData - ERP cookie data
+ * @param {boolean} useSSO - Whether to use SSO login flow
  * @returns {string} Authenticated Raven URL
  */
-export const buildRavenUrlWithCookieAuth = (ravenBaseUrl, cookieData) => {
+export const buildRavenUrlWithCookieAuth = (ravenBaseUrl, cookieData, useSSO = true) => {
   if (!cookieData || !ravenBaseUrl) {
     return `${ravenBaseUrl}/login`;
   }
 
   try {
-    const params = new URLSearchParams();
-    
-    // Pass ERP cookie data as URL parameters for Raven to use
-    if (cookieData.user_id) params.append('erp_user_id', cookieData.user_id);
-    if (cookieData.full_name) params.append('erp_full_name', cookieData.full_name);
-    if (cookieData.system_user) params.append('erp_system_user', cookieData.system_user);
-    if (cookieData.sid) params.append('erp_session_id', cookieData.sid);
-    if (cookieData.user_image) params.append('erp_user_image', cookieData.user_image);
-    
-    // Add auto-login flag
-    params.append('auto_login', 'true');
-    params.append('auth_method', 'erp_cookies');
-    params.append('_t', Date.now().toString());
+    // If using SSO, redirect to UAT login first
+    if (useSSO) {
+      const ssoParams = new URLSearchParams();
+      
+      // Pass ERP cookie data as URL parameters for SSO
+      if (cookieData.user_id) ssoParams.append('erp_user_id', cookieData.user_id);
+      if (cookieData.full_name) ssoParams.append('erp_full_name', cookieData.full_name);
+      if (cookieData.system_user) ssoParams.append('erp_system_user', cookieData.system_user);
+      if (cookieData.sid) ssoParams.append('erp_session_id', cookieData.sid);
+      if (cookieData.user_image) ssoParams.append('erp_user_image', cookieData.user_image);
+      
+      // Add SSO parameters
+      ssoParams.append('sso_login', 'true');
+      ssoParams.append('auth_method', 'erp_cookies_sso');
+      ssoParams.append('redirect_to', ravenBaseUrl);
+      ssoParams.append('_t', Date.now().toString());
 
-    const authenticatedUrl = `${ravenBaseUrl}?${params.toString()}`;
-    console.log('🔗 Built Raven URL with ERP cookie auth');
-    return authenticatedUrl;
+      const ssoUrl = `https://uat.elbrit.org/raven/login?${ssoParams.toString()}`;
+      console.log('🔗 Built Raven SSO URL with ERP cookie auth');
+      return ssoUrl;
+    } else {
+      // Direct authentication (fallback)
+      const params = new URLSearchParams();
+      
+      // Pass ERP cookie data as URL parameters for Raven to use
+      if (cookieData.user_id) params.append('erp_user_id', cookieData.user_id);
+      if (cookieData.full_name) params.append('erp_full_name', cookieData.full_name);
+      if (cookieData.system_user) params.append('erp_system_user', cookieData.system_user);
+      if (cookieData.sid) params.append('erp_session_id', cookieData.sid);
+      if (cookieData.user_image) params.append('erp_user_image', cookieData.user_image);
+      
+      // Add auto-login flag
+      params.append('auto_login', 'true');
+      params.append('auth_method', 'erp_cookies');
+      params.append('_t', Date.now().toString());
+
+      const authenticatedUrl = `${ravenBaseUrl}?${params.toString()}`;
+      console.log('🔗 Built Raven URL with ERP cookie auth (direct)');
+      return authenticatedUrl;
+    }
 
   } catch (error) {
     console.error('❌ Error building Raven URL with cookie auth:', error);
@@ -149,51 +173,81 @@ export const extractUserInfoFromCookies = (cookieData) => {
  * @returns {boolean} Whether ERP cookies are available for authentication
  */
 export const isERPCookieAuthAvailable = () => {
+  const cookieData = getERPCookieData();
+  return validateERPCookieData(cookieData);
+};
+
+/**
+ * Check if user has already authenticated with Raven
+ * @returns {boolean} Whether user has Raven authentication
+ */
+export const hasRavenAuthentication = () => {
+  if (typeof window === 'undefined') return false;
+  
   try {
-    const cookieData = getERPCookieData();
-    const isValid = validateERPCookieData(cookieData);
+    // Check for Raven-specific cookies or localStorage
+    const ravenAuth = localStorage.getItem('ravenAuthenticated');
+    const ravenSession = localStorage.getItem('ravenSessionId');
+    const ravenUser = localStorage.getItem('ravenUser');
     
-    console.log('🔍 ERP Cookie Auth Check:', {
-      hasCookieData: !!cookieData,
-      isValid,
-      cookieKeys: cookieData ? Object.keys(cookieData) : []
-    });
-    
-    return isValid;
+    return !!(ravenAuth === 'true' && ravenSession && ravenUser);
   } catch (error) {
-    console.error('❌ Error checking ERP cookie auth availability:', error);
+    console.error('❌ Error checking Raven authentication:', error);
     return false;
   }
 };
 
 /**
- * Debug function to log all available cookies
- * @returns {Object} All cookies and their values
+ * Set Raven authentication status
+ * @param {boolean} authenticated - Whether user is authenticated
+ * @param {Object} userData - User data to store
  */
-export const debugAllCookies = () => {
-  if (typeof window === 'undefined') return {};
-
+export const setRavenAuthentication = (authenticated, userData = null) => {
+  if (typeof window === 'undefined') return;
+  
   try {
-    const allCookies = document.cookie.split(';').reduce((acc, cookie) => {
-      const [name, value] = cookie.trim().split('=');
-      if (name && value) {
-        acc[name] = decodeURIComponent(value);
+    if (authenticated) {
+      localStorage.setItem('ravenAuthenticated', 'true');
+      localStorage.setItem('ravenSessionId', Date.now().toString());
+      if (userData) {
+        localStorage.setItem('ravenUser', JSON.stringify(userData));
       }
-      return acc;
-    }, {});
-
-    console.log('🍪 All Available Cookies:', allCookies);
-    console.log('🍪 ERP Domain Cookies:', Object.keys(allCookies).filter(key => 
-      key.includes('full_name') || 
-      key.includes('user_id') || 
-      key.includes('sid') || 
-      key.includes('system_user')
-    ));
-
-    return allCookies;
+      console.log('✅ Raven authentication status set to true');
+    } else {
+      localStorage.removeItem('ravenAuthenticated');
+      localStorage.removeItem('ravenSessionId');
+      localStorage.removeItem('ravenUser');
+      console.log('❌ Raven authentication status cleared');
+    }
   } catch (error) {
-    console.error('❌ Error debugging cookies:', error);
-    return {};
+    console.error('❌ Error setting Raven authentication:', error);
+  }
+};
+
+/**
+ * Get Raven authentication data
+ * @returns {Object|null} Raven authentication data or null
+ */
+export const getRavenAuthentication = () => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const ravenAuth = localStorage.getItem('ravenAuthenticated');
+    const ravenSession = localStorage.getItem('ravenSessionId');
+    const ravenUser = localStorage.getItem('ravenUser');
+    
+    if (ravenAuth === 'true' && ravenSession && ravenUser) {
+      return {
+        authenticated: true,
+        sessionId: ravenSession,
+        user: JSON.parse(ravenUser)
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error getting Raven authentication:', error);
+    return null;
   }
 };
 

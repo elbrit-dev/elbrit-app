@@ -5,7 +5,10 @@ import {
   buildRavenUrlWithCookieAuth, 
   validateERPCookieData,
   extractUserInfoFromCookies,
-  isERPCookieAuthAvailable
+  isERPCookieAuthAvailable,
+  hasRavenAuthentication,
+  setRavenAuthentication,
+  getRavenAuthentication
 } from './utils/erpCookieAuth';
 
 /**
@@ -25,7 +28,7 @@ import {
  * - Ensures user is properly authenticated in both systems
  */
 const RavenAutoLogin = ({ 
-  ravenUrl = "https://uat.elbrit.org/raven",
+  ravenUrl = "https://erp.elbrit.org/raven",
   height = "90vh",
   width = "100%",
   showLoading = true,
@@ -85,11 +88,11 @@ const RavenAutoLogin = ({
     }
   }, []);
 
-  // Enhanced authentication using ERP cookie data
+  // Enhanced authentication using ERP cookie data with SSO support
   const authenticateWithRaven = useCallback(async (authData) => {
     try {
       setAuthStep('authenticating');
-      console.log('🔐 Starting Raven authentication with ERP cookies...');
+      console.log('🔐 Starting Raven authentication with ERP cookies and SSO...');
 
       // Check if ERP cookie authentication is available
       if (!isERPCookieAuthAvailable()) {
@@ -97,21 +100,52 @@ const RavenAutoLogin = ({
         throw new Error('ERP cookie authentication not available');
       }
 
-      // Build Raven URL using ERP cookie data
-      const authenticatedUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData);
+      // Check if user already has Raven authentication
+      const hasRavenAuth = hasRavenAuthentication();
+      const ravenAuthData = getRavenAuthentication();
       
-      console.log('✅ Built Raven URL with ERP cookie authentication');
-      console.log('🍪 Using ERP cookie data:', {
+      console.log('🔍 Raven authentication status:', {
+        hasRavenAuth,
+        ravenAuthData: ravenAuthData ? 'available' : 'missing'
+      });
+
+      // If user already has Raven authentication, use direct access
+      if (hasRavenAuth && ravenAuthData) {
+        console.log('✅ User already authenticated with Raven, using direct access');
+        return ravenUrl; // Direct access to Raven
+      }
+
+      // First-time login: Use SSO flow with UAT
+      console.log('🔄 First-time Raven login, using SSO flow with UAT');
+      const ssoUrl = buildRavenUrlWithCookieAuth(ravenUrl, authData.cookieData, true);
+      
+      // Set up message listener for SSO completion
+      const handleSSOComplete = (event) => {
+        if (event.origin !== 'https://uat.elbrit.org' && event.origin !== 'https://erp.elbrit.org') {
+          return;
+        }
+        
+        if (event.data && event.data.type === 'RAVEN_SSO_SUCCESS') {
+          console.log('✅ Raven SSO authentication successful');
+          setRavenAuthentication(true, event.data.userData);
+          window.removeEventListener('message', handleSSOComplete);
+        }
+      };
+
+      window.addEventListener('message', handleSSOComplete);
+      
+      console.log('✅ Built Raven SSO URL with ERP cookie authentication');
+      console.log('🍪 Using ERP cookie data for SSO:', {
         user_id: authData.userId,
         full_name: authData.fullName,
         system_user: authData.systemUser,
         session_id: authData.sessionId ? 'available' : 'missing'
       });
 
-      return authenticatedUrl;
+      return ssoUrl;
 
     } catch (error) {
-      console.error('❌ ERP cookie authentication error:', error);
+      console.error('❌ ERP cookie SSO authentication error:', error);
       throw error;
     }
   }, [ravenUrl]);
@@ -229,8 +263,8 @@ const RavenAutoLogin = ({
         marginBottom: '16px'
       }} />
       <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
-        {authStep === 'initializing' && 'Initializing Raven Chat with ERP Cookies...'}
-        {authStep === 'authenticating' && 'Authenticating with ERP Cookie Data...'}
+        {authStep === 'initializing' && 'Initializing Raven Chat with ERP SSO...'}
+        {authStep === 'authenticating' && 'Authenticating with UAT SSO Login...'}
         {authStep === 'ready' && 'Loading Raven Chat...'}
       </p>
       <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>

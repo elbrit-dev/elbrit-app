@@ -38,7 +38,7 @@ Enhanced auto-login component that uses ERP cookie data for authentication:
 import RavenAutoLogin from './components/RavenAutoLogin';
 
 <RavenAutoLogin 
-  ravenUrl="https://uat.elbrit.org/raven"
+  ravenUrl="https://erp.elbrit.org/raven"
   height="90vh"
   width="100%"
   showLoading={true}
@@ -49,7 +49,7 @@ import RavenAutoLogin from './components/RavenAutoLogin';
 ```
 
 #### Props:
-- `ravenUrl` - Base URL for Raven (default: "https://uat.elbrit.org/raven")
+- `ravenUrl` - Base URL for Raven (default: "https://erp.elbrit.org/raven")
 - `height` - Iframe height (default: "90vh")
 - `width` - Iframe width (default: "100%")
 - `showLoading` - Show loading indicator (default: true)
@@ -65,7 +65,7 @@ Embed component for Raven chat with ERP cookie authentication:
 import RavenEmbed from './components/RavenEmbed';
 
 <RavenEmbed 
-  ravenUrl="https://uat.elbrit.org/raven"
+  ravenUrl="https://erp.elbrit.org/raven"
   height="90vh"
   width="100%"
   showLoading={true}
@@ -101,7 +101,7 @@ The system extracts and uses the following ERP cookies:
 The system adds the following parameters to the Raven URL:
 
 ```
-https://uat.elbrit.org/raven?erp_user_id=user@example.com&erp_full_name=John%20Doe&erp_system_user=yes&erp_session_id=abc123&auto_login=true&auth_method=erp_cookies&_t=1234567890
+https://erp.elbrit.org/raven?erp_user_id=user@example.com&erp_full_name=John%20Doe&erp_system_user=yes&erp_session_id=abc123&auto_login=true&auth_method=erp_cookies&_t=1234567890
 ```
 
 ## Benefits
