@@ -1,16 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { useAuth } from './AuthContext';
-import MicrosoftSSOLogin from './MicrosoftSSOLogin';
-import TruecallerSSOLogin from './TruecallerSSOLogin';
+import React, { useState, useCallback } from 'react';
 
 /**
- * RavenEmbed Component - Embeds Raven chat application via iframe with SSO login
+ * RavenEmbed Component - Simple iframe embed for Raven chat application
  * 
  * This component:
- * 1. Checks if user is already authenticated
- * 2. If not authenticated, shows SSO login options (Microsoft/Truecaller)
- * 3. After successful login, embeds Raven in iframe with authentication
- * 4. Handles loading states and error scenarios
+ * 1. Embeds Raven in an iframe without complex authentication
+ * 2. Users handle their own login within the iframe
+ * 3. Handles basic loading states and error scenarios
  * 
  * Usage in Plasmic:
  * 1. Register this component in plasmic-init.js
@@ -25,105 +21,12 @@ const RavenEmbed = ({
   onLoad = null,
   onError = null,
   className = "",
-  style = {},
-  showSSOOptions = true,
-  enableMicrosoftSSO = true,
-  enableTruecallerSSO = true,
-  apiUrl = "https://erp.elbrit.org"
+  style = {}
 }) => {
-  const { user, isAuthenticated, loading: authLoading } = useAuth();
-  const [iframeUrl, setIframeUrl] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
-  const [authStep, setAuthStep] = useState('initializing');
-  const [showLogin, setShowLogin] = useState(false);
   const maxRetries = 3;
-
-  // Get authentication data from localStorage
-  const getAuthData = useCallback(() => {
-    if (typeof window === 'undefined') return null;
-    
-    try {
-      const erpnextToken = localStorage.getItem('erpnextAuthToken');
-      const erpnextUser = localStorage.getItem('erpnextUser');
-      const userEmail = localStorage.getItem('userEmail');
-      const userPhoneNumber = localStorage.getItem('userPhoneNumber');
-      const authProvider = localStorage.getItem('authProvider');
-      const authType = localStorage.getItem('authType');
-      
-      console.log('🔍 Raven Embed - Auth data found:', {
-        hasToken: !!erpnextToken,
-        hasUser: !!erpnextUser,
-        email: userEmail,
-        phoneNumber: userPhoneNumber,
-        provider: authProvider,
-        authType: authType
-      });
-      
-      return {
-        token: erpnextToken,
-        user: erpnextUser ? JSON.parse(erpnextUser) : null,
-        email: userEmail,
-        phoneNumber: userPhoneNumber,
-        provider: authProvider,
-        authType: authType
-      };
-    } catch (error) {
-      console.error('❌ Error reading auth data from localStorage:', error);
-      return null;
-    }
-  }, []);
-
-  // Build Raven URL with authentication
-  const buildRavenUrl = useCallback(async (authData) => {
-    if (!authData || !authData.token) {
-      console.warn('⚠️ No auth data available, showing login');
-      setShowLogin(true);
-      return null;
-    }
-
-    try {
-      console.log('🔐 Building Raven URL with authentication...');
-      setAuthStep('authenticating');
-
-      // Try Raven API authentication first
-      try {
-        const ravenAuthResponse = await fetch('/api/raven/auth', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${authData.token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-
-        if (ravenAuthResponse.ok) {
-          console.log('✅ Raven session created successfully');
-          return ravenUrl; // Return base URL for iframe
-        }
-      } catch (ravenError) {
-        console.warn('⚠️ Raven API auth failed:', ravenError);
-      }
-
-      // Fallback: Build URL with authentication parameters
-      const params = new URLSearchParams();
-      params.append('token', authData.token);
-      params.append('email', authData.email);
-      if (authData.phoneNumber) params.append('phone', authData.phoneNumber);
-      if (authData.provider) params.append('provider', authData.provider);
-      params.append('sso_login', 'true');
-      params.append('_t', Date.now().toString());
-
-      const authenticatedUrl = `${ravenUrl}?${params.toString()}`;
-      console.log('🔗 Built authenticated Raven URL');
-      return authenticatedUrl;
-
-    } catch (error) {
-      console.error('❌ Error building Raven URL:', error);
-      setShowLogin(true);
-      return null;
-    }
-  }, [ravenUrl]);
 
   // Handle iframe load
   const handleIframeLoad = useCallback(() => {
@@ -148,95 +51,21 @@ const RavenEmbed = ({
       setRetryCount(prev => prev + 1);
       setIsLoading(true);
       setError(null);
-      setShowLogin(false);
       
-      // Force refresh by updating URL with new timestamp
-      const authData = getAuthData();
-      buildRavenUrl(authData).then(url => {
-        if (url) {
-          setIframeUrl(url);
-        }
-      });
+      // Force refresh by updating iframe src with new timestamp
+      const iframe = document.querySelector('iframe[title="Raven Chat"]');
+      if (iframe) {
+        const currentSrc = iframe.src;
+        const separator = currentSrc.includes('?') ? '&' : '?';
+        iframe.src = `${currentSrc}${separator}_t=${Date.now()}`;
+      }
     } else {
       console.error('❌ Max retries reached for Raven iframe');
       setError('Failed to load Raven chat after multiple attempts. Please refresh the page.');
     }
-  }, [retryCount, maxRetries, getAuthData, buildRavenUrl]);
+  }, [retryCount, maxRetries]);
 
-  // Handle successful SSO login
-  const handleSSOSuccess = useCallback(async (loginData) => {
-    console.log('✅ SSO login successful:', loginData);
-    setAuthStep('authenticating');
-    setIsLoading(true);
-    setShowLogin(false);
-    
-    // Wait a moment for auth context to update
-    setTimeout(async () => {
-      const authData = getAuthData();
-      if (authData) {
-        const url = await buildRavenUrl(authData);
-        if (url) {
-          setIframeUrl(url);
-        }
-      }
-    }, 1000);
-  }, [getAuthData, buildRavenUrl]);
-
-  // Handle SSO login error
-  const handleSSOError = useCallback((error) => {
-    console.error('❌ SSO login failed:', error);
-    setError('Login failed. Please try again.');
-    setIsLoading(false);
-  }, []);
-
-  // Initialize iframe URL when auth is ready
-  useEffect(() => {
-    const initializeRaven = async () => {
-      if (authLoading) {
-        console.log('⏳ Waiting for authentication to load...');
-        setAuthStep('initializing');
-        return;
-      }
-
-      if (!isAuthenticated) {
-        console.log('⚠️ User not authenticated, showing SSO login options');
-        setShowLogin(true);
-        setIsLoading(false);
-        setAuthStep('ready');
-        return;
-      }
-
-      console.log('🔐 User authenticated, building Raven URL...');
-      setAuthStep('initializing');
-      const authData = getAuthData();
-      
-      if (!authData) {
-        console.error('❌ No auth data found in localStorage');
-        setShowLogin(true);
-        setIsLoading(false);
-        setAuthStep('ready');
-        return;
-      }
-
-      try {
-        const url = await buildRavenUrl(authData);
-        if (url) {
-          setIframeUrl(url);
-          setIsLoading(false);
-          setAuthStep('ready');
-        }
-      } catch (error) {
-        console.error('❌ Error building Raven URL:', error);
-        setError('Failed to build Raven URL. Please try again.');
-        setIsLoading(false);
-        setAuthStep('error');
-      }
-    };
-
-    initializeRaven();
-  }, [authLoading, isAuthenticated, getAuthData, buildRavenUrl]);
-
-  // Enhanced loading component with authentication steps
+  // Simple loading component
   const LoadingComponent = () => (
     <div 
       style={{
@@ -261,12 +90,10 @@ const RavenEmbed = ({
         marginBottom: '16px'
       }} />
       <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
-        {authStep === 'initializing' && 'Initializing Raven Chat...'}
-        {authStep === 'authenticating' && 'Authenticating with Raven...'}
-        {authStep === 'ready' && 'Loading Raven Chat...'}
+        Loading Raven Chat...
       </p>
       <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
-        Step: {authStep}
+        Please wait while we load the chat interface
       </p>
       <style jsx>{`
         @keyframes spin {
@@ -274,89 +101,6 @@ const RavenEmbed = ({
           100% { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
-  );
-
-  // SSO Login component
-  const SSOLoginComponent = () => (
-    <div 
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: height,
-        width: width,
-        backgroundColor: '#f8f9fa',
-        borderRadius: '8px',
-        border: '1px solid #e0e0e0',
-        padding: '40px 20px'
-      }}
-    >
-      <div style={{
-        textAlign: 'center',
-        marginBottom: '30px'
-      }}>
-        <h2 style={{
-          color: '#333',
-          fontSize: '24px',
-          margin: '0 0 8px 0',
-          fontWeight: '600'
-        }}>
-          Welcome to Raven Chat
-        </h2>
-        <p style={{
-          color: '#666',
-          fontSize: '16px',
-          margin: '0 0 20px 0'
-        }}>
-          Please sign in to access the chat
-        </p>
-      </div>
-
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        width: '100%',
-        maxWidth: '300px'
-      }}>
-        {enableMicrosoftSSO && (
-          <div style={{
-            width: '100%'
-          }}>
-            <MicrosoftSSOLogin
-              onSuccess={handleSSOSuccess}
-              onError={handleSSOError}
-            />
-          </div>
-        )}
-
-        {enableTruecallerSSO && (
-          <div style={{
-            width: '100%'
-          }}>
-            <TruecallerSSOLogin
-              apiUrl={apiUrl}
-              onSuccess={handleSSOSuccess}
-              onError={handleSSOError}
-              enableAuthIntegration={true}
-              redirectOnSuccess={false}
-              buttonText="Continue with Truecaller"
-              fullWidth={true}
-            />
-          </div>
-        )}
-      </div>
-
-      <div style={{
-        marginTop: '20px',
-        fontSize: '12px',
-        color: '#999',
-        textAlign: 'center'
-      }}>
-        Choose your preferred sign-in method
-      </div>
     </div>
   );
 
@@ -413,7 +157,7 @@ const RavenEmbed = ({
   // Main iframe component
   const IframeComponent = () => (
     <iframe
-      src={iframeUrl}
+      src={ravenUrl}
       style={{
         width: width,
         height: height,
@@ -436,11 +180,7 @@ const RavenEmbed = ({
     return <ErrorComponent />;
   }
 
-  if (showLogin && showSSOOptions) {
-    return <SSOLoginComponent />;
-  }
-
-  if (showLoading && (isLoading || !iframeUrl)) {
+  if (showLoading && isLoading) {
     return <LoadingComponent />;
   }
 
