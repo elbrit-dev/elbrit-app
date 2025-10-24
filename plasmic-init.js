@@ -24,6 +24,7 @@ const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: f
 const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
 const RavenEmbed = dynamic(() => import("./components/RavenEmbed"), { ssr: false, loading: () => null });
 const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), { ssr: false, loading: () => null });
+const RavenEmbedEnhanced = dynamic(() => import("./components/RavenEmbedEnhanced"), { ssr: false, loading: () => null });
 const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
 const RavenLauncher = dynamic(() => import("./components/RavenLauncher"), { ssr: false, loading: () => null });
 const RavenModal = dynamic(() => import("./components/RavenModal"), { ssr: false, loading: () => null });
@@ -3523,6 +3524,50 @@ PLASMIC.registerComponent(RavenEmbedSimple, {
     }
   },
   importPath: "./components/RavenEmbedSimple"
+});
+
+// Register Raven Embed Enhanced component (with session handling)
+PLASMIC.registerComponent(RavenEmbedEnhanced, {
+  name: "RavenEmbedEnhanced",
+  displayName: "Raven Chat Enhanced",
+  description: "Enhanced Raven chat embed with session handling and debugging capabilities to fix login redirect issues",
+  props: {
+    ravenUrl: {
+      type: "string",
+      displayName: "Raven URL",
+      description: "The URL of the Raven chat application",
+      defaultValue: "https://erp.elbrit.org/raven"
+    },
+    height: {
+      type: "string",
+      displayName: "Height",
+      description: "Height of the iframe (e.g., '600px', '90vh')",
+      defaultValue: "90vh"
+    },
+    width: {
+      type: "string",
+      displayName: "Width",
+      description: "Width of the iframe (e.g., '100%', '800px')",
+      defaultValue: "100%"
+    },
+    showLoading: {
+      type: "boolean",
+      displayName: "Show Loading",
+      description: "Whether to show loading spinner while iframe loads",
+      defaultValue: true
+    },
+    enableDebug: {
+      type: "boolean",
+      displayName: "Enable Debug Mode",
+      description: "Enable debug logging to troubleshoot login issues",
+      defaultValue: false
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for custom styling"
+    }
+  },
+  importPath: "./components/RavenEmbedEnhanced"
 });
 
 // Register Token Checker component
