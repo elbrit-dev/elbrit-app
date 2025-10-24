@@ -15,7 +15,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
  * 3. Configure height/width as needed
  */
 const RavenEmbedEnhanced = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://erp.elbrit.org",
   height = "90vh",
   width = "100%",
   showLoading = true,

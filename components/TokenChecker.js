@@ -60,7 +60,7 @@ const TokenChecker = ({
         if (authProvider) params.append('provider', authProvider);
         params.append('_t', Date.now().toString());
 
-        setRavenUrl(`https://erp.elbrit.org/raven?${params.toString()}`);
+        setRavenUrl(`https://erp.elbrit.org?${params.toString()}`);
 
       } catch (error) {
         console.error('Error decoding token:', error);

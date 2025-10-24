@@ -11,7 +11,7 @@ import { useAuth } from './AuthContext';
  * 4. Provides better error handling and retry logic
  */
 const RavenAutoLogin = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://erp.elbrit.org",
   height = "90vh",
   width = "100%",
   showLoading = true,

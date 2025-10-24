@@ -10,7 +10,7 @@ import { useAuth } from './AuthContext';
  * 3. Provides fallback if iframe embedding is blocked
  */
 const RavenLauncher = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://erp.elbrit.org",
   buttonText = null, // Will be set based on device
   buttonStyle = {},
   className = "",

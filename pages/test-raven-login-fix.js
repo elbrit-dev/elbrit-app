@@ -8,29 +8,29 @@ const RavenEmbedEnhanced = dynamic(() => import('../components/RavenEmbedEnhance
 const TestRavenLoginFix = () => {
   const [activeComponent, setActiveComponent] = useState('enhanced');
   const [debugMode, setDebugMode] = useState(true);
-  const [ravenUrl, setRavenUrl] = useState('https://erp.elbrit.org/raven');
+  const [ravenUrl, setRavenUrl] = useState('https://erp.elbrit.org');
   const [testResults, setTestResults] = useState([]);
 
   // Test different URLs and configurations
   const testConfigurations = [
     {
       name: 'Standard Raven URL',
-      url: 'https://erp.elbrit.org/raven',
+      url: 'https://erp.elbrit.org',
       description: 'Direct access to main Raven application'
     },
     {
       name: 'Raven Login URL',
-      url: 'https://erp.elbrit.org/raven/login',
+      url: 'https://erp.elbrit.org/login',
       description: 'Direct access to login page'
     },
     {
       name: 'Raven with Timestamp',
-      url: `https://erp.elbrit.org/raven?_t=${Date.now()}`,
+      url: `https://erp.elbrit.org?_t=${Date.now()}`,
       description: 'Raven with cache-busting timestamp'
     },
     {
       name: 'Raven with Session',
-      url: 'https://erp.elbrit.org/raven?session=test',
+      url: 'https://erp.elbrit.org?session=test',
       description: 'Raven with session parameter'
     }
   ];

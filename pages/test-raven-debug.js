@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import RavenEmbed from '../components/RavenEmbed';
 
 const TestRavenDebug = () => {
-  const [currentUrl, setCurrentUrl] = useState('https://erp.elbrit.org/raven');
+  const [currentUrl, setCurrentUrl] = useState('https://erp.elbrit.org');
   const [urlHistory, setUrlHistory] = useState([]);
   const [debugInfo, setDebugInfo] = useState({});
 
@@ -26,11 +26,11 @@ const TestRavenDebug = () => {
 
   // Test different URLs
   const testUrls = [
-    { name: 'Main Raven URL', url: 'https://erp.elbrit.org/raven' },
-    { name: 'Raven Login URL', url: 'https://erp.elbrit.org/raven/login' },
-    { name: 'Raven with timestamp', url: `https://erp.elbrit.org/raven?_t=${Date.now()}` },
-    { name: 'Raven with auto_login', url: 'https://erp.elbrit.org/raven?auto_login=true' },
-    { name: 'Raven with session', url: 'https://erp.elbrit.org/raven?session=test' }
+    { name: 'Main Raven URL', url: 'https://erp.elbrit.org' },
+    { name: 'Raven Login URL', url: 'https://erp.elbrit.org/login' },
+    { name: 'Raven with timestamp', url: `https://erp.elbrit.org?_t=${Date.now()}` },
+    { name: 'Raven with auto_login', url: 'https://erp.elbrit.org?auto_login=true' },
+    { name: 'Raven with session', url: 'https://erp.elbrit.org?session=test' }
   ];
 
   const handleUrlChange = (url) => {

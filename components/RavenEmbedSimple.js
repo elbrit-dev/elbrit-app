@@ -10,7 +10,7 @@ import { useAuth } from './AuthContext';
  * 3. Falls back gracefully if authentication fails
  */
 const RavenEmbedSimple = ({ 
-  ravenUrl = "https://erp.elbrit.org/raven",
+  ravenUrl = "https://erp.elbrit.org",
   height = "90vh",
   width = "100%",
   showLoading = true,
