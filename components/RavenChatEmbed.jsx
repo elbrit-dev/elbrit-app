@@ -1,20 +1,24 @@
 import React, { useState } from "react";
 
-export const RavenChatEmbed = ({
-  url = "https://erp.elbrit.org/raven",
-  height = 720,
-  showBorder = false,
-  borderRadius = 10,
-}) => {
+const RavenChatEmbed = (props) => {
+  // Safely extract props with proper defaults and type conversion
+  const url = props?.url || "https://erp.elbrit.org/raven";
+  const height = typeof props?.height === 'number' ? props.height : 720;
+  const showBorder = Boolean(props?.showBorder);
+  const borderRadius = typeof props?.borderRadius === 'number' ? props.borderRadius : 10;
+  
   const [loaded, setLoaded] = useState(false);
+
+  // Ensure height is a valid CSS value
+  const heightValue = typeof height === 'number' ? `${height}px` : height;
 
   return (
     <div
       style={{
         width: "100%",
-        height,
+        height: heightValue,
         border: showBorder ? "1px solid #ddd" : "none",
-        borderRadius,
+        borderRadius: `${borderRadius}px`,
         overflow: "hidden",
         position: "relative",
         background: "#f5f5f5",
@@ -42,7 +46,7 @@ export const RavenChatEmbed = ({
           width: "100%",
           height: "100%",
           border: "none",
-          borderRadius,
+          borderRadius: `${borderRadius}px`,
         }}
         onLoad={() => setLoaded(true)}
         allow="clipboard-write; fullscreen"
@@ -50,3 +54,6 @@ export const RavenChatEmbed = ({
     </div>
   );
 };
+
+export { RavenChatEmbed };
+export default RavenChatEmbed;
