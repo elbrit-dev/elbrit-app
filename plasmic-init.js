@@ -3480,7 +3480,7 @@ PLASMIC.registerComponent(RavenEmbed, {
     },
     showLoading: {
       type: "boolean",
-      defaultValue: true,
+      defaultValue: false,
       description: "Show loading indicator while Raven loads"
     },
     className: {
