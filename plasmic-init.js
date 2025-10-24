@@ -22,13 +22,7 @@ const AdvancedSkeleton = dynamic(() => import("./components/AdvancedSkeleton"), 
 const StaticSkeleton = dynamic(() => import("./components/StaticSkeleton"), { ssr: false, loading: () => null });
 const RectSkeleton = dynamic(() => import("./components/RectSkeleton"), { ssr: false, loading: () => null });
 const CircleSkeleton = dynamic(() => import("./components/CircleSkeleton"), { ssr: false, loading: () => null });
-const RavenEmbed = dynamic(() => import("./components/RavenEmbed"), { ssr: false, loading: () => null });
-const RavenEmbedSimple = dynamic(() => import("./components/RavenEmbedSimple"), { ssr: false, loading: () => null });
-const RavenEmbedEnhanced = dynamic(() => import("./components/RavenEmbedEnhanced"), { ssr: false, loading: () => null });
-const TokenChecker = dynamic(() => import("./components/TokenChecker"), { ssr: false, loading: () => null });
-const RavenLauncher = dynamic(() => import("./components/RavenLauncher"), { ssr: false, loading: () => null });
-const RavenModal = dynamic(() => import("./components/RavenModal"), { ssr: false, loading: () => null });
-const RavenAutoLogin = dynamic(() => import("./components/RavenAutoLogin"), { ssr: false, loading: () => null });
+const RavenChatEmbed = dynamic(() => import("./components/RavenChatEmbed"), { ssr: false, loading: () => null });
 const ClientOnly = dynamic(() => import("./components/PlasmicPerformance").then(m => m.ClientOnly), { ssr: false, loading: () => null });
 const VisibilityGate = dynamic(() => import("./components/PlasmicPerformance").then(m => m.VisibilityGate), { ssr: false, loading: () => null });
 
@@ -3458,239 +3452,34 @@ PLASMIC.registerComponent(CircleSkeleton, {
   importPath: "./components/CircleSkeleton"
 });
 
-// Register Raven Embed component
-PLASMIC.registerComponent(RavenEmbed, {
-  name: "RavenEmbed",
-  displayName: "Raven Chat Embed",
-  description: "Enhanced Raven chat embed with multiple authentication methods for seamless auto-login",
+// Register Raven Chat Embed component
+PLASMIC.registerComponent(RavenChatEmbed, {
+  name: "RavenChatEmbed",
+  displayName: "🕊 Raven Chat Embed",
+  description: "Embed Raven chat directly in your Plasmic app with customizable styling",
   props: {
-    ravenUrl: {
+    url: {
       type: "string",
-      defaultValue: "https://erp.elbrit.org",
-      description: "Raven application URL"
+      defaultValue: "https://erp.elbrit.org/raven",
+      description: "The Raven chat URL to embed (usually same ERP endpoint)"
     },
     height: {
-      type: "string", 
-      defaultValue: "90vh",
-      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
+      type: "number",
+      defaultValue: 720,
+      description: "Height of the chat frame in pixels"
     },
-    width: {
-      type: "string",
-      defaultValue: "100%", 
-      description: "Width of the iframe (e.g., '100%', '800px')"
-    },
-    showLoading: {
+    showBorder: {
       type: "boolean",
       defaultValue: false,
-      description: "Show loading indicator while Raven loads"
+      description: "Show border around chat frame"
     },
-    className: {
-      type: "string",
-      description: "Additional CSS classes for custom styling"
+    borderRadius: {
+      type: "number",
+      defaultValue: 10,
+      description: "Rounded corners (in px)"
     }
   },
-  importPath: "./components/RavenEmbed"
-});
-
-// Register Raven Embed Simple component (alternative approach)
-PLASMIC.registerComponent(RavenEmbedSimple, {
-  name: "RavenEmbedSimple",
-  displayName: "Raven Chat Simple",
-  description: "Simplified Raven chat embed with better authentication handling",
-  props: {
-    ravenUrl: {
-      type: "string",
-      defaultValue: "https://erp.elbrit.org",
-      description: "Raven application URL"
-    },
-    height: {
-      type: "string", 
-      defaultValue: "90vh",
-      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
-    },
-    width: {
-      type: "string",
-      defaultValue: "100%", 
-      description: "Width of the iframe (e.g., '100%', '800px')"
-    },
-    showLoading: {
-      type: "boolean",
-      defaultValue: true,
-      description: "Show loading indicator while Raven loads"
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes for custom styling"
-    }
-  },
-  importPath: "./components/RavenEmbedSimple"
-});
-
-// Register Raven Embed Enhanced component (with session handling)
-PLASMIC.registerComponent(RavenEmbedEnhanced, {
-  name: "RavenEmbedEnhanced",
-  displayName: "Raven Chat Enhanced",
-  description: "Enhanced Raven chat embed with session handling and debugging capabilities to fix login redirect issues",
-  props: {
-    ravenUrl: {
-      type: "string",
-      displayName: "Raven URL",
-      description: "The URL of the Raven chat application",
-      defaultValue: "https://erp.elbrit.org"
-    },
-    height: {
-      type: "string",
-      displayName: "Height",
-      description: "Height of the iframe (e.g., '600px', '90vh')",
-      defaultValue: "90vh"
-    },
-    width: {
-      type: "string",
-      displayName: "Width",
-      description: "Width of the iframe (e.g., '100%', '800px')",
-      defaultValue: "100%"
-    },
-    showLoading: {
-      type: "boolean",
-      displayName: "Show Loading",
-      description: "Whether to show loading spinner while iframe loads",
-      defaultValue: true
-    },
-    enableDebug: {
-      type: "boolean",
-      displayName: "Enable Debug Mode",
-      description: "Enable debug logging to troubleshoot login issues",
-      defaultValue: false
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes for custom styling"
-    }
-  },
-  importPath: "./components/RavenEmbedEnhanced"
-});
-
-// Register Token Checker component
-PLASMIC.registerComponent(TokenChecker, {
-  name: "TokenChecker",
-  displayName: "Token Status Checker",
-  description: "Shows real-time authentication token status and validation",
-  props: {
-    showDetails: {
-      type: "boolean",
-      defaultValue: true,
-      description: "Show detailed token information"
-    },
-    compact: {
-      type: "boolean",
-      defaultValue: false,
-      description: "Show compact version (just status indicator)"
-    }
-  },
-  importPath: "./components/TokenChecker"
-});
-
-// Register Raven Launcher component (opens Raven in new window)
-PLASMIC.registerComponent(RavenLauncher, {
-  name: "RavenLauncher",
-  displayName: "Raven Chat Launcher",
-  description: "Opens Raven chat in new window (desktop) or mobile app (mobile) - use when iframe is blocked",
-  props: {
-    ravenUrl: {
-      type: "string",
-      defaultValue: "https://erp.elbrit.org",
-      description: "Raven application URL"
-    },
-    buttonText: {
-      type: "string",
-      defaultValue: "Open Raven Chat",
-      description: "Text to display on the button"
-    },
-    buttonStyle: {
-      type: "object",
-      defaultValue: {},
-      description: "Custom styles for the button"
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes"
-    }
-  },
-  importPath: "./components/RavenLauncher"
-});
-
-// Register Raven Modal component (opens Raven in modal inside app)
-PLASMIC.registerComponent(RavenModal, {
-  name: "RavenModal",
-  displayName: "Raven Chat Modal",
-  description: "Opens Raven chat in a modal popup inside your app (bypasses iframe restrictions)",
-  props: {
-    ravenUrl: {
-      type: "string",
-      defaultValue: "https://erp.elbrit.org",
-      description: "Raven application URL"
-    },
-    buttonText: {
-      type: "string",
-      defaultValue: "Open Raven Chat",
-      description: "Text to display on the button"
-    },
-    modalTitle: {
-      type: "string",
-      defaultValue: "Raven Chat",
-      description: "Title to display in the modal header"
-    },
-    buttonStyle: {
-      type: "object",
-      defaultValue: {},
-      description: "Custom styles for the button"
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes"
-    }
-  },
-  importPath: "./components/RavenModal"
-});
-
-// Register Raven Auto Login component (enhanced authentication)
-PLASMIC.registerComponent(RavenAutoLogin, {
-  name: "RavenAutoLogin",
-  displayName: "Raven Auto Login",
-  description: "Enhanced Raven integration with automatic login using ERPNext authentication",
-  props: {
-    ravenUrl: {
-      type: "string",
-      defaultValue: "https://erp.elbrit.org",
-      description: "Raven application URL"
-    },
-    height: {
-      type: "string", 
-      defaultValue: "90vh",
-      description: "Height of the iframe (e.g., '90vh', '600px', '100%')"
-    },
-    width: {
-      type: "string",
-      defaultValue: "100%", 
-      description: "Width of the iframe (e.g., '100%', '800px')"
-    },
-    showLoading: {
-      type: "boolean",
-      defaultValue: true,
-      description: "Show loading indicator while Raven loads"
-    },
-    mode: {
-      type: "choice",
-      options: ["iframe", "window"],
-      defaultValue: "iframe",
-      description: "Display mode: iframe or new window"
-    },
-    className: {
-      type: "string",
-      description: "Additional CSS classes for custom styling"
-    }
-  },
-  importPath: "./components/RavenAutoLogin"
+  importPath: "./components/RavenChatEmbed"
 });
 
 // Register PrimeReact Timeline component
@@ -3859,4 +3648,3 @@ PLASMIC.registerComponent(PrimeTimeline, {
   defaultStyles: {},
   providesData: true
 });
-
