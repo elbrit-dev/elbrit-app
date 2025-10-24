@@ -125,9 +125,84 @@ const RavenEmbedEnhanced = ({
     setCurrentUrl(newUrl);
   }, [ravenUrl, addDebugLog]);
 
+  // Sync ERPNext cookies to current domain
+  const syncERPNextCookies = useCallback(async () => {
+    addDebugLog('Starting ERPNext cookie sync', 'info');
+    
+    try {
+      // Get ERPNext user data from localStorage (set by AuthContext)
+      const erpnextToken = localStorage.getItem('erpnextAuthToken');
+      const erpnextUser = localStorage.getItem('erpnextUser');
+      const userEmail = localStorage.getItem('userEmail');
+      const userPhoneNumber = localStorage.getItem('userPhoneNumber');
+      
+      if (!erpnextToken || !erpnextUser) {
+        addDebugLog('No ERPNext auth data found in localStorage', 'warning');
+        return false;
+      }
+
+      const userData = JSON.parse(erpnextUser);
+      addDebugLog(`Found ERPNext user: ${userData.email || userData.phoneNumber}`, 'info');
+
+      // Try to get ERPNext session cookies via API
+      try {
+        const response = await fetch('/api/erpnext/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userEmail || userData.email,
+            phoneNumber: userPhoneNumber || userData.phoneNumber,
+            token: erpnextToken
+          })
+        });
+
+        if (response.ok) {
+          const sessionData = await response.json();
+          addDebugLog('Successfully retrieved ERPNext session data', 'success');
+          
+          // Update Plasmic cookies with ERPNext data
+          if (sessionData.cookies) {
+            Object.entries(sessionData.cookies).forEach(([name, value]) => {
+              // Set cookie for current domain
+              document.cookie = `${name}=${value}; path=/; secure; samesite=lax`;
+              addDebugLog(`Set cookie: ${name}=${value}`, 'info');
+            });
+          }
+          
+          return true;
+        }
+      } catch (apiError) {
+        addDebugLog(`ERPNext API call failed: ${apiError.message}`, 'warning');
+      }
+
+      // Fallback: Try to set basic user cookies from localStorage data
+      const cookiesToSet = {
+        'full_name': userData.displayName || userData.fullName || 'User',
+        'user_id': userData.email || userData.phoneNumber || 'user',
+        'system_user': 'yes',
+        'sid': erpnextToken.substring(0, 20) // Use first 20 chars of token as session ID
+      };
+
+      Object.entries(cookiesToSet).forEach(([name, value]) => {
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; secure; samesite=lax`;
+        addDebugLog(`Set fallback cookie: ${name}=${value}`, 'info');
+      });
+
+      addDebugLog('Set fallback cookies from localStorage data', 'success');
+      return true;
+
+    } catch (error) {
+      addDebugLog(`Cookie sync error: ${error.message}`, 'error');
+      return false;
+    }
+  }, [addDebugLog]);
+
   // Handle session establishment
   const establishSession = useCallback(async () => {
     addDebugLog('Attempting to establish session', 'info');
+    
+    // First try to sync ERPNext cookies
+    const cookieSyncSuccess = await syncERPNextCookies();
     
     try {
       // Method 1: Try to access Raven with session cookies
@@ -149,7 +224,7 @@ const RavenEmbedEnhanced = ({
       addDebugLog(`Session check error: ${error.message}`, 'warning');
       return false;
     }
-  }, [ravenUrl, addDebugLog]);
+  }, [ravenUrl, addDebugLog, syncERPNextCookies]);
 
   // Initialize component
   useEffect(() => {

@@ -1,11 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 
 /**
- * RavenEmbed Component - Simple iframe embed for Raven chat application
+ * RavenEmbed Component - Simple iframe embed for Raven chat application with cookie sync
  * 
  * This component:
- * 1. Embeds Raven in an iframe without complex authentication
- * 2. Users handle their own login within the iframe
+ * 1. Syncs ERPNext cookies to current domain before loading Raven
+ * 2. Embeds Raven in an iframe for user login
  * 3. Handles basic loading states and error scenarios
  * 
  * Usage in Plasmic:
@@ -26,7 +26,87 @@ const RavenEmbed = ({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [cookiesSynced, setCookiesSynced] = useState(false);
   const maxRetries = 3;
+
+  // Sync ERPNext cookies to current domain
+  const syncERPNextCookies = useCallback(async () => {
+    console.log('🔄 Starting ERPNext cookie sync...');
+    
+    try {
+      // Get ERPNext user data from localStorage (set by AuthContext)
+      const erpnextToken = localStorage.getItem('erpnextAuthToken');
+      const erpnextUser = localStorage.getItem('erpnextUser');
+      const userEmail = localStorage.getItem('userEmail');
+      const userPhoneNumber = localStorage.getItem('userPhoneNumber');
+      
+      if (!erpnextToken || !erpnextUser) {
+        console.warn('⚠️ No ERPNext auth data found in localStorage');
+        return false;
+      }
+
+      const userData = JSON.parse(erpnextUser);
+      console.log(`👤 Found ERPNext user: ${userData.email || userData.phoneNumber}`);
+
+      // Try to get ERPNext session cookies via API
+      try {
+        const response = await fetch('/api/erpnext/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: userEmail || userData.email,
+            phoneNumber: userPhoneNumber || userData.phoneNumber,
+            token: erpnextToken
+          })
+        });
+
+        if (response.ok) {
+          const sessionData = await response.json();
+          console.log('✅ Successfully retrieved ERPNext session data');
+          
+          // Update Plasmic cookies with ERPNext data
+          if (sessionData.cookies) {
+            Object.entries(sessionData.cookies).forEach(([name, value]) => {
+              // Set cookie for current domain
+              document.cookie = `${name}=${value}; path=/; secure; samesite=lax`;
+              console.log(`🍪 Set cookie: ${name}=${value}`);
+            });
+          }
+          
+          setCookiesSynced(true);
+          return true;
+        }
+      } catch (apiError) {
+        console.warn(`⚠️ ERPNext API call failed: ${apiError.message}`);
+      }
+
+      // Fallback: Try to set basic user cookies from localStorage data
+      const cookiesToSet = {
+        'full_name': userData.displayName || userData.fullName || 'User',
+        'user_id': userData.email || userData.phoneNumber || 'user',
+        'system_user': 'yes',
+        'sid': erpnextToken.substring(0, 20) // Use first 20 chars of token as session ID
+      };
+
+      Object.entries(cookiesToSet).forEach(([name, value]) => {
+        document.cookie = `${name}=${encodeURIComponent(value)}; path=/; secure; samesite=lax`;
+        console.log(`🍪 Set fallback cookie: ${name}=${value}`);
+      });
+
+      console.log('✅ Set fallback cookies from localStorage data');
+      setCookiesSynced(true);
+      return true;
+
+    } catch (error) {
+      console.error(`❌ Cookie sync error: ${error.message}`);
+      return false;
+    }
+  }, []);
+
+  // Initialize cookie sync
+  useEffect(() => {
+    syncERPNextCookies();
+  }, [syncERPNextCookies]);
 
   // Handle iframe load
   const handleIframeLoad = useCallback(() => {
@@ -90,10 +170,10 @@ const RavenEmbed = ({
         marginBottom: '16px'
       }} />
       <p style={{ color: '#666', fontSize: '14px', margin: '0 0 8px 0' }}>
-        Loading Raven Chat...
+        {cookiesSynced ? 'Loading Raven Chat...' : 'Syncing authentication...'}
       </p>
       <p style={{ color: '#999', fontSize: '12px', margin: 0 }}>
-        Please wait while we load the chat interface
+        {cookiesSynced ? 'Please wait while we load the chat interface' : 'Updating cookies for proper login'}
       </p>
       <style jsx>{`
         @keyframes spin {
