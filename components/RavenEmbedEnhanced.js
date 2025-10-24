@@ -160,12 +160,21 @@ const RavenEmbedEnhanced = ({
           const sessionData = await response.json();
           addDebugLog('Successfully retrieved ERPNext session data', 'success');
           
+          // First, clear any existing "Guest" cookies
+          const cookiesToClear = ['full_name', 'user_id', 'system_user', 'sid', 'user_image'];
+          cookiesToClear.forEach(name => {
+            // Clear cookie by setting it to expire in the past
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            addDebugLog(`Cleared old cookie: ${name}`, 'info');
+          });
+          
           // Update Plasmic cookies with ERPNext data
           if (sessionData.cookies) {
             Object.entries(sessionData.cookies).forEach(([name, value]) => {
               // Set cookie for current domain
               document.cookie = `${name}=${value}; path=/; secure; samesite=lax`;
-              addDebugLog(`Set cookie: ${name}=${value}`, 'info');
+              addDebugLog(`Set new cookie: ${name}=${value}`, 'info');
             });
           }
           
@@ -174,6 +183,15 @@ const RavenEmbedEnhanced = ({
       } catch (apiError) {
         addDebugLog(`ERPNext API call failed: ${apiError.message}`, 'warning');
       }
+
+      // First, clear any existing "Guest" cookies
+      const cookiesToClear = ['full_name', 'user_id', 'system_user', 'sid', 'user_image'];
+      cookiesToClear.forEach(name => {
+        // Clear cookie by setting it to expire in the past
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        addDebugLog(`Cleared old cookie: ${name}`, 'info');
+      });
 
       // Fallback: Try to set basic user cookies from localStorage data
       const cookiesToSet = {
@@ -185,7 +203,7 @@ const RavenEmbedEnhanced = ({
 
       Object.entries(cookiesToSet).forEach(([name, value]) => {
         document.cookie = `${name}=${encodeURIComponent(value)}; path=/; secure; samesite=lax`;
-        addDebugLog(`Set fallback cookie: ${name}=${value}`, 'info');
+        addDebugLog(`Set new cookie: ${name}=${value}`, 'info');
       });
 
       addDebugLog('Set fallback cookies from localStorage data', 'success');

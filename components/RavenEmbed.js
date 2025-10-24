@@ -64,12 +64,21 @@ const RavenEmbed = ({
           const sessionData = await response.json();
           console.log('✅ Successfully retrieved ERPNext session data');
           
+          // First, clear any existing "Guest" cookies
+          const cookiesToClear = ['full_name', 'user_id', 'system_user', 'sid', 'user_image'];
+          cookiesToClear.forEach(name => {
+            // Clear cookie by setting it to expire in the past
+            document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+            console.log(`🗑️ Cleared old cookie: ${name}`);
+          });
+          
           // Update Plasmic cookies with ERPNext data
           if (sessionData.cookies) {
             Object.entries(sessionData.cookies).forEach(([name, value]) => {
               // Set cookie for current domain
               document.cookie = `${name}=${value}; path=/; secure; samesite=lax`;
-              console.log(`🍪 Set cookie: ${name}=${value}`);
+              console.log(`🍪 Set new cookie: ${name}=${value}`);
             });
           }
           
@@ -80,7 +89,16 @@ const RavenEmbed = ({
         console.warn(`⚠️ ERPNext API call failed: ${apiError.message}`);
       }
 
-      // Fallback: Try to set basic user cookies from localStorage data
+      // First, clear any existing "Guest" cookies
+      const cookiesToClear = ['full_name', 'user_id', 'system_user', 'sid', 'user_image'];
+      cookiesToClear.forEach(name => {
+        // Clear cookie by setting it to expire in the past
+        document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        document.cookie = `${name}=; path=/; domain=${window.location.hostname}; expires=Thu, 01 Jan 1970 00:00:00 GMT`;
+        console.log(`🗑️ Cleared old cookie: ${name}`);
+      });
+
+      // Then set new user cookies from localStorage data
       const cookiesToSet = {
         'full_name': userData.displayName || userData.fullName || 'User',
         'user_id': userData.email || userData.phoneNumber || 'user',
@@ -90,7 +108,7 @@ const RavenEmbed = ({
 
       Object.entries(cookiesToSet).forEach(([name, value]) => {
         document.cookie = `${name}=${encodeURIComponent(value)}; path=/; secure; samesite=lax`;
-        console.log(`🍪 Set fallback cookie: ${name}=${value}`);
+        console.log(`🍪 Set new cookie: ${name}=${value}`);
       });
 
       console.log('✅ Set fallback cookies from localStorage data');
