@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         filters: JSON.stringify([
           ['cell_number', '=', cleanedPhoneNumber]
         ]),
-        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email'])
+        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id'])
       });
 
       console.log('🔍 Searching Employee table for phone number:', phoneNumber);
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
     const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
     const employeeSearchParams = new URLSearchParams({
       filters: JSON.stringify([['company_email', '=', searchValue]]),
-      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email'])
+      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id'])
     });
 
     console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
@@ -145,6 +145,7 @@ export default async function handler(req, res) {
           displayName: employee.first_name || employee.company_email?.split('@')[0] || 'User',
           role: 'admin', // Default role for now
           roleName: 'Admin',
+          kly_role_id: employee.kly_role_id || null, // Add role ID field
           authProvider: authProvider || 'employee', // Use 'employee' for both providers
           customProperties: {
             organization: "Elbrit Life Sciences",

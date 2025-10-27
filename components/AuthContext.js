@@ -151,6 +151,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('userDisplayName');
         localStorage.removeItem('userRole');
         localStorage.removeItem('employeeId');
+        localStorage.removeItem('klyRoleId');
       }
     }
   };
@@ -270,6 +271,7 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
                   localStorage.setItem('userAvatar', avatarSvg);
                   localStorage.setItem('userInitial', firstLetter);
+                  localStorage.setItem('klyRoleId', finalUser.kly_role_id || 'null');
                   
                   
                   console.log('💾 Auth data saved to localStorage:', {
@@ -305,6 +307,7 @@ export const AuthProvider = ({ children }) => {
                 localStorage.removeItem('erpnextAuthToken');
                 localStorage.removeItem('erpnextUser');
                 localStorage.removeItem('employeeId');
+                localStorage.removeItem('klyRoleId');
               }
             }
                   } catch (error) {
@@ -328,6 +331,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userAvatar');
             localStorage.removeItem('userInitial');
             localStorage.removeItem('employeeId');
+            localStorage.removeItem('klyRoleId');
           }
         }
         } else {
@@ -354,6 +358,7 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('employeeData');
             localStorage.removeItem('phoneUserData');
             localStorage.removeItem('employeeId');
+            localStorage.removeItem('klyRoleId');
             
             console.log('🧹 Cleared all auth data from localStorage');
           }
@@ -414,6 +419,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
       localStorage.removeItem('authProvider'); // Remove auth provider from storage
       localStorage.removeItem('employeeId');
+      localStorage.removeItem('klyRoleId');
     }
   };
 
