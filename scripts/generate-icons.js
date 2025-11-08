@@ -13,6 +13,7 @@ const projectRoot = process.cwd();
 const publicDir = path.join(projectRoot, 'public');
 
 const candidates = [
+  path.join(publicDir, 'icon.png'),
   path.join(publicDir, 'icon.jpg'),
   path.join(publicDir, 'favicon.jpg'),
   path.join(publicDir, 'favicon.png')
