@@ -980,6 +980,24 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Show filter footer in filter menus",
       defaultValue: true
     },
+
+    // NEW: Filter mode toggle (Native vs Custom)
+    enableFilterModeToggle: {
+      type: "boolean",
+      description: "Show a toolbar toggle to switch between native row filters and a custom row filter bar",
+      defaultValue: false
+    },
+    defaultFilterMode: {
+      type: "choice",
+      options: ["native", "custom"],
+      description: "Initial filter mode when the table renders",
+      defaultValue: "native"
+    },
+    customRowFilterColumns: {
+      type: "object",
+      description: "Keys to show in the custom row filter bar. Leave empty to include all filterable columns.",
+      defaultValue: []
+    },
     enableGridLines: {
       type: "boolean",
       description: "Show grid lines in the table",

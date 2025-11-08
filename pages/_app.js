@@ -316,6 +316,24 @@ if (typeof window !== 'undefined') {
       // You could add specific handling here if needed
     }
   });
+
+  // Register service worker in production only
+  if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
+    const registerServiceWorker = () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration.scope);
+        })
+        .catch((error) => {
+          console.warn('Service Worker registration failed:', error);
+        });
+    };
+    if (document.readyState === 'complete') {
+      registerServiceWorker();
+    } else {
+      window.addEventListener('load', registerServiceWorker, { once: true });
+    }
+  }
 }
 
 function MyApp({ Component, pageProps }) {

@@ -420,6 +420,10 @@ export const createRightToolbarTemplate = (
   enableRefresh,
   handleRefresh,
   isRefreshing,
+  // NEW: Filter mode toggle (native vs custom)
+  enableFilterModeToggle = false,
+  filterMode = 'native',
+  onToggleFilterMode = null,
 
 ) => {
   return () => (
@@ -470,6 +474,22 @@ export const createRightToolbarTemplate = (
           tooltip="Clear all column filters and search"
           tooltipOptions={{ position: 'top' }}
         />
+      )}
+
+      {/* NEW: Filter Mode Toggle */}
+      {enableFilterModeToggle && (
+        <span className="p-buttonset ml-2">
+          <Button
+            label="Native"
+            className={`p-button-sm ${filterMode === 'native' ? 'p-button-info' : 'p-button-outlined'}`}
+            onClick={() => onToggleFilterMode && onToggleFilterMode('native')}
+          />
+          <Button
+            label="Custom"
+            className={`p-button-sm ${filterMode === 'custom' ? 'p-button-info' : 'p-button-outlined'}`}
+            onClick={() => onToggleFilterMode && onToggleFilterMode('custom')}
+          />
+        </span>
       )}
 
       {enableExport && (

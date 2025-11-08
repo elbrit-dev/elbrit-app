@@ -406,6 +406,11 @@ const PrimeDataTable = ({
   globalFilterPlaceholder = "Search...",
   filterLocale = "en",
   
+  // NEW: Filter mode toggle (native row filters vs custom row filters)
+  enableFilterModeToggle = false,
+  defaultFilterMode = 'native', // 'native' | 'custom'
+  customRowFilterColumns = [], // keys to show in custom row filter when enabled
+  
   // Native PrimeReact editing callbacks
   editingRows = null,
   onRowEditSave = null,
@@ -659,6 +664,10 @@ const PrimeDataTable = ({
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(1);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
+  
+  // NEW: Filter mode (native vs custom) and custom row filters state
+  const [filterMode, setFilterMode] = useState(defaultFilterMode);
+  const [customRowFilters, setCustomRowFilters] = useState({});
   
   // NEW: Local expansion state for row expansion
   const [localExpandedRows, setLocalExpandedRows] = useState(expandedRows || {});
@@ -2232,6 +2241,12 @@ const PrimeDataTable = ({
   }, [enableColumnGrouping, enableAutoColumnGrouping, defaultColumns, autoDetectedColumnGroups, columnGroups]);
 
 
+  // NEW: Whether native row filters are active in the table
+  const isNativeRowFilterActive = useMemo(() => {
+    return enableColumnFilter && filterMode === 'native';
+  }, [enableColumnFilter, filterMode]);
+
+
   // HIBERNATION FIX: Initialize filters based on columns with debounced global filter
   const initializeFilters = useCallback(() => {
     const initialFilters = {
@@ -2555,6 +2570,10 @@ const PrimeDataTable = ({
     enableRefresh,
     handleRefresh,
     isRefreshing,
+    // NEW: Filter mode toggle
+    enableFilterModeToggle,
+    filterMode,
+    (mode) => setFilterMode(mode),
     // Size control
     rightToolbarSize || toolbarSize
   );
@@ -3835,6 +3854,74 @@ const PrimeDataTable = ({
     setFilteredDataForTotals
   ]);
 
+  // NEW: Custom Row Filters (external UI aligned like a row of inputs)
+  const applyCustomRowFilter = useCallback((selectedColumn, value) => {
+    if (!selectedColumn) return;
+    const columnKey = selectedColumn.key;
+
+    setCustomRowFilters(prev => ({ ...prev, [columnKey]: value }));
+
+    // Build/clear filter entry for this column
+    const columnType = getEffectiveColumnType(selectedColumn);
+    let matchMode = FilterMatchMode.CONTAINS;
+    if (['dropdown', 'select', 'categorical', 'boolean'].includes(columnType)) matchMode = FilterMatchMode.EQUALS;
+    else if (columnType === 'number') matchMode = FilterMatchMode.EQUALS;
+    else if (columnType === 'date' || columnType === 'datetime') matchMode = FilterMatchMode.DATE_IS;
+
+    const newFilters = { ...filters };
+    if (value === undefined || value === null || value === '') {
+      delete newFilters[columnKey];
+    } else {
+      newFilters[columnKey] = {
+        operator: FilterOperator.AND,
+        constraints: [{ value, matchMode }]
+      };
+    }
+
+    setFilters(newFilters);
+
+    // Also update totals cache immediately
+    const filteredRows = applyFiltersToData(finalTableData, newFilters).filter(r => r && typeof r === 'object');
+    setFilteredDataForTotals(filteredRows);
+  }, [filters, setFilters, getEffectiveColumnType, finalTableData, applyFiltersToData, setFilteredDataForTotals]);
+
+  const customRowFiltersToolbar = useCallback(() => {
+    if (!(enableFilterModeToggle && filterMode === 'custom')) return null;
+
+    // Choose which columns to show in custom row filter
+    let targetColumns = [];
+    if (Array.isArray(customRowFilterColumns) && customRowFilterColumns.length > 0) {
+      const keys = new Set(customRowFilterColumns);
+      targetColumns = defaultColumns.filter(c => keys.has(c.key));
+    } else {
+      targetColumns = defaultColumns.filter(c => c.filterable !== false);
+    }
+
+    if (targetColumns.length === 0) return null;
+
+    return (
+      <div className="p-3 surface-50 border-round mb-3" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.5rem' }}>
+        {targetColumns.map((col) => {
+          const columnType = getEffectiveColumnType(col);
+          const filterOptions = getFilterOptions(finalTableData, col.key, customFilterOptions);
+          const value = customRowFilters[col.key];
+          return (
+            <div key={col.key} className="flex flex-column gap-1">
+              <label className="text-xs text-600" style={{ fontWeight: 600 }}>{col.title}</label>
+              {createFilterElement(
+                columnType,
+                value,
+                (val) => applyCustomRowFilter(col, val),
+                col,
+                filterOptions
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  }, [enableFilterModeToggle, filterMode, customRowFilterColumns, defaultColumns, getEffectiveColumnType, finalTableData, customFilterOptions, customRowFilters, applyCustomRowFilter, getFilterOptions]);
+
   // Column grouping handlers - extracted to utils/columnGroupingUtils.js
   const {
     generateColumnGroups,
@@ -3991,6 +4078,8 @@ const PrimeDataTable = ({
       />
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
+      {/* NEW: Custom Row Filters Toolbar */}
+      {customRowFiltersToolbar()}
         </>
       ) : enableToolbarInCardForm ? (
         <>
@@ -4003,6 +4092,8 @@ const PrimeDataTable = ({
       />
       {/* Common Filter Toolbar for Column Grouping */}
       {commonFilterToolbarTemplate()}
+      {/* NEW: Custom Row Filters Toolbar */}
+      {customRowFiltersToolbar()}
         </>
       ) : null}
 
@@ -4057,11 +4148,11 @@ const PrimeDataTable = ({
         dataKey={resolvedDataKey} // REQUIRED for cell/row editing to work
         filters={filters}
         filterDisplay={
-          enableColumnFilter 
-            ? (enableColumnGrouping && finalColumnStructure.hasGroups && !forceFilterDisplayWithGrouping 
-                ? "row" 
+          isNativeRowFilterActive
+            ? (enableColumnGrouping && finalColumnStructure.hasGroups && !forceFilterDisplayWithGrouping
+                ? "row"
                 : filterDisplay)
-            : "row"  // FIXED: Always enable filter display, DataTable will handle it based on column filter props
+            : "menu"
         }
         globalFilterFields={(() => {
           const fields = globalFilterFields.length > 0 ? globalFilterFields : defaultColumns.map(col => col.key);
@@ -4291,13 +4382,13 @@ const PrimeDataTable = ({
                 field={column.key}
                 header={column.title} // Keep headers for filters even with grouping
                 sortable={column.sortable !== false && enableSorting}
-                filter={column.filterable !== false && enableColumnFilter}
+                filter={column.filterable !== false && isNativeRowFilterActive}
                 filterField={column.key}  // FIXED: Explicitly set filterField to ensure DataTable knows which field to filter
                 editable={isEditable}
                 editor={isEditable ? (column.editor || createAutoEditor(column)) : undefined}
                 filterElement={
                   // Use custom filter elements for supported types; otherwise fall back to default
-                  (column.filterable !== false && enableColumnFilter && 
+                  (column.filterable !== false && isNativeRowFilterActive && 
                    ['dropdown', 'select', 'categorical', 'boolean', 'date', 'datetime', 'number'].includes(columnType)) ? 
                   (options) => {
                     const filterValue = options.value;

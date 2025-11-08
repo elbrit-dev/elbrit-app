@@ -30,6 +30,13 @@ class MyDocument extends Document {
 
           {/* Minimize layout shift */}
           <meta name="theme-color" content="#ffffff" />
+
+          {/* PWA manifest and icons */}
+          <link rel="manifest" href="/manifest.webmanifest" />
+          <meta name="application-name" content="Elbrit App" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+          <link rel="apple-touch-icon" href="/icon.jpg" />
         </Head>
         <body>
           <Main />
