@@ -1927,6 +1927,16 @@ PLASMIC.registerComponent(SimpleDataTable, {
       description: "Toggle: Use custom toolbar instead of native PrimeReact toolbar (modern design, better mobile layout)",
       defaultValue: false
     },
+    searchOnlyFilters: {
+      type: "boolean",
+      description: "Force all column filters to be text search input only (simple and consistent UX across all column types)",
+      defaultValue: false
+    },
+    equalColumnWidths: {
+      type: "boolean",
+      description: "Give all columns equal width to avoid congestion (minimum 12rem per column)",
+      defaultValue: true
+    },
     
     // Configuration
     pageSize: {

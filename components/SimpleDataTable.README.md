@@ -19,6 +19,7 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Native PrimeReact filters (default)
 - Custom column-wise filters (optional)
 - Toggle between native and custom filters
+- Search-only mode: Force all filters to be text search inputs for consistent UX
 
 ✅ **Dual Toolbar System**
 - Native PrimeReact toolbar (default)
@@ -29,6 +30,12 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - All sizing in em/rem units
 - Mobile-friendly breakpoints
 - Scales properly across different screen sizes
+
+✅ **Equal Column Widths (Default)**
+- All columns get the same width for clean appearance
+- No congested or squeezed columns
+- Minimum 12rem width ensures readability
+- Toggleable - can be disabled for auto-sizing
 
 ## Installation
 
@@ -80,6 +87,8 @@ const MyComponent = () => {
 | `enableRowExpansion` | Boolean | `false` | Enable row expansion for nested data |
 | `useCustomFilters` | Boolean | `false` | Use custom filters instead of native PrimeReact filters |
 | `useCustomToolbar` | Boolean | `false` | Use custom toolbar instead of native PrimeReact toolbar |
+| `searchOnlyFilters` | Boolean | `false` | Force all column filters to be text search input only |
+| `equalColumnWidths` | Boolean | `true` | Give all columns equal width to avoid congestion |
 
 ### Configuration
 
@@ -190,7 +199,48 @@ const columns = [
 - Clear visual hierarchy
 - Improved spacing and alignment
 
-### 5. Table with Row Expansion
+### 5. Table with Search-Only Filters (Simple and Consistent)
+
+```jsx
+<SimpleDataTable 
+  data={myData}
+  searchOnlyFilters={true} // All filters become text search inputs
+  enableSorting={true}
+/>
+```
+
+**Benefits of Search-Only Filters:**
+- Consistent UX across all column types (no dropdowns, calendars, or number inputs)
+- Simpler and more intuitive for users
+- Works with both native and custom filter modes
+- Reduces cognitive load - one filter type for everything
+
+### 6. Table with Equal Column Widths (Default)
+
+```jsx
+<SimpleDataTable 
+  data={myData}
+  equalColumnWidths={true} // All columns get equal width (default: true)
+  enableSorting={true}
+/>
+```
+
+**Benefits of Equal Column Widths:**
+- No congested columns - every column has the same space
+- Clean, organized appearance
+- Minimum 12rem width per column ensures readability
+- Better visual consistency across the table
+- Prevents some columns from being squeezed while others are too wide
+
+**To disable** (let columns auto-size):
+```jsx
+<SimpleDataTable 
+  data={myData}
+  equalColumnWidths={false} // Let columns auto-size based on content
+/>
+```
+
+### 7. Table with Row Expansion
 
 ```jsx
 const dataWithNested = [

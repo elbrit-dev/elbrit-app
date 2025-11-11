@@ -52,6 +52,8 @@ const SimpleDataTable = ({
   enableRowExpansion = false,
   useCustomFilters = false,
   useCustomToolbar = false,
+  searchOnlyFilters = false, // Force all filters to be text search input
+  equalColumnWidths = true, // Give all columns equal width to avoid congestion
   
   // Configuration
   pageSize = 10,
@@ -384,6 +386,18 @@ const SimpleDataTable = ({
       borderRadius: '0.375rem'
     };
     
+    // If searchOnlyFilters is true, always use text input
+    if (searchOnlyFilters) {
+      return (
+        <InputText
+          value={filterValue}
+          onChange={(e) => handleCustomFilterChange(column.key, e.target.value)}
+          placeholder={`Search ${column.title}`}
+          style={commonStyle}
+        />
+      );
+    }
+    
     if (columnType === 'dropdown') {
       const options = getUniqueValues(column.key).map(val => ({
         label: String(val),
@@ -430,7 +444,20 @@ const SimpleDataTable = ({
         />
       );
     }
-  }, [getColumnType, customFilters, getUniqueValues, handleCustomFilterChange]);
+  }, [getColumnType, customFilters, getUniqueValues, handleCustomFilterChange, searchOnlyFilters]);
+
+  // Render native filter element (for PrimeReact's built-in filter)
+  const getNativeFilterElement = useCallback((column) => {
+    if (!searchOnlyFilters) return undefined; // Let PrimeReact use default filter
+    
+    // Force text input for all columns when searchOnlyFilters is true
+    return (
+      <InputText
+        placeholder={`Search ${column.title}`}
+        style={{ width: '100%' }}
+      />
+    );
+  }, [searchOnlyFilters]);
 
   // Custom Toolbar
   const customToolbar = useMemo(() => {
@@ -761,6 +788,10 @@ const SimpleDataTable = ({
           showGridlines
           emptyMessage="No data available"
           style={{ borderRadius: '0.5rem' }}
+          tableStyle={{
+            tableLayout: equalColumnWidths ? 'fixed' : 'auto',
+            width: '100%'
+          }}
         >
           {/* Expander column */}
           {enableRowExpansion && (
@@ -773,19 +804,34 @@ const SimpleDataTable = ({
           )}
           
           {/* Data columns */}
-          {displayColumns.map(column => (
-            <Column
-              key={column.key}
-              field={column.key}
-              header={column.title}
-              sortable={column.sortable && enableSorting}
-              filter={column.filterable && !useCustomFilters}
-              filterPlaceholder={`Filter by ${column.title}`}
-              body={(rowData) => safeCell(rowData[column.key])}
-              style={column.style}
-              headerStyle={column.headerStyle}
-            />
-          ))}
+          {displayColumns.map(column => {
+            // Calculate equal width for columns
+            const equalWidthStyle = equalColumnWidths ? {
+              minWidth: '12rem',
+              width: `${100 / displayColumns.length}%`
+            } : {};
+            
+            return (
+              <Column
+                key={column.key}
+                field={column.key}
+                header={column.title}
+                sortable={column.sortable && enableSorting}
+                filter={column.filterable && !useCustomFilters}
+                filterPlaceholder={`Search ${column.title}`}
+                filterElement={column.filterable && !useCustomFilters ? getNativeFilterElement(column) : undefined}
+                body={(rowData) => safeCell(rowData[column.key])}
+                style={{
+                  ...equalWidthStyle,
+                  ...column.style
+                }}
+                headerStyle={{
+                  ...equalWidthStyle,
+                  ...column.headerStyle
+                }}
+              />
+            );
+          })}
         </DataTable>
       </div>
     </div>
