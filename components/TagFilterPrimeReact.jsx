@@ -58,10 +58,12 @@ const TagFilterPrimeReact = ({
   const [isOverlayVisible, setIsOverlayVisible] = useState(false);
   const [tempSelectedTags, setTempSelectedTags] = useState(defaultSelected);
   const [isMultiSelectMode, setIsMultiSelectMode] = useState(false);
+  const [visibleTagCount, setVisibleTagCount] = useState(selectedTags.length);
   
   // Refs
   const searchInputRef = useRef(null);
   const overlayPanelRef = useRef(null);
+  const tagContainerRef = useRef(null);
   
   // Get tags from data source
   const getTagsFromDataSource = useCallback(() => {
@@ -104,6 +106,37 @@ const TagFilterPrimeReact = ({
   }, [tagDataSource, tagDataPath, tagField, tagList, pageData, queryData, cmsData]);
   
   const availableTags = getTagsFromDataSource();
+  
+  // Calculate visible tag count based on container width
+  useEffect(() => {
+    if (selectedTags.length === 0) {
+      setVisibleTagCount(0);
+      return;
+    }
+
+    // Delay calculation to ensure ref is populated
+    const timer = setTimeout(() => {
+      const containerWidth = tagContainerRef.current?.offsetWidth || 400;
+      const averageChipWidth = 120; // Approximate width per chip including gap
+      const plusBadgeWidth = 50; // Width for "+X" badge
+      
+      // First check if all tags can fit without "+X" badge
+      const allTagsWidth = selectedTags.length * averageChipWidth;
+      if (allTagsWidth <= containerWidth) {
+        setVisibleTagCount(selectedTags.length);
+        return;
+      }
+      
+      // Otherwise, calculate with "+X" badge space reserved
+      const availableWidth = containerWidth - plusBadgeWidth;
+      const maxVisible = Math.floor(availableWidth / averageChipWidth);
+      
+      // Show at least 1 tag
+      setVisibleTagCount(Math.max(1, maxVisible));
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [selectedTags]);
   
   // Color generation functions
   const generateTagColor = useCallback((tag, index) => {
@@ -521,59 +554,109 @@ const TagFilterPrimeReact = ({
         onClick={handleSearchFocus}
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
           alignItems: 'center',
-          gap: '8px',
-          padding: selectedTags.length > 0 ? '12px' : '14px',
+          gap: '6px',
+          padding: '0 12px',
           border: '1px solid #dee2e6',
-          borderRadius: '8px',
+          borderRadius: '6px',
           backgroundColor: '#ffffff',
           cursor: 'pointer',
-          minHeight: '50px',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-          transition: 'all 0.2s ease'
+          height: '2.25rem',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          transition: 'all 0.2s ease',
+          overflow: 'hidden'
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.borderColor = '#2196f3';
-          e.currentTarget.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.2)';
+          e.currentTarget.style.boxShadow = '0 2px 6px rgba(33, 150, 243, 0.25)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.borderColor = '#dee2e6';
-          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+          e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.1)';
         }}
       >
+        {/* Icon */}
+        <span style={{ 
+          color: '#666',
+          fontSize: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          flexShrink: 0
+        }}>
+          🔍
+        </span>
+
         {/* Display selected tags as chips inside the bar */}
-        {selectedTags.length > 0 ? (
-          selectedTags.map(tag => (
-            <Chip
-              key={tag}
-              label={tag}
-              removable={allowDeselect}
-              onRemove={(e) => {
-                e.stopPropagation();
-                handleTagRemove(tag, e);
-              }}
-              style={{
-                backgroundColor: '#2196f3',
-                color: '#ffffff',
-                fontSize: '13px',
-                padding: '2px 6px'
-              }}
-            />
-          ))
-        ) : (
-          <span style={{ color: '#999', fontSize: '14px' }}>
-            {searchPlaceholder || 'Select tags...'}
-          </span>
-        )}
+        <div 
+          ref={tagContainerRef}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px',
+            flex: 1,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap'
+          }}
+        >
+          {selectedTags.length > 0 ? (
+            <>
+              {selectedTags.slice(0, visibleTagCount).map(tag => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  removable={allowDeselect}
+                  onRemove={(e) => {
+                    e.stopPropagation();
+                    handleTagRemove(tag, e);
+                  }}
+                  style={{
+                    backgroundColor: '#2196f3',
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    height: '24px',
+                    padding: '0',
+                    flexShrink: 0
+                  }}
+                />
+              ))}
+              {selectedTags.length > visibleTagCount && (
+                <span style={{
+                  backgroundColor: '#e3f2fd',
+                  color: '#2196f3',
+                  fontSize: '12px',
+                  fontWeight: '600',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  height: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}>
+                  +{selectedTags.length - visibleTagCount}
+                </span>
+              )}
+            </>
+          ) : (
+            <span style={{ 
+              color: '#999', 
+              fontSize: '14px',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
+            }}>
+              {searchPlaceholder || 'Select tags...'}
+            </span>
+          )}
+        </div>
         
         {/* Dropdown indicator */}
         <span style={{ 
-          marginLeft: 'auto',
           color: '#999',
-          fontSize: '12px',
+          fontSize: '10px',
           transition: 'transform 0.2s ease',
-          transform: isOverlayVisible ? 'rotate(180deg)' : 'rotate(0deg)'
+          transform: isOverlayVisible ? 'rotate(180deg)' : 'rotate(0deg)',
+          flexShrink: 0,
+          marginLeft: '4px'
         }}>
           ▼
         </span>
