@@ -205,30 +205,21 @@ const TagFilterPrimeReact = ({
         if (allowDeselect) {
         const newSelected = selectedTags.filter(t => t !== tag);
         setSelectedTags(newSelected);
-        onSelectionChange?.(newSelected, tag);
       }
     } else {
       if (multiSelect) {
         if (selectedTags.length < maxSelections) {
           const newSelected = [...selectedTags, tag];
           setSelectedTags(newSelected);
-          onSelectionChange?.(newSelected, tag);
         }
       } else {
         setSelectedTags([tag]);
-        onSelectionChange?.([tag], tag);
       }
     }
     
-    // Close overlay after selection
-    setIsOverlayVisible(false);
-    if (overlayPanelRef.current) {
-      overlayPanelRef.current.hide();
-    }
-    
-    // Clear search query
-    setSearchQuery('');
-  }, [selectedTags, allowDeselect, multiSelect, maxSelections, onSelectionChange]);
+    // Don't close overlay - let user select multiple items
+    // They'll close it with the "Done" button
+  }, [selectedTags, allowDeselect, multiSelect, maxSelections]);
   
   // Handle temporary tag selection in multi-select mode
   const handleTempTagToggle = useCallback((tag) => {
@@ -519,165 +510,216 @@ const TagFilterPrimeReact = ({
     <div 
       className="tag-filter-container"
       style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: '0',
-        border: '1px solid #dee2e6',
-        borderRadius: '8px',
-        backgroundColor: '#ffffff',
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        position: 'relative',
         maxWidth: '600px'
       }}
       {...props}
     >
-      {/* Selected Tags Display at Top */}
-      {selectedTags.length > 0 && (
-        <div style={{ 
-          padding: '16px',
-          borderBottom: '1px solid #dee2e6',
-          backgroundColor: '#f8f9fa'
+      {/* Selection Bar - Always Visible */}
+      <div
+        ref={searchInputRef}
+        onClick={handleSearchFocus}
+        style={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          gap: '8px',
+          padding: selectedTags.length > 0 ? '12px' : '14px',
+          border: '1px solid #dee2e6',
+          borderRadius: '8px',
+          backgroundColor: '#ffffff',
+          cursor: 'pointer',
+          minHeight: '50px',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+          transition: 'all 0.2s ease'
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.borderColor = '#2196f3';
+          e.currentTarget.style.boxShadow = '0 2px 8px rgba(33, 150, 243, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.borderColor = '#dee2e6';
+          e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.05)';
+        }}
+      >
+        {/* Display selected tags as chips inside the bar */}
+        {selectedTags.length > 0 ? (
+          selectedTags.map(tag => (
+            <Chip
+              key={tag}
+              label={tag}
+              removable={allowDeselect}
+              onRemove={(e) => {
+                e.stopPropagation();
+                handleTagRemove(tag, e);
+              }}
+              style={{
+                backgroundColor: '#2196f3',
+                color: '#ffffff',
+                fontSize: '13px',
+                padding: '2px 6px'
+              }}
+            />
+          ))
+        ) : (
+          <span style={{ color: '#999', fontSize: '14px' }}>
+            {searchPlaceholder || 'Select tags...'}
+          </span>
+        )}
+        
+        {/* Dropdown indicator */}
+        <span style={{ 
+          marginLeft: 'auto',
+          color: '#999',
+          fontSize: '12px',
+          transition: 'transform 0.2s ease',
+          transform: isOverlayVisible ? 'rotate(180deg)' : 'rotate(0deg)'
         }}>
+          ▼
+        </span>
+      </div>
+
+      {/* Dropdown Panel - Opens below the bar */}
+      <OverlayPanel
+        ref={overlayPanelRef}
+        style={{ 
+          width: searchInputRef.current?.offsetWidth || '600px',
+          maxHeight: '500px',
+          overflowY: 'auto',
+          zIndex: 1000,
+          marginTop: '8px'
+        }}
+        onHide={() => setIsOverlayVisible(false)}
+      >
+        <div style={{ 
+          display: 'flex', 
+          flexDirection: 'column',
+          gap: '0',
+          backgroundColor: '#ffffff'
+        }}>
+          {/* Checkbox List */}
           <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '8px',
-            alignItems: 'center'
+            padding: '16px',
+            maxHeight: '350px',
+            overflowY: 'auto'
           }}>
-            {selectedTags.map(tag => (
-              <Chip
-                key={tag}
-                label={tag}
-                removable={allowDeselect}
-                onRemove={(e) => handleTagRemove(tag, e)}
-                style={{
-                  backgroundColor: '#2196f3',
-                  color: '#ffffff',
-                  fontSize: '14px',
-                  padding: '4px 8px'
-                }}
-              />
-            ))}
+            {availableTags.length === 0 ? (
+              <div style={{ 
+                padding: '12px', 
+                textAlign: 'center', 
+                color: '#666',
+                fontSize: '14px'
+              }}>
+                No tags available
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {availableTags.map(tag => {
+                  const isSelected = selectedTags.includes(tag);
+                  return (
+                    <label
+                      key={tag}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        cursor: 'pointer',
+                        fontSize: '15px',
+                        color: '#333',
+                        padding: '4px 0'
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => handleTagSelect(tag)}
+                        style={{
+                          width: '18px',
+                          height: '18px',
+                          cursor: 'pointer',
+                          accentColor: '#2196f3'
+                        }}
+                      />
+                      <span style={{ flex: 1 }}>{tag}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons at Bottom */}
+          <div style={{ 
+            display: 'flex',
+            gap: '12px',
+            padding: '16px',
+            borderTop: '1px solid #dee2e6',
+            backgroundColor: '#ffffff'
+          }}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemoveAll();
+              }}
+              disabled={selectedTags.length === 0}
+              style={{
+                flex: 1,
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: '500',
+                border: '1px solid #dee2e6',
+                borderRadius: '6px',
+                backgroundColor: '#ffffff',
+                color: '#495057',
+                cursor: selectedTags.length === 0 ? 'not-allowed' : 'pointer',
+                opacity: selectedTags.length === 0 ? 0.5 : 1,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                if (selectedTags.length > 0) {
+                  e.target.style.backgroundColor = '#f8f9fa';
+                  e.target.style.borderColor = '#adb5bd';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (selectedTags.length > 0) {
+                  e.target.style.backgroundColor = '#ffffff';
+                  e.target.style.borderColor = '#dee2e6';
+                }
+              }}
+            >
+              Clear
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCloseDropdown();
+                onSelectionChange?.(selectedTags);
+              }}
+              style={{
+                flex: 1,
+                padding: '10px 20px',
+                fontSize: '14px',
+                fontWeight: '500',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: '#2196f3',
+                color: '#ffffff',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#1976d2';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = '#2196f3';
+              }}
+            >
+              Done
+            </button>
           </div>
         </div>
-      )}
-
-      {/* Checkbox List */}
-      <div style={{ 
-        padding: '16px',
-        maxHeight: '400px',
-        overflowY: 'auto'
-      }}>
-        {availableTags.length === 0 ? (
-          <div style={{ 
-            padding: '12px', 
-            textAlign: 'center', 
-            color: '#666',
-            fontSize: '14px'
-          }}>
-            No tags available
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {availableTags.map(tag => {
-              const isSelected = selectedTags.includes(tag);
-              return (
-                <label
-                  key={tag}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    cursor: 'pointer',
-                    fontSize: '15px',
-                    color: '#333',
-                    padding: '4px 0'
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={isSelected}
-                    onChange={() => handleTagSelect(tag)}
-                    style={{
-                      width: '18px',
-                      height: '18px',
-                      cursor: 'pointer',
-                      accentColor: '#2196f3'
-                    }}
-                  />
-                  <span style={{ flex: 1 }}>{tag}</span>
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons at Bottom */}
-      <div style={{ 
-        display: 'flex',
-        gap: '12px',
-        padding: '16px',
-        borderTop: '1px solid #dee2e6',
-        backgroundColor: '#ffffff'
-      }}>
-        <button
-          onClick={handleRemoveAll}
-          disabled={selectedTags.length === 0}
-          style={{
-            flex: 1,
-            padding: '10px 20px',
-            fontSize: '14px',
-            fontWeight: '500',
-            border: '1px solid #dee2e6',
-            borderRadius: '6px',
-            backgroundColor: '#ffffff',
-            color: '#495057',
-            cursor: selectedTags.length === 0 ? 'not-allowed' : 'pointer',
-            opacity: selectedTags.length === 0 ? 0.5 : 1,
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            if (selectedTags.length > 0) {
-              e.target.style.backgroundColor = '#f8f9fa';
-              e.target.style.borderColor = '#adb5bd';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (selectedTags.length > 0) {
-              e.target.style.backgroundColor = '#ffffff';
-              e.target.style.borderColor = '#dee2e6';
-            }
-          }}
-        >
-          Clear
-        </button>
-        <button
-          onClick={() => {
-            onSelectionChange?.(selectedTags);
-          }}
-          style={{
-            flex: 1,
-            padding: '10px 20px',
-            fontSize: '14px',
-            fontWeight: '500',
-            border: 'none',
-            borderRadius: '6px',
-            backgroundColor: '#2196f3',
-            color: '#ffffff',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.backgroundColor = '#1976d2';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.backgroundColor = '#2196f3';
-          }}
-        >
-          Done
-        </button>
-      </div>
+      </OverlayPanel>
     </div>
   );
 };
