@@ -583,38 +583,62 @@ const TagFilterPrimeReact = ({
       <OverlayPanel
         ref={overlayPanelRef}
         style={{ 
-          width: searchInputRef.current?.offsetWidth || '600px',
-          maxHeight: '500px',
-          overflowY: 'auto',
+          width: searchInputRef.current?.offsetWidth || '350px',
           zIndex: 1000,
-          marginTop: '8px'
+          padding: 0
         }}
-        onHide={() => setIsOverlayVisible(false)}
+        onHide={() => {
+          setIsOverlayVisible(false);
+          setSearchQuery('');
+        }}
       >
         <div style={{ 
           display: 'flex', 
           flexDirection: 'column',
           gap: '0',
-          backgroundColor: '#ffffff'
+          backgroundColor: '#ffffff',
+          minWidth: '300px'
         }}>
+          {/* Search Input inside dropdown */}
+          {showSearch && (
+            <div style={{ 
+              padding: '16px 16px 12px 16px',
+              borderBottom: '1px solid #e9ecef'
+            }}>
+              <InputText
+                value={searchQuery}
+                onChange={handleSearchChange}
+                placeholder={searchPlaceholder || 'Filter...'}
+                style={{ 
+                  width: '100%',
+                  padding: '10px 12px',
+                  fontSize: '14px',
+                  border: '1px solid #ced4da',
+                  borderRadius: '6px'
+                }}
+                autoFocus
+              />
+            </div>
+          )}
+
           {/* Checkbox List */}
           <div style={{ 
-            padding: '16px',
-            maxHeight: '350px',
+            padding: '12px 16px',
+            maxHeight: '320px',
             overflowY: 'auto'
           }}>
-            {availableTags.length === 0 ? (
+            {filteredTags.length === 0 ? (
               <div style={{ 
-                padding: '12px', 
+                padding: '20px 12px', 
                 textAlign: 'center', 
-                color: '#666',
+                color: '#999',
                 fontSize: '14px'
               }}>
-                No tags available
+                {searchQuery ? 'No matching tags found' : 'No tags available'}
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {availableTags.map(tag => {
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                {filteredTags.map(tag => {
                   const isSelected = selectedTags.includes(tag);
                   return (
                     <label
@@ -626,7 +650,15 @@ const TagFilterPrimeReact = ({
                         cursor: 'pointer',
                         fontSize: '15px',
                         color: '#333',
-                        padding: '4px 0'
+                        padding: '10px 8px',
+                        borderRadius: '4px',
+                        transition: 'background-color 0.2s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#f8f9fa';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
                       }}
                     >
                       <input
@@ -637,10 +669,14 @@ const TagFilterPrimeReact = ({
                           width: '18px',
                           height: '18px',
                           cursor: 'pointer',
-                          accentColor: '#2196f3'
+                          accentColor: '#2196f3',
+                          flexShrink: 0
                         }}
                       />
-                      <span style={{ flex: 1 }}>{tag}</span>
+                      <span style={{ 
+                        flex: 1,
+                        userSelect: 'none'
+                      }}>{tag}</span>
                     </label>
                   );
                 })}
@@ -652,8 +688,8 @@ const TagFilterPrimeReact = ({
           <div style={{ 
             display: 'flex',
             gap: '12px',
-            padding: '16px',
-            borderTop: '1px solid #dee2e6',
+            padding: '12px 16px 16px 16px',
+            borderTop: '1px solid #e9ecef',
             backgroundColor: '#ffffff'
           }}>
             <button
@@ -661,31 +697,23 @@ const TagFilterPrimeReact = ({
                 e.stopPropagation();
                 handleRemoveAll();
               }}
-              disabled={selectedTags.length === 0}
               style={{
                 flex: 1,
                 padding: '10px 20px',
                 fontSize: '14px',
                 fontWeight: '500',
-                border: '1px solid #dee2e6',
+                border: 'none',
                 borderRadius: '6px',
                 backgroundColor: '#ffffff',
-                color: '#495057',
-                cursor: selectedTags.length === 0 ? 'not-allowed' : 'pointer',
-                opacity: selectedTags.length === 0 ? 0.5 : 1,
+                color: '#2196f3',
+                cursor: 'pointer',
                 transition: 'all 0.2s ease'
               }}
               onMouseEnter={(e) => {
-                if (selectedTags.length > 0) {
-                  e.target.style.backgroundColor = '#f8f9fa';
-                  e.target.style.borderColor = '#adb5bd';
-                }
+                e.target.style.backgroundColor = '#f0f7ff';
               }}
               onMouseLeave={(e) => {
-                if (selectedTags.length > 0) {
-                  e.target.style.backgroundColor = '#ffffff';
-                  e.target.style.borderColor = '#dee2e6';
-                }
+                e.target.style.backgroundColor = '#ffffff';
               }}
             >
               Clear
