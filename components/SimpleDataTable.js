@@ -855,8 +855,12 @@ const SimpleDataTable = ({
           onRowClick={onRowClick ? (e) => onRowClick(e.data, e.index) : undefined}
           expandedRows={enableRowExpansion ? expandedRows : undefined}
           onRowToggle={enableRowExpansion ? (e) => {
-            setExpandedRows(e.data);
-            setAllExpanded(false);
+            // Only update if e.data is provided (from PrimeReact's internal handling)
+            // Our custom button handles expansion, so we ignore this in most cases
+            if (e.data && typeof e.data === 'object') {
+              setExpandedRows(e.data);
+              setAllExpanded(false);
+            }
           } : undefined}
           rowExpansionTemplate={enableRowExpansion ? (rowExpansionTemplate || defaultRowExpansionTemplate) : undefined}
           paginator={enablePagination}
@@ -901,7 +905,7 @@ const SimpleDataTable = ({
                   onChange={handleFilterChange}
                   placeholder={`Search ${column.title}`}
                   style={{
-                    width: '9rem',
+                    width: '8rem',
                     padding: '0.4rem 0.75rem',
                     fontSize: '0.875rem',
                     border: '1px solid #e5e7eb',
@@ -926,22 +930,47 @@ const SimpleDataTable = ({
             // Custom body template for first column with expander
             const bodyTemplate = (rowData) => {
               if (index === 0 && enableRowExpansion) {
-                const isExpanded = expandedRows && expandedRows[rowData[resolvedDataKey]];
+                const rowKey = rowData[resolvedDataKey];
+                
+                // Safety check: ensure rowKey exists
+                if (!rowKey && rowKey !== 0) {
+                  console.warn('Row missing dataKey:', rowData);
+                  return safeCell(rowData[column.key]);
+                }
+                
+                const isExpanded = expandedRows && (expandedRows[rowKey] === true || expandedRows[String(rowKey)] === true);
+                
+                const handleExpandClick = (e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  
+                  setExpandedRows(prevExpandedRows => {
+                    const newExpandedRows = {};
+                    const rowKeyStr = String(rowKey);
+                    
+                    // Copy all existing expanded rows except the one being toggled
+                    Object.keys(prevExpandedRows || {}).forEach(key => {
+                      if (key !== rowKeyStr && key !== String(rowKey)) {
+                        newExpandedRows[key] = true;
+                      }
+                    });
+                    
+                    // Toggle the clicked row
+                    const wasExpanded = prevExpandedRows[rowKey] === true || prevExpandedRows[rowKeyStr] === true;
+                    if (!wasExpanded) {
+                      newExpandedRows[rowKeyStr] = true;
+                    }
+                    
+                    return newExpandedRows;
+                  });
+                  setAllExpanded(false);
+                };
+                
                 return (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                     <button
                       type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newExpandedRows = { ...expandedRows };
-                        if (isExpanded) {
-                          delete newExpandedRows[rowData[resolvedDataKey]];
-                        } else {
-                          newExpandedRows[rowData[resolvedDataKey]] = true;
-                        }
-                        setExpandedRows(newExpandedRows);
-                        setAllExpanded(false);
-                      }}
+                      onClick={handleExpandClick}
                       style={{
                         background: 'none',
                         border: 'none',
@@ -949,8 +978,10 @@ const SimpleDataTable = ({
                         padding: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
-                        color: '#6b7280'
+                        color: '#6b7280',
+                        minWidth: '1.25rem'
                       }}
+                      aria-label={isExpanded ? 'Collapse' : 'Expand'}
                     >
                       <i className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'} style={{ fontSize: '0.875rem' }} />
                     </button>
