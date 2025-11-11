@@ -799,13 +799,33 @@ const SimpleDataTable = ({
               maxWidth: '12.5rem'
             } : {};
             
-            // Custom filter function to handle text search on all data types
-            const customFilterFunction = searchOnlyFilters ? (value, filter) => {
-              if (!filter) return true;
-              const stringValue = String(value || '').toLowerCase();
-              const filterValue = String(filter || '').toLowerCase();
-              return stringValue.includes(filterValue);
-            } : undefined;
+            // Custom filter element for search-only mode
+            const filterElement = (searchOnlyFilters && column.filterable && !useCustomFilters) ? (options) => (
+              <InputText
+                value={options.value || ''}
+                onChange={(e) => options.filterApplyCallback(e.target.value)}
+                placeholder={`Search ${column.title}`}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  fontSize: '0.875rem',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '1.5rem',
+                  minHeight: '2.5rem',
+                  backgroundColor: '#f9fafb',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.backgroundColor = '#ffffff';
+                  e.target.style.borderColor = '#3b82f6';
+                }}
+                onBlur={(e) => {
+                  e.target.style.backgroundColor = '#f9fafb';
+                  e.target.style.borderColor = '#e5e7eb';
+                }}
+              />
+            ) : undefined;
             
             return (
               <Column
@@ -818,7 +838,7 @@ const SimpleDataTable = ({
                 filterPlaceholder={`Search ${column.title}`}
                 filterMatchMode="contains"
                 showFilterMenu={!searchOnlyFilters}
-                filterFunction={customFilterFunction}
+                filterElement={filterElement}
                 body={(rowData) => safeCell(rowData[column.key])}
                 style={{
                   ...equalWidthStyle,
