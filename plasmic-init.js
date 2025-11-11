@@ -7,6 +7,8 @@ const MicrosoftSSOLogin = dynamic(() => import("./components/MicrosoftSSOLogin")
 const TruecallerSSOLogin = dynamic(() => import("./components/TruecallerSSOLogin"), { ssr: false, loading: () => null });
 const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext"), { ssr: false, loading: () => null });
 const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
+const CustomDataTable = dynamic(() => import("./components/CustomDataTable"), { ssr: false, loading: () => null });
+const CompactDataTable = dynamic(() => import("./components/CompactDataTable"), { ssr: false, loading: () => null });
 // const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
 const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
 const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), { ssr: false, loading: () => null });
@@ -3665,4 +3667,156 @@ PLASMIC.registerComponent(PrimeTimeline, {
   classNameProp: "className",
   defaultStyles: {},
   providesData: true
+});
+
+// Register the Custom Data Table component
+PLASMIC.registerComponent(CustomDataTable, {
+  name: "CustomDataTable",
+  displayName: "Custom Data Table",
+  description: "Fully customized responsive data table with expand/collapse, filters, sorting, search, and export. Built from scratch with rem/em units for perfect mobile responsiveness.",
+  
+  props: {
+    // Core Data Props
+    data: {
+      type: "object",
+      description: "Array of data objects to display in the table",
+      defaultValue: []
+    },
+    columns: {
+      type: "object",
+      description: "Array of column definitions. Each column: { key: 'fieldName', title: 'Display Name', sortable: true, filterable: true, align: 'left', type: 'text', formatter: (value) => string, render: (value, row, index) => JSX }",
+      defaultValue: []
+    },
+    
+    // Configuration
+    rowKey: {
+      type: "string",
+      description: "Unique identifier field for rows (e.g., 'id', 'code', 'invoiceNo')",
+      defaultValue: "id"
+    },
+    nestedKey: {
+      type: "string",
+      description: "Key for nested/expandable data arrays (e.g., 'items', 'invoices', 'details')",
+      defaultValue: "items"
+    },
+    
+    // Feature Toggles
+    enableExpansion: {
+      type: "boolean",
+      description: "Enable row expansion to show nested data",
+      defaultValue: true
+    },
+    enableSearch: {
+      type: "boolean",
+      description: "Enable global search bar in toolbar",
+      defaultValue: true
+    },
+    enableExport: {
+      type: "boolean",
+      description: "Enable CSV export button in toolbar",
+      defaultValue: true
+    },
+    enableFilters: {
+      type: "boolean",
+      description: "Enable per-column filter inputs (dedicated filter row)",
+      defaultValue: true
+    },
+    enableSorting: {
+      type: "boolean",
+      description: "Enable column sorting by clicking headers",
+      defaultValue: true
+    },
+    
+    // Styling
+    tableHeight: {
+      type: "string",
+      description: "Maximum height for scrollable table (e.g., '70vh', '600px', '80%')",
+      defaultValue: "70vh"
+    },
+    customStyles: {
+      type: "object",
+      description: "Custom style overrides. Object with keys: container, toolbar, scrollContainer, table, thead, th, tr, td. Each key accepts a style object.",
+      defaultValue: {}
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for the container",
+      defaultValue: ""
+    },
+    
+    // Event Handlers
+    onRowClick: {
+      type: "eventHandler",
+      description: "Called when a row is clicked",
+      argTypes: [
+        {
+          name: "row",
+          type: "object",
+          description: "The clicked row data"
+        }
+      ]
+    },
+    onExport: {
+      type: "eventHandler",
+      description: "Custom export handler. If not provided, default CSV export is used.",
+      argTypes: [
+        {
+          name: "data",
+          type: "object",
+          description: "The filtered data being exported"
+        }
+      ]
+    }
+  },
+  
+  importPath: "./components/CustomDataTable"
+});
+
+// Register the Compact Data Table component
+PLASMIC.registerComponent(CompactDataTable, {
+  name: "CompactDataTable",
+  displayName: "Compact Data Table",
+  description: "Ultra-lightweight responsive data table with all features. Minimal design, maximum performance. Perfect for embedded use or simple tables.",
+  
+  props: {
+    // Core Data Props
+    data: {
+      type: "object",
+      description: "Array of data objects to display in the table",
+      defaultValue: []
+    },
+    columns: {
+      type: "object",
+      description: "Array of column definitions. Each column: { key: 'fieldName', title: 'Display Name', align: 'left', format: (value) => string }",
+      defaultValue: []
+    },
+    
+    // Configuration
+    expandKey: {
+      type: "string",
+      description: "Key for nested/expandable data arrays (e.g., 'items', 'invoices')",
+      defaultValue: "items"
+    },
+    
+    // Event Handlers
+    onExport: {
+      type: "eventHandler",
+      description: "Custom export handler. If not provided, default CSV export is used.",
+      argTypes: [
+        {
+          name: "data",
+          type: "object",
+          description: "The filtered data being exported"
+        }
+      ]
+    },
+    
+    className: {
+      type: "string",
+      description: "Additional CSS classes",
+      defaultValue: ""
+    }
+  },
+  
+  importPath: "./components/CompactDataTable"
 });
