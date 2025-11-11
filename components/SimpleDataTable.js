@@ -832,9 +832,9 @@ const SimpleDataTable = ({
           {displayColumns.map(column => {
             // Fixed width for all columns (12.5rem = 200px)
             const equalWidthStyle = equalColumnWidths ? {
-              width: '12.5rem',
-              minWidth: '12.5rem',
-              maxWidth: '12.5rem'
+              width: '11.5rem',
+              minWidth: '10rem',
+              maxWidth: '11.5rem'
             } : {};
             
             // Custom filter element for search-only mode
@@ -854,11 +854,11 @@ const SimpleDataTable = ({
                   placeholder={`Search ${column.title}`}
                   style={{
                     width: '100%',
-                    padding: '0.75rem 1rem',
+                    padding: '0.4rem 0.75rem',
                     fontSize: '0.875rem',
                     border: '1px solid #e5e7eb',
                     borderRadius: '1.5rem',
-                    minHeight: '2.5rem',
+                    minHeight: '1.875rem',
                     backgroundColor: '#f9fafb',
                     outline: 'none',
                     transition: 'all 0.2s'
