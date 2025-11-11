@@ -77,9 +77,8 @@ const SimpleDataTable = ({
   // State management
   const [tableData, setTableData] = useState([]);
   const [globalFilterValue, setGlobalFilterValue] = useState('');
-  const [filters, setFilters] = useState({
-    global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-  });
+  const [columnFilters, setColumnFilters] = useState({}); // For search-only filters
+  const [filters, setFilters] = useState({});
   const [customFilters, setCustomFilters] = useState({});
   const [sortField, setSortField] = useState(null);
   const [sortOrder, setSortOrder] = useState(1);
@@ -166,6 +165,23 @@ const SimpleDataTable = ({
     return generatedColumns.filter(col => col.type !== 'array');
   }, [generatedColumns]);
 
+  // Initialize filters for each column
+  useEffect(() => {
+    if (!useCustomFilters && !searchOnlyFilters && displayColumns.length > 0) {
+      const initialFilters = {
+        global: { value: null, matchMode: FilterMatchMode.CONTAINS }
+      };
+      
+      displayColumns.forEach(col => {
+        if (col.filterable) {
+          initialFilters[col.key] = { value: null, matchMode: FilterMatchMode.CONTAINS };
+        }
+      });
+      
+      setFilters(initialFilters);
+    }
+  }, [displayColumns, useCustomFilters, searchOnlyFilters]);
+
   // Detect column types for custom filters
   const getColumnType = useCallback((column) => {
     if (column.type) return column.type;
@@ -248,8 +264,28 @@ const SimpleDataTable = ({
     return filtered;
   }, [tableData, customFilters, globalFilterValue, displayColumns, useCustomFilters, getColumnType]);
 
+  // Apply column filters for searchOnlyFilters mode
+  const columnFilteredData = useMemo(() => {
+    if (!searchOnlyFilters || useCustomFilters || Object.keys(columnFilters).length === 0) {
+      return tableData;
+    }
+    
+    return tableData.filter(row => {
+      // Check each column filter
+      return Object.entries(columnFilters).every(([columnKey, filterValue]) => {
+        if (!filterValue || filterValue.trim() === '') return true;
+        
+        const cellValue = row[columnKey];
+        const cellString = String(cellValue || '').toLowerCase();
+        const filterString = String(filterValue).toLowerCase();
+        
+        return cellString.includes(filterString);
+      });
+    });
+  }, [tableData, columnFilters, searchOnlyFilters, useCustomFilters]);
+
   // Data to display (filtered or original)
-  const displayData = useCustomFilters ? filteredData : tableData;
+  const displayData = useCustomFilters ? filteredData : (searchOnlyFilters ? columnFilteredData : tableData);
 
   // Handle global search
   const handleGlobalSearch = useCallback((e) => {
@@ -275,6 +311,7 @@ const SimpleDataTable = ({
   const clearAllFilters = useCallback(() => {
     setGlobalFilterValue('');
     setCustomFilters({});
+    setColumnFilters({});
     setFilters({
       global: { value: null, matchMode: FilterMatchMode.CONTAINS }
     });
@@ -751,7 +788,8 @@ const SimpleDataTable = ({
           loading={loading}
           dataKey={resolvedDataKey}
           filters={useCustomFilters ? undefined : filters}
-          filterDisplay={useCustomFilters ? undefined : "row"}
+          onFilter={useCustomFilters ? undefined : (e) => setFilters(e.filters)}
+          filterDisplay={useCustomFilters ? undefined : (searchOnlyFilters ? "row" : "row")}
           globalFilterFields={displayColumns.map(col => col.key)}
           sortField={sortField}
           sortOrder={sortOrder}
@@ -800,32 +838,42 @@ const SimpleDataTable = ({
             } : {};
             
             // Custom filter element for search-only mode
-            const filterElement = (searchOnlyFilters && column.filterable && !useCustomFilters) ? (options) => (
-              <InputText
-                value={options.value || ''}
-                onChange={(e) => options.filterApplyCallback(e.target.value)}
-                placeholder={`Search ${column.title}`}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem 1rem',
-                  fontSize: '0.875rem',
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '1.5rem',
-                  minHeight: '2.5rem',
-                  backgroundColor: '#f9fafb',
-                  outline: 'none',
-                  transition: 'all 0.2s'
-                }}
-                onFocus={(e) => {
-                  e.target.style.backgroundColor = '#ffffff';
-                  e.target.style.borderColor = '#3b82f6';
-                }}
-                onBlur={(e) => {
-                  e.target.style.backgroundColor = '#f9fafb';
-                  e.target.style.borderColor = '#e5e7eb';
-                }}
-              />
-            ) : undefined;
+            const filterElement = (searchOnlyFilters && column.filterable && !useCustomFilters) ? () => {
+              const handleFilterChange = (e) => {
+                const value = e.target.value;
+                setColumnFilters(prev => ({
+                  ...prev,
+                  [column.key]: value
+                }));
+              };
+              
+              return (
+                <InputText
+                  value={columnFilters[column.key] || ''}
+                  onChange={handleFilterChange}
+                  placeholder={`Search ${column.title}`}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem 1rem',
+                    fontSize: '0.875rem',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '1.5rem',
+                    minHeight: '2.5rem',
+                    backgroundColor: '#f9fafb',
+                    outline: 'none',
+                    transition: 'all 0.2s'
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.backgroundColor = '#ffffff';
+                    e.target.style.borderColor = '#3b82f6';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.backgroundColor = '#f9fafb';
+                    e.target.style.borderColor = '#e5e7eb';
+                  }}
+                />
+              );
+            } : undefined;
             
             return (
               <Column
@@ -836,9 +884,8 @@ const SimpleDataTable = ({
                 filter={column.filterable && !useCustomFilters}
                 filterField={column.key}
                 filterPlaceholder={`Search ${column.title}`}
-                filterMatchMode="contains"
-                showFilterMenu={!searchOnlyFilters}
-                filterElement={filterElement}
+                showFilterMenu={false}
+                filterElement={searchOnlyFilters ? filterElement : undefined}
                 body={(rowData) => safeCell(rowData[column.key])}
                 style={{
                   ...equalWidthStyle,
