@@ -805,10 +805,11 @@ const SimpleDataTable = ({
           
           {/* Data columns */}
           {displayColumns.map(column => {
-            // Calculate equal width for columns
+            // Fixed width for all columns (12.5rem = 200px)
             const equalWidthStyle = equalColumnWidths ? {
-              minWidth: '12rem',
-              width: `${100 / displayColumns.length}%`
+              width: '12.5rem',
+              minWidth: '12.5rem',
+              maxWidth: '12.5rem'
             } : {};
             
             return (

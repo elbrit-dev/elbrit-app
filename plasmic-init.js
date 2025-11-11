@@ -1934,7 +1934,7 @@ PLASMIC.registerComponent(SimpleDataTable, {
     },
     equalColumnWidths: {
       type: "boolean",
-      description: "Give all columns equal width to avoid congestion (minimum 12rem per column)",
+      description: "Give all columns equal fixed width of 12.5rem (200px) to avoid congestion",
       defaultValue: true
     },
     

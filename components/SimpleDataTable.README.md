@@ -32,9 +32,9 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Scales properly across different screen sizes
 
 ✅ **Equal Column Widths (Default)**
-- All columns get the same width for clean appearance
+- All columns get the same fixed width (12.5rem / 200px)
 - No congested or squeezed columns
-- Minimum 12rem width ensures readability
+- Consistent width regardless of number of columns
 - Toggleable - can be disabled for auto-sizing
 
 ## Installation
@@ -88,7 +88,7 @@ const MyComponent = () => {
 | `useCustomFilters` | Boolean | `false` | Use custom filters instead of native PrimeReact filters |
 | `useCustomToolbar` | Boolean | `false` | Use custom toolbar instead of native PrimeReact toolbar |
 | `searchOnlyFilters` | Boolean | `false` | Force all column filters to be text search input only |
-| `equalColumnWidths` | Boolean | `true` | Give all columns equal width to avoid congestion |
+| `equalColumnWidths` | Boolean | `true` | Give all columns fixed equal width (12.5rem / 200px) |
 
 ### Configuration
 
@@ -220,17 +220,19 @@ const columns = [
 ```jsx
 <SimpleDataTable 
   data={myData}
-  equalColumnWidths={true} // All columns get equal width (default: true)
+  equalColumnWidths={true} // All columns get 12.5rem (200px) width (default: true)
   enableSorting={true}
 />
 ```
 
 **Benefits of Equal Column Widths:**
+- **Fixed width**: Every column is exactly **12.5rem (200px)** wide
 - No congested columns - every column has the same space
 - Clean, organized appearance
-- Minimum 12rem width per column ensures readability
+- Consistent regardless of number of columns (3 columns or 10 columns)
 - Better visual consistency across the table
 - Prevents some columns from being squeezed while others are too wide
+- Horizontal scrolling activates automatically if many columns
 
 **To disable** (let columns auto-size):
 ```jsx
