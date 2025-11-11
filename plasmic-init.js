@@ -7,8 +7,8 @@ const MicrosoftSSOLogin = dynamic(() => import("./components/MicrosoftSSOLogin")
 const TruecallerSSOLogin = dynamic(() => import("./components/TruecallerSSOLogin"), { ssr: false, loading: () => null });
 const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext"), { ssr: false, loading: () => null });
 const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
+const SimpleDataTable = dynamic(() => import("./components/SimpleDataTable"), { ssr: false, loading: () => null });
 // const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
-const MaterialDataTable = dynamic(() => import("./components/MaterialDataTable"), { ssr: false, loading: () => null });
 const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
 const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), { ssr: false, loading: () => null });
 const PrimeDataTab = dynamic(() => import("./components/pimereact"), { ssr: false, loading: () => null });
@@ -1870,11 +1870,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
   importPath: "./components/PrimeDataTable"
 });
 
-// Register Material-UI Data Table component
-PLASMIC.registerComponent(MaterialDataTable, {
-  name: "MaterialDataTable",
-  displayName: "Material-UI Data Table",
-  description: "Fully customizable Material-UI data table with expand/collapse rows, in-row filters, sorting, search, export, and responsive design using rem/em units. Handles nested array/JSON data structures.",
+// Register the Simple Data Table component (Simplified version of PrimeDataTable)
+PLASMIC.registerComponent(SimpleDataTable, {
+  name: "SimpleDataTable",
+  displayName: "Simple Data Table",
+  description: "A simplified, clean data table with basic features: sorting, filtering, pagination, and row expansion. Toggle between native and custom UI. Uses em/rem units for responsive design. 86% smaller than PrimeDataTable.",
   
   props: {
     // Data props
@@ -1885,112 +1885,127 @@ PLASMIC.registerComponent(MaterialDataTable, {
     },
     columns: {
       type: "object",
-      description: "Array of column definitions: { key, title, sortable, filterable, render, align }. Auto-generated if not provided.",
+      description: "Array of column definitions with key, title, sortable, filterable, type, etc. Auto-generated if not provided.",
       defaultValue: []
+    },
+    loading: {
+      type: "boolean",
+      description: "Whether the table is in loading state",
+      defaultValue: false
     },
     
     // Feature toggles
-    expandable: {
+    enableSearch: {
       type: "boolean",
-      description: "Enable row expansion for nested data",
-      defaultValue: false
-    },
-    nestedKey: {
-      type: "string",
-      description: "Key name for nested data (auto-detected if not provided). Common: 'items', 'invoices', 'orders', 'products'",
-      defaultValue: null
-    },
-    showFilters: {
-      type: "boolean",
-      description: "Show dedicated filter row below headers",
+      description: "Enable global search functionality",
       defaultValue: true
     },
-    pagination: {
+    enableSorting: {
+      type: "boolean",
+      description: "Enable column sorting",
+      defaultValue: true
+    },
+    enablePagination: {
       type: "boolean",
       description: "Enable pagination controls",
       defaultValue: true
     },
-    selectable: {
+    enableRowExpansion: {
       type: "boolean",
-      description: "Enable row selection with checkboxes",
+      description: "Enable row expansion for nested data with auto-detection",
       defaultValue: false
     },
     
-    // Pagination settings
-    rowsPerPage: {
+    // UI Mode Toggles - UNIQUE FEATURE
+    useCustomFilters: {
+      type: "boolean",
+      description: "Toggle: Use custom filter row instead of native PrimeReact filters (better UX, all filters visible at once)",
+      defaultValue: false
+    },
+    useCustomToolbar: {
+      type: "boolean",
+      description: "Toggle: Use custom toolbar instead of native PrimeReact toolbar (modern design, better mobile layout)",
+      defaultValue: false
+    },
+    
+    // Configuration
+    pageSize: {
       type: "number",
-      description: "Initial rows per page",
+      description: "Number of items per page",
       defaultValue: 10
     },
-    rowsPerPageOptions: {
+    pageSizeOptions: {
       type: "object",
-      description: "Array of options for rows per page selector",
-      defaultValue: [5, 10, 25, 50, 100]
+      description: "Array of page size options",
+      defaultValue: [5, 10, 25, 50]
     },
-    
-    // Table configuration
     dataKey: {
       type: "string",
-      description: "Key to use as unique row identifier",
+      description: "Unique identifier field for rows (e.g., 'id', 'code'). Auto-detected if not provided. Required for row expansion.",
       defaultValue: "id"
     },
-    title: {
+    
+    // Row expansion props
+    rowExpansionTemplate: {
+      type: "function",
+      description: "Custom template function for expanded row content. Receives row data as parameter. Auto-generated if not provided.",
+      defaultValue: null
+    },
+    nestedDataKey: {
       type: "string",
-      description: "Table title displayed in toolbar",
+      description: "Key name for nested data in rows (e.g., 'items', 'orders', 'invoices'). Auto-detected if not provided.",
+      defaultValue: "items"
+    },
+    
+    // Styling
+    tableSize: {
+      type: "choice",
+      options: ["small", "normal", "large"],
+      description: "Size of the table with responsive em/rem units",
+      defaultValue: "normal"
+    },
+    responsiveLayout: {
+      type: "choice",
+      options: ["scroll", "reflow", "stack"],
+      description: "Native PrimeReact responsive layout mode",
+      defaultValue: "scroll"
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for the table container",
       defaultValue: ""
     },
-    dense: {
-      type: "boolean",
-      description: "Use dense table padding",
-      defaultValue: false
-    },
-    exportFilename: {
-      type: "string",
-      description: "Filename for CSV export",
-      defaultValue: "data.csv"
-    },
-    expandIconPosition: {
-      type: "choice",
-      description: "Position of expand icon",
-      options: ["left", "inline"],
-      defaultValue: "inline"
+    style: {
+      type: "object",
+      description: "Inline styles for the table container",
+      defaultValue: {}
     },
     
     // Event handlers
     onRowClick: {
       type: "eventHandler",
-      description: "Callback when row is clicked",
+      description: "Called when a row is clicked",
       argTypes: [
         {
-          name: "row",
-          type: "object"
+          name: "rowData",
+          type: "object",
+          description: "The clicked row data"
+        },
+        {
+          name: "index",
+          type: "number",
+          description: "The row index"
         }
       ]
     },
-    onSelectionChange: {
+    onRefresh: {
       type: "eventHandler",
-      description: "Callback when row selection changes",
-      argTypes: [
-        {
-          name: "selectedRows",
-          type: "object"
-        }
-      ]
-    },
-    
-    // Styling
-    className: {
-      type: "string",
-      description: "CSS class name for custom styling",
-      defaultValue: ""
-    },
-    style: {
-      type: "object",
-      description: "Inline styles object",
-      defaultValue: {}
+      description: "Called when refresh button is clicked",
+      argTypes: []
     }
   },
-  importPath: "./components/MaterialDataTable"
+  
+  importPath: "./components/SimpleDataTable"
 });
 
 // Register the Optimized PrimeReact Data Table component

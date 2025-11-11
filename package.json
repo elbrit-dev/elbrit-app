@@ -15,10 +15,6 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
-    "@emotion/react": "^11.11.4",
-    "@emotion/styled": "^11.11.5",
-    "@mui/icons-material": "^5.16.7",
-    "@mui/material": "^5.16.7",
     "@plasmicapp/auth-api": "^0.0.17",
     "@plasmicapp/loader-nextjs": "^1.0.434",
     "@types/react": "^19.1.8",
