@@ -876,18 +876,8 @@ const SimpleDataTable = ({
             width: '100%'
           }}
         >
-          {/* Expander column */}
-          {enableRowExpansion && (
-            <Column 
-              expander 
-              style={{ width: '3rem' }}
-              headerStyle={{ textAlign: 'center' }}
-              bodyStyle={{ textAlign: 'center' }}
-            />
-          )}
-          
           {/* Data columns */}
-          {displayColumns.map(column => {
+          {displayColumns.map((column, index) => {
             // Fixed width for all columns (12.5rem = 200px)
             const equalWidthStyle = equalColumnWidths ? {
               width: '9.5rem',
@@ -911,7 +901,7 @@ const SimpleDataTable = ({
                   onChange={handleFilterChange}
                   placeholder={`Search ${column.title}`}
                   style={{
-                    width: '100%',
+                    width: '9rem',
                     padding: '0.4rem 0.75rem',
                     fontSize: '0.875rem',
                     border: '1px solid #e5e7eb',
@@ -933,6 +923,44 @@ const SimpleDataTable = ({
               );
             } : undefined;
             
+            // Custom body template for first column with expander
+            const bodyTemplate = (rowData) => {
+              if (index === 0 && enableRowExpansion) {
+                const isExpanded = expandedRows && expandedRows[rowData[resolvedDataKey]];
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newExpandedRows = { ...expandedRows };
+                        if (isExpanded) {
+                          delete newExpandedRows[rowData[resolvedDataKey]];
+                        } else {
+                          newExpandedRows[rowData[resolvedDataKey]] = true;
+                        }
+                        setExpandedRows(newExpandedRows);
+                        setAllExpanded(false);
+                      }}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '0.25rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: '#6b7280'
+                      }}
+                    >
+                      <i className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'} style={{ fontSize: '0.875rem' }} />
+                    </button>
+                    <span>{safeCell(rowData[column.key])}</span>
+                  </div>
+                );
+              }
+              return safeCell(rowData[column.key]);
+            };
+            
             return (
               <Column
                 key={column.key}
@@ -944,7 +972,7 @@ const SimpleDataTable = ({
                 filterPlaceholder={`Search ${column.title}`}
                 showFilterMenu={false}
                 filterElement={searchOnlyFilters ? filterElement : undefined}
-                body={(rowData) => safeCell(rowData[column.key])}
+                body={bodyTemplate}
                 style={{
                   ...equalWidthStyle,
                   ...column.style

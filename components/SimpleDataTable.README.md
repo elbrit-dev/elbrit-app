@@ -14,6 +14,7 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Auto-detection of nested data
 - Custom expansion templates
 - Single toggle button for expand/collapse all
+- Expander icon integrated into first column (no separate column)
 
 ✅ **Dual Filter System**
 - Native PrimeReact filters (default)
@@ -33,10 +34,11 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Scales properly across different screen sizes
 
 ✅ **Equal Column Widths (Default)**
-- All columns get the same fixed width (12.5rem / 200px)
+- All columns get the same fixed width (9.5rem / 152px)
 - No congested or squeezed columns
 - Consistent width regardless of number of columns
 - Toggleable - can be disabled for auto-sizing
+- Filter search bars: 9rem width for optimal fit
 
 ## Installation
 
@@ -89,7 +91,7 @@ const MyComponent = () => {
 | `useCustomFilters` | Boolean | `false` | Use custom filters instead of native PrimeReact filters |
 | `useCustomToolbar` | Boolean | `false` | Use custom toolbar instead of native PrimeReact toolbar |
 | `searchOnlyFilters` | Boolean | `false` | Force all filters to be simple text search (no filter menu icon, type to filter) |
-| `equalColumnWidths` | Boolean | `true` | Give all columns fixed equal width (12.5rem / 200px) |
+| `equalColumnWidths` | Boolean | `true` | Give all columns fixed equal width (9.5rem / 152px) |
 
 ### Configuration
 
@@ -224,19 +226,20 @@ const columns = [
 ```jsx
 <SimpleDataTable 
   data={myData}
-  equalColumnWidths={true} // All columns get 12.5rem (200px) width (default: true)
+  equalColumnWidths={true} // All columns get 9.5rem (152px) width (default: true)
   enableSorting={true}
 />
 ```
 
 **Benefits of Equal Column Widths:**
-- **Fixed width**: Every column is exactly **12.5rem (200px)** wide
+- **Fixed width**: Every column is exactly **9.5rem (152px)** wide
 - No congested columns - every column has the same space
 - Clean, organized appearance
 - Consistent regardless of number of columns (3 columns or 10 columns)
 - Better visual consistency across the table
 - Prevents some columns from being squeezed while others are too wide
 - Horizontal scrolling activates automatically if many columns
+- Filter search bars are 9rem - perfectly sized for column width
 
 **To disable** (let columns auto-size):
 ```jsx

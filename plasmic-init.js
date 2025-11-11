@@ -1934,7 +1934,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     },
     equalColumnWidths: {
       type: "boolean",
-      description: "Give all columns equal fixed width of 12.5rem (200px) to avoid congestion",
+      description: "Give all columns equal fixed width of 9.5rem (152px) to avoid congestion",
       defaultValue: true
     },
     
