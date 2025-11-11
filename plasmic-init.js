@@ -1871,10 +1871,10 @@ PLASMIC.registerComponent(PrimeDataTable, {
 });
 
 // Register the Simple Data Table component (Simplified version of PrimeDataTable)
-PLASMIC.registerComponent(SimpleDataTable, {
-  name: "SimpleDataTable",
-  displayName: "Simple Data Table",
-  description: "A simplified, clean data table with basic features: sorting, filtering, pagination, and row expansion. Toggle between native and custom UI. Uses em/rem units for responsive design. 86% smaller than PrimeDataTable.",
+  PLASMIC.registerComponent(SimpleDataTable, {
+    name: "SimpleDataTable",
+    displayName: "Simple Data Table",
+    description: "A simplified, clean data table with basic features: sorting, filtering, pagination, row expansion, and Excel export. Toggle between native and custom UI. Uses em/rem units for responsive design. 86% smaller than PrimeDataTable.",
   
   props: {
     // Data props

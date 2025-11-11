@@ -25,6 +25,7 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Native PrimeReact toolbar (default)
 - Custom toolbar with better UX (optional)
 - Toggle between native and custom toolbar
+- Built-in Export to Excel button (CSV format)
 
 ✅ **Responsive Design**
 - All sizing in em/rem units
@@ -245,7 +246,32 @@ const columns = [
 />
 ```
 
-### 7. Table with Row Expansion
+### 7. Export to Excel
+
+The table includes a built-in **Export to Excel** button in the toolbar (both custom and native):
+
+```jsx
+<SimpleDataTable 
+  data={myData}
+  useCustomToolbar={true}  // Or use native toolbar
+  enableSorting={true}
+/>
+```
+
+**Export Features:**
+- ✅ **One-click export** - Button in toolbar (both custom and native)
+- ✅ **CSV format** - Opens directly in Excel
+- ✅ **Filtered data** - Exports only the visible/filtered data
+- ✅ **Auto-filename** - Includes current date (e.g., `table_export_2025-11-11.csv`)
+- ✅ **Handles special characters** - Properly escapes commas, quotes, and newlines
+- ✅ **UTF-8 BOM** - Ensures proper encoding in Excel
+
+**How it works:**
+1. Click the green "Export" button with Excel icon
+2. File downloads automatically
+3. Open with Excel, Google Sheets, or any spreadsheet application
+
+### 8. Table with Row Expansion
 
 ```jsx
 const dataWithNested = [

@@ -317,6 +317,44 @@ const SimpleDataTable = ({
     });
   }, []);
 
+  // Export to Excel (CSV format that opens in Excel)
+  const exportToExcel = useCallback(() => {
+    if (!displayData || displayData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    // Create CSV content
+    const headers = displayColumns.map(col => col.title).join(',');
+    const rows = displayData.map(row => {
+      return displayColumns.map(col => {
+        const value = row[col.key];
+        // Handle values that might contain commas or quotes
+        if (value === null || value === undefined) return '';
+        const stringValue = String(value);
+        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+          return `"${stringValue.replace(/"/g, '""')}"`;
+        }
+        return stringValue;
+      }).join(',');
+    }).join('\n');
+
+    const csvContent = `${headers}\n${rows}`;
+
+    // Create blob and download
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `table_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [displayData, displayColumns]);
+
   // Handle sort
   const handleSort = useCallback((e) => {
     setSortField(e.sortField);
@@ -551,6 +589,16 @@ const SimpleDataTable = ({
             />
           )}
           
+          {/* Export button */}
+          <Button
+            icon="pi pi-file-excel"
+            label="Export"
+            className="p-button-outlined p-button-success"
+            onClick={exportToExcel}
+            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+            tooltip="Export to Excel"
+          />
+          
           {/* Refresh button */}
           {onRefresh && (
             <Button
@@ -573,6 +621,7 @@ const SimpleDataTable = ({
     enableRowExpansion,
     allExpanded,
     toggleExpandAll,
+    exportToExcel,
     onRefresh,
     handleRefresh
   ]);
@@ -617,6 +666,15 @@ const SimpleDataTable = ({
           />
         )}
         
+        <Button
+          icon="pi pi-file-excel"
+          label="Export"
+          className="p-button-outlined p-button-success"
+          onClick={exportToExcel}
+          style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
+          tooltip="Export to Excel"
+        />
+        
         {onRefresh && (
           <Button
             icon="pi pi-refresh"
@@ -627,7 +685,7 @@ const SimpleDataTable = ({
         )}
       </div>
     );
-  }, [enableRowExpansion, allExpanded, toggleExpandAll, onRefresh, handleRefresh]);
+  }, [enableRowExpansion, allExpanded, toggleExpandAll, exportToExcel, onRefresh, handleRefresh]);
 
   // Custom Filters Row
   const customFiltersRow = useMemo(() => {
@@ -832,9 +890,9 @@ const SimpleDataTable = ({
           {displayColumns.map(column => {
             // Fixed width for all columns (12.5rem = 200px)
             const equalWidthStyle = equalColumnWidths ? {
-              width: '11.5rem',
-              minWidth: '10rem',
-              maxWidth: '11.5rem'
+              width: '9.5rem',
+              minWidth: '8rem',
+              maxWidth: '9.5rem'
             } : {};
             
             // Custom filter element for search-only mode
