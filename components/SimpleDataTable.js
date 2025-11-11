@@ -446,19 +446,6 @@ const SimpleDataTable = ({
     }
   }, [getColumnType, customFilters, getUniqueValues, handleCustomFilterChange, searchOnlyFilters]);
 
-  // Render native filter element (for PrimeReact's built-in filter)
-  const getNativeFilterElement = useCallback((column) => {
-    if (!searchOnlyFilters) return undefined; // Let PrimeReact use default filter
-    
-    // Force text input for all columns when searchOnlyFilters is true
-    return (
-      <InputText
-        placeholder={`Search ${column.title}`}
-        style={{ width: '100%' }}
-      />
-    );
-  }, [searchOnlyFilters]);
-
   // Custom Toolbar
   const customToolbar = useMemo(() => {
     if (!useCustomToolbar) return null;
@@ -812,6 +799,14 @@ const SimpleDataTable = ({
               maxWidth: '12.5rem'
             } : {};
             
+            // Custom filter function to handle text search on all data types
+            const customFilterFunction = searchOnlyFilters ? (value, filter) => {
+              if (!filter) return true;
+              const stringValue = String(value || '').toLowerCase();
+              const filterValue = String(filter || '').toLowerCase();
+              return stringValue.includes(filterValue);
+            } : undefined;
+            
             return (
               <Column
                 key={column.key}
@@ -819,8 +814,11 @@ const SimpleDataTable = ({
                 header={column.title}
                 sortable={column.sortable && enableSorting}
                 filter={column.filterable && !useCustomFilters}
+                filterField={column.key}
                 filterPlaceholder={`Search ${column.title}`}
-                filterElement={column.filterable && !useCustomFilters ? getNativeFilterElement(column) : undefined}
+                filterMatchMode="contains"
+                showFilterMenu={!searchOnlyFilters}
+                filterFunction={customFilterFunction}
                 body={(rowData) => safeCell(rowData[column.key])}
                 style={{
                   ...equalWidthStyle,

@@ -19,7 +19,7 @@ A clean, simplified version of PrimeDataTable with essential features and custom
 - Native PrimeReact filters (default)
 - Custom column-wise filters (optional)
 - Toggle between native and custom filters
-- Search-only mode: Force all filters to be text search inputs for consistent UX
+- Search-only mode: Simple text search inputs only - no filter menu icons, just type to filter
 
 ✅ **Dual Toolbar System**
 - Native PrimeReact toolbar (default)
@@ -87,7 +87,7 @@ const MyComponent = () => {
 | `enableRowExpansion` | Boolean | `false` | Enable row expansion for nested data |
 | `useCustomFilters` | Boolean | `false` | Use custom filters instead of native PrimeReact filters |
 | `useCustomToolbar` | Boolean | `false` | Use custom toolbar instead of native PrimeReact toolbar |
-| `searchOnlyFilters` | Boolean | `false` | Force all column filters to be text search input only |
+| `searchOnlyFilters` | Boolean | `false` | Force all filters to be simple text search (no filter menu icon, type to filter) |
 | `equalColumnWidths` | Boolean | `true` | Give all columns fixed equal width (12.5rem / 200px) |
 
 ### Configuration
@@ -204,16 +204,19 @@ const columns = [
 ```jsx
 <SimpleDataTable 
   data={myData}
-  searchOnlyFilters={true} // All filters become text search inputs
+  searchOnlyFilters={true} // All filters become simple text search inputs
   enableSorting={true}
 />
 ```
 
 **Benefits of Search-Only Filters:**
+- **No filter menu icon** - Just a clean search input
+- **Type to filter** - Results update as you type
 - Consistent UX across all column types (no dropdowns, calendars, or number inputs)
 - Simpler and more intuitive for users
 - Works with both native and custom filter modes
 - Reduces cognitive load - one filter type for everything
+- Automatically converts all data types to text for searching
 
 ### 6. Table with Equal Column Widths (Default)
 

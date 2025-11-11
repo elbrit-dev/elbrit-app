@@ -1929,7 +1929,7 @@ PLASMIC.registerComponent(SimpleDataTable, {
     },
     searchOnlyFilters: {
       type: "boolean",
-      description: "Force all column filters to be text search input only (simple and consistent UX across all column types)",
+      description: "Force all filters to be simple text search inputs - no filter menu icon, just type to filter (works on all data types)",
       defaultValue: false
     },
     equalColumnWidths: {
