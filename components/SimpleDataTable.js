@@ -66,6 +66,7 @@ const SimpleDataTable = ({
   
   // Styling
   tableSize = "normal", // small, normal, large
+  compactTextInSmall = false, // Enable compact text (12px cells, 14px headers) only when tableSize is "small"
   responsiveLayout = "scroll",
   className = "",
   style = {},
@@ -86,9 +87,11 @@ const SimpleDataTable = ({
   const [rows, setRows] = useState(pageSize);
   const [expandedRows, setExpandedRows] = useState({});
   const [allExpanded, setAllExpanded] = useState(false);
-  const [compactText, setCompactText] = useState(false);
   
   const isMountedRef = useRef(true);
+  
+  // Determine if compact text mode should be active (only when tableSize is "small" and prop is enabled)
+  const isCompactText = tableSize === "small" && compactTextInSmall;
 
   // Initialize data
   useEffect(() => {
@@ -579,16 +582,6 @@ const SimpleDataTable = ({
         
         {/* Right section - Actions */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Text Size Toggle Button */}
-          <Button
-            icon={compactText ? "pi pi-arrows-h" : "pi pi-arrows-h"}
-            label={compactText ? "Normal" : "Compact"}
-            className="p-button-outlined p-button-secondary"
-            onClick={() => setCompactText(!compactText)}
-            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-            tooltip="Toggle text size"
-          />
-          
           {/* Expand/Collapse All Button */}
           {enableRowExpansion && (
             <Button
@@ -629,7 +622,6 @@ const SimpleDataTable = ({
     globalFilterValue,
     handleGlobalSearch,
     clearAllFilters,
-    compactText,
     enableRowExpansion,
     allExpanded,
     toggleExpandAll,
@@ -668,15 +660,6 @@ const SimpleDataTable = ({
   const nativeToolbarRight = useMemo(() => {
     return (
       <div style={{ display: 'flex', gap: '0.75rem' }}>
-        <Button
-          icon={compactText ? "pi pi-arrows-h" : "pi pi-arrows-h"}
-          label={compactText ? "Normal" : "Compact"}
-          className="p-button-outlined p-button-secondary"
-          onClick={() => setCompactText(!compactText)}
-          style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-          tooltip="Toggle text size"
-        />
-        
         {enableRowExpansion && (
           <Button
             icon={allExpanded ? "pi pi-minus" : "pi pi-plus"}
@@ -706,7 +689,7 @@ const SimpleDataTable = ({
         )}
       </div>
     );
-  }, [compactText, enableRowExpansion, allExpanded, toggleExpandAll, exportToExcel, onRefresh, handleRefresh]);
+  }, [enableRowExpansion, allExpanded, toggleExpandAll, exportToExcel, onRefresh, handleRefresh]);
 
   // Custom Filters Row
   const customFiltersRow = useMemo(() => {
@@ -780,23 +763,6 @@ const SimpleDataTable = ({
           font-size: 0.875rem;
         }
         
-        /* Compact text size mode - SM (12px cells, 14px headers) */
-        .simple-datatable-wrapper.compact-text .p-datatable-thead > tr > th {
-          font-size: 0.85rem; /* 14px */
-          padding: 0.5rem;
-        }
-        
-        .simple-datatable-wrapper.compact-text .p-datatable-tbody > tr > td {
-          font-size: 0.75rem; /* 12px */
-          padding: 0.5rem;
-        }
-        
-        /* Adjust arrow icon size in compact mode */
-        .simple-datatable-wrapper.compact-text .pi-chevron-down,
-        .simple-datatable-wrapper.compact-text .pi-chevron-right {
-          font-size: 0.65rem;
-        }
-        
         .simple-datatable-wrapper.size-small .p-datatable-thead > tr > th {
           padding: 0.5rem;
           font-size: 0.8125rem;
@@ -805,6 +771,24 @@ const SimpleDataTable = ({
         .simple-datatable-wrapper.size-small .p-datatable-tbody > tr > td {
           padding: 0.5rem;
           font-size: 0.8125rem;
+        }
+        
+        /* Compact text size mode - SM (12px cells, 14px headers) */
+        /* Must come AFTER size-small to override when tableSize="small" and compactTextInSmall=true */
+        .simple-datatable-wrapper.compact-text .p-datatable-thead > tr > th {
+          font-size: 0.85rem !important; /* 14px */
+          padding: 0.5rem;
+        }
+        
+        .simple-datatable-wrapper.compact-text .p-datatable-tbody > tr > td {
+          font-size: 0.75rem !important; /* 12px */
+          padding: 0.5rem;
+        }
+        
+        /* Adjust arrow icon size in compact mode */
+        .simple-datatable-wrapper.compact-text .pi-chevron-down,
+        .simple-datatable-wrapper.compact-text .pi-chevron-right {
+          font-size: 0.65rem !important;
         }
         
         .simple-datatable-wrapper.size-large .p-datatable-thead > tr > th {
@@ -863,7 +847,7 @@ const SimpleDataTable = ({
         }
       `}</style>
       
-      <div className={`simple-datatable-wrapper size-${tableSize}${compactText ? ' compact-text' : ''}`}>
+      <div className={`simple-datatable-wrapper size-${tableSize}${isCompactText ? ' compact-text' : ''}`}>
         {/* Render toolbar based on toggle */}
         {useCustomToolbar ? (
           customToolbar
@@ -1021,9 +1005,9 @@ const SimpleDataTable = ({
                       }}
                       aria-label={isExpanded ? 'Collapse' : 'Expand'}
                     >
-                      <i className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'} style={{ fontSize: compactText ? '0.65rem' : '0.75rem' }} />
+                      <i className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'} style={{ fontSize: isCompactText ? '0.65rem' : '0.75rem' }} />
                     </button>
-                    <span style={{ fontSize: compactText ? '0.75rem' : 'inherit' }}>{safeCell(rowData[column.key])}</span>
+                    <span style={{ fontSize: isCompactText ? '0.75rem' : 'inherit' }}>{safeCell(rowData[column.key])}</span>
                   </div>
                 );
               }

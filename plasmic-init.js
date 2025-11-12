@@ -1974,6 +1974,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Size of the table with responsive em/rem units",
       defaultValue: "normal"
     },
+    compactTextInSmall: {
+      type: "boolean",
+      description: "Enable compact text mode (12px cells, 14px headers) - ONLY works when tableSize is 'small'",
+      defaultValue: false
+    },
     responsiveLayout: {
       type: "choice",
       options: ["scroll", "reflow", "stack"],
