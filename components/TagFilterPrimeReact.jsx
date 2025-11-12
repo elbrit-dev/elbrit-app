@@ -682,12 +682,15 @@ const TagFilterPrimeReact = ({
           backgroundColor: '#ffffff',
           minWidth: '300px'
         }}>
-          {/* Search Input inside dropdown */}
-          {showSearch && (
-            <div style={{ 
-              padding: '16px 16px 12px 16px',
-              borderBottom: '1px solid #e9ecef'
-            }}>
+          {/* Header with Search Input and Close Button */}
+          <div style={{ 
+            padding: '16px 16px 12px 16px',
+            borderBottom: '1px solid #e9ecef',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            {showSearch && (
               <InputText
                 value={searchQuery}
                 onChange={handleSearchChange}
@@ -701,8 +704,40 @@ const TagFilterPrimeReact = ({
                 }}
                 autoFocus
               />
-            </div>
-          )}
+            )}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleCloseDropdown();
+              }}
+              style={{
+                width: '32px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: 'none',
+                borderRadius: '6px',
+                backgroundColor: 'transparent',
+                color: '#666',
+                cursor: 'pointer',
+                fontSize: '20px',
+                flexShrink: 0,
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = '#f0f0f0';
+                e.target.style.color = '#333';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+                e.target.style.color = '#666';
+              }}
+              title="Close"
+            >
+              ×
+            </button>
+          </div>
 
           {/* Checkbox List */}
           <div style={{ 
@@ -729,11 +764,11 @@ const TagFilterPrimeReact = ({
                       style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px',
+                        gap: '6px',
                         cursor: 'pointer',
                         fontSize: '15px',
                         color: '#333',
-                        padding: '10px 8px',
+                        padding: '8px 4px',
                         borderRadius: '4px',
                         transition: 'background-color 0.2s ease'
                       }}
