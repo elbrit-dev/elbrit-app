@@ -904,12 +904,17 @@ const SimpleDataTable = ({
         >
           {/* Data columns */}
           {displayColumns.map((column, index) => {
-            // Fixed width for all columns (12.5rem = 200px)
+            // Column width styles
             const equalWidthStyle = equalColumnWidths ? {
               width: '9.5rem',
               minWidth: '8rem',
               maxWidth: '9.5rem'
-            } : {};
+            } : {
+              // When equalColumnWidths is disabled, set reasonable min/max widths
+              minWidth: '6rem',  // 96px minimum
+              maxWidth: '15rem', // 240px maximum
+              width: 'auto'      // Auto-fit content within constraints
+            };
             
             // Custom filter element for search-only mode
             const filterElement = (searchOnlyFilters && column.filterable && !useCustomFilters) ? () => {
