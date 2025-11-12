@@ -432,15 +432,37 @@ const SimpleDataTable = ({
     );
   }, [nestedDataKey]);
 
+  // Number formatter with comma separators
+  const formatNumber = useCallback((value) => {
+    if (typeof value !== 'number') return value;
+    
+    // Check if it's a whole number or has decimals
+    const hasDecimals = value % 1 !== 0;
+    
+    // Format with commas and preserve decimals
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: hasDecimals ? 2 : 0,
+      maximumFractionDigits: hasDecimals ? 2 : 0,
+    }).format(value);
+  }, []);
+
   // Safe cell renderer
   const safeCell = useCallback((value) => {
     if (value === null || value === undefined) return '';
-    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    
+    // Format numbers with commas
+    if (typeof value === 'number') {
+      return formatNumber(value);
+    }
+    
+    if (typeof value === 'string' || typeof value === 'boolean') {
       return String(value);
     }
+    
     if (Array.isArray(value)) {
       return `${value.length} item(s)`;
     }
+    
     if (typeof value === 'object') {
       try {
         const s = JSON.stringify(value);
@@ -449,8 +471,9 @@ const SimpleDataTable = ({
         return '[object]';
       }
     }
+    
     return String(value);
-  }, []);
+  }, [formatNumber]);
 
   // Render custom filter element
   const renderCustomFilterElement = useCallback((column) => {
