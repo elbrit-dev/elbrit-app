@@ -71,6 +71,10 @@ const SimpleDataTable = ({
   className = "",
   style = {},
   
+  // Footer Totals (Power BI style)
+  enableFooterTotals = false, // Enable column-wise totals in footer
+  footerTotalsType = "sum", // Type of calculation: "sum", "average", "count", "min", "max"
+  
   // Callbacks
   onRowClick,
   onRefresh,
@@ -403,25 +407,49 @@ const SimpleDataTable = ({
       return <div style={{ padding: '1rem', color: '#6b7280' }}>No nested data available</div>;
     }
     
-    const nestedColumns = Object.keys(nestedData[0]).map(key => ({
-      key,
-      title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1')
-    }));
+    const nestedColumns = Object.keys(nestedData[0]).map(key => {
+      // Detect column type for nested data
+      const firstValue = nestedData[0][key];
+      const isNumeric = typeof firstValue === 'number';
+      
+      return {
+        key,
+        title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
+        isNumeric
+      };
+    });
     
     return (
       <div style={{ padding: '1rem' }}>
         <h5 style={{ marginBottom: '0.75rem', color: '#374151' }}>
           Details ({nestedData.length} items)
         </h5>
-        <DataTable value={nestedData} size="small">
+        <DataTable 
+          value={nestedData} 
+          size="small"
+          sortMode="single"
+          stripedRows
+          showGridlines
+        >
           {nestedColumns.map(col => (
             <Column 
               key={col.key} 
               field={col.key} 
               header={col.title}
+              sortable={true}
               body={(rowData) => {
                 const value = rowData[col.key];
                 if (value === null || value === undefined) return '';
+                
+                // Format numbers with commas
+                if (typeof value === 'number') {
+                  const hasDecimals = value % 1 !== 0;
+                  return new Intl.NumberFormat('en-US', {
+                    minimumFractionDigits: hasDecimals ? 2 : 0,
+                    maximumFractionDigits: hasDecimals ? 2 : 0,
+                  }).format(value);
+                }
+                
                 if (typeof value === 'object') return JSON.stringify(value);
                 return String(value);
               }}
@@ -445,6 +473,30 @@ const SimpleDataTable = ({
       maximumFractionDigits: hasDecimals ? 2 : 0,
     }).format(value);
   }, []);
+
+  // Calculate column totals
+  const calculateColumnTotal = useCallback((columnKey, type = 'sum') => {
+    const values = displayData
+      .map(row => row[columnKey])
+      .filter(val => typeof val === 'number' && !isNaN(val));
+    
+    if (values.length === 0) return null;
+    
+    switch (type) {
+      case 'sum':
+        return values.reduce((acc, val) => acc + val, 0);
+      case 'average':
+        return values.reduce((acc, val) => acc + val, 0) / values.length;
+      case 'count':
+        return values.length;
+      case 'min':
+        return Math.min(...values);
+      case 'max':
+        return Math.max(...values);
+      default:
+        return values.reduce((acc, val) => acc + val, 0);
+    }
+  }, [displayData]);
 
   // Safe cell renderer
   const safeCell = useCallback((value) => {
@@ -474,6 +526,40 @@ const SimpleDataTable = ({
     
     return String(value);
   }, [formatNumber]);
+
+  // Footer template for column totals
+  const footerTemplate = useCallback((columnKey, isFirstColumn = false) => {
+    if (!enableFooterTotals) return null;
+    
+    // For the first column, show the label
+    if (isFirstColumn) {
+      const label = footerTotalsType.charAt(0).toUpperCase() + footerTotalsType.slice(1);
+      return (
+        <div style={{ 
+          fontWeight: '700', 
+          color: '#1f2937',
+          fontSize: isCompactText ? '0.75rem' : '0.875rem'
+        }}>
+          {label}:
+        </div>
+      );
+    }
+    
+    // Calculate total for this column
+    const total = calculateColumnTotal(columnKey, footerTotalsType);
+    
+    if (total === null) return '';
+    
+    return (
+      <div style={{ 
+        fontWeight: '600', 
+        color: '#059669',
+        fontSize: isCompactText ? '0.75rem' : '0.875rem'
+      }}>
+        {formatNumber(total)}
+      </div>
+    );
+  }, [enableFooterTotals, footerTotalsType, calculateColumnTotal, formatNumber, isCompactText]);
 
   // Render custom filter element
   const renderCustomFilterElement = useCallback((column) => {
@@ -868,6 +954,44 @@ const SimpleDataTable = ({
         .simple-datatable-wrapper .p-datatable-tbody > tr:hover {
           background-color: #f3f4f6;
         }
+        
+        /* Footer totals styling */
+        .simple-datatable-wrapper .p-datatable-tfoot > tr > td {
+          background-color: #f9fafb;
+          border-top: 2px solid #d1d5db;
+          font-weight: 600;
+          padding: 0.75rem;
+        }
+        
+        .simple-datatable-wrapper.compact-text .p-datatable-tfoot > tr > td {
+          padding: 0.5rem;
+          font-size: 0.75rem;
+        }
+        
+        /* Nested/Expansion table styling */
+        .simple-datatable-wrapper .p-datatable-row-expansion .p-datatable {
+          background-color: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.375rem;
+        }
+        
+        .simple-datatable-wrapper .p-datatable-row-expansion .p-datatable-thead > tr > th {
+          background-color: #f9fafb;
+          font-size: 0.8125rem;
+          font-weight: 600;
+          padding: 0.5rem;
+        }
+        
+        .simple-datatable-wrapper .p-datatable-row-expansion .p-datatable-tbody > tr > td {
+          font-size: 0.8125rem;
+          padding: 0.5rem;
+        }
+        
+        /* Sorting arrows in nested table */
+        .simple-datatable-wrapper .p-datatable-row-expansion .p-sortable-column-icon {
+          font-size: 0.75rem;
+          margin-left: 0.25rem;
+        }
       `}</style>
       
       <div className={`simple-datatable-wrapper size-${tableSize}${isCompactText ? ' compact-text' : ''}`}>
@@ -1054,6 +1178,7 @@ const SimpleDataTable = ({
                 showFilterMenu={false}
                 filterElement={searchOnlyFilters ? filterElement : undefined}
                 body={bodyTemplate}
+                footer={enableFooterTotals ? () => footerTemplate(column.key, index === 0) : undefined}
                 style={{
                   ...equalWidthStyle,
                   ...column.style
@@ -1061,6 +1186,11 @@ const SimpleDataTable = ({
                 headerStyle={{
                   ...equalWidthStyle,
                   ...column.headerStyle
+                }}
+                footerStyle={{
+                  fontWeight: '600',
+                  backgroundColor: '#f3f4f6',
+                  borderTop: '2px solid #d1d5db'
                 }}
               />
             );

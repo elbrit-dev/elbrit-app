@@ -1996,6 +1996,19 @@ PLASMIC.registerComponent(PrimeDataTable, {
       defaultValue: {}
     },
     
+    // Footer Totals (Power BI style)
+    enableFooterTotals: {
+      type: "boolean",
+      description: "Enable column-wise totals in footer (like Power BI)",
+      defaultValue: false
+    },
+    footerTotalsType: {
+      type: "choice",
+      options: ["sum", "average", "count", "min", "max"],
+      description: "Type of calculation for footer totals: sum (default), average, count, min, or max",
+      defaultValue: "sum"
+    },
+    
     // Event handlers
     onRowClick: {
       type: "eventHandler",
