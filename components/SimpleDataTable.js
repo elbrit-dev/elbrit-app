@@ -68,6 +68,7 @@ const SimpleDataTable = ({
   tableSize = "normal", // small, normal, large
   compactTextInSmall = false, // Enable compact text (12px cells, 14px headers) only when tableSize is "small"
   responsiveLayout = "scroll",
+  stickyFirstColumn = false, // Make first column sticky/frozen during horizontal scroll
   className = "",
   style = {},
   
@@ -992,9 +993,34 @@ const SimpleDataTable = ({
           font-size: 0.75rem;
           margin-left: 0.25rem;
         }
+        
+        /* Sticky/Frozen first column */
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-thead > tr > th:first-child,
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr > td:first-child,
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tfoot > tr > td:first-child {
+          position: sticky !important;
+          left: 0 !important;
+          z-index: 1 !important;
+          background-color: #ffffff !important;
+          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-thead > tr > th:first-child {
+          z-index: 2 !important;
+          background-color: #f9fafb !important;
+        }
+        
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tfoot > tr > td:first-child {
+          background-color: #f9fafb !important;
+        }
+        
+        /* Sticky column on hover */
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr:hover > td:first-child {
+          background-color: #f3f4f6 !important;
+        }
       `}</style>
       
-      <div className={`simple-datatable-wrapper size-${tableSize}${isCompactText ? ' compact-text' : ''}`}>
+      <div className={`simple-datatable-wrapper size-${tableSize}${isCompactText ? ' compact-text' : ''}${stickyFirstColumn ? ' sticky-first-column' : ''}`}>
         {/* Render toolbar based on toggle */}
         {useCustomToolbar ? (
           customToolbar

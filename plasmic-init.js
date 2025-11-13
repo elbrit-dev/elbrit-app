@@ -1985,6 +1985,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Native PrimeReact responsive layout mode",
       defaultValue: "scroll"
     },
+    stickyFirstColumn: {
+      type: "boolean",
+      description: "Make first column sticky/frozen during horizontal scroll (remains visible while other columns scroll)",
+      defaultValue: false
+    },
     className: {
       type: "string",
       description: "Additional CSS classes for the table container",
