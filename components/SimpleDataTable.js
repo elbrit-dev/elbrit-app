@@ -994,28 +994,40 @@ const SimpleDataTable = ({
           margin-left: 0.25rem;
         }
         
-        /* Sticky/Frozen first column */
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-thead > tr > th:first-child,
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr > td:first-child,
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-tfoot > tr > td:first-child {
-          position: sticky !important;
-          left: 0 !important;
-          z-index: 1 !important;
+        /* Sticky/Frozen first column using PrimeReact's frozen column feature */
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-scrollable-header,
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-scrollable-body,
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-scrollable-footer {
+          overflow-x: auto !important;
+        }
+        
+        /* Frozen column styling */
+        .simple-datatable-wrapper.sticky-first-column .p-frozen-column {
           background-color: #ffffff !important;
-          box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
+          box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.15) !important;
         }
         
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-thead > tr > th:first-child {
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-thead .p-frozen-column {
+          background-color: #f9fafb !important;
+          z-index: 3 !important;
+        }
+        
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tfoot .p-frozen-column {
+          background-color: #f9fafb !important;
           z-index: 2 !important;
+        }
+        
+        /* Frozen column on hover */
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr:hover .p-frozen-column {
+          background-color: #f3f4f6 !important;
+        }
+        
+        /* Striped rows with frozen column */
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr.p-row-odd .p-frozen-column {
           background-color: #f9fafb !important;
         }
         
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-tfoot > tr > td:first-child {
-          background-color: #f9fafb !important;
-        }
-        
-        /* Sticky column on hover */
-        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr:hover > td:first-child {
+        .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr.p-row-odd:hover .p-frozen-column {
           background-color: #f3f4f6 !important;
         }
       `}</style>
@@ -1066,13 +1078,15 @@ const SimpleDataTable = ({
           totalRecords={displayData.length}
           size={tableSize}
           responsiveLayout={responsiveLayout}
+          scrollable={stickyFirstColumn}
           stripedRows
           showGridlines
           emptyMessage="No data available"
           style={{ borderRadius: '0.5rem' }}
           tableStyle={{
             tableLayout: equalColumnWidths ? 'fixed' : 'auto',
-            width: '100%'
+            width: '100%',
+            minWidth: stickyFirstColumn ? '150%' : 'auto'
           }}
         >
           {/* Data columns */}
@@ -1197,6 +1211,7 @@ const SimpleDataTable = ({
                 key={column.key}
                 field={column.key}
                 header={column.title}
+                frozen={stickyFirstColumn && index === 0}
                 sortable={column.sortable && enableSorting}
                 filter={column.filterable && !useCustomFilters}
                 filterField={column.key}
