@@ -1086,7 +1086,7 @@ const SimpleDataTable = ({
           tableStyle={{
             tableLayout: equalColumnWidths ? 'fixed' : 'auto',
             width: '100%',
-            minWidth: stickyFirstColumn ? '150%' : 'auto'
+            minWidth: stickyFirstColumn ? '100%' : 'auto'
           }}
         >
           {/* Data columns */}
