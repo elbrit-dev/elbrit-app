@@ -326,43 +326,143 @@ const SimpleDataTable = ({
     });
   }, []);
 
-  // Export to Excel (CSV format that opens in Excel)
+  // Export to Excel (CSV format that opens in Excel) with nested data support
   const exportToExcel = useCallback(() => {
     if (!displayData || displayData.length === 0) {
       alert('No data to export');
       return;
     }
 
-    // Create CSV content
-    const headers = displayColumns.map(col => col.title).join(',');
-    const rows = displayData.map(row => {
-      return displayColumns.map(col => {
-        const value = row[col.key];
-        // Handle values that might contain commas or quotes
-        if (value === null || value === undefined) return '';
-        const stringValue = String(value);
-        if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
-          return `"${stringValue.replace(/"/g, '""')}"`;
+    // Helper function to format cell value
+    const formatCellValue = (value) => {
+      if (value === null || value === undefined) return '';
+      const stringValue = String(value);
+      if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+      }
+      return stringValue;
+    };
+
+    let csvRows = [];
+    
+    // Check if we have nested data (expansion rows)
+    const hasNestedData = enableRowExpansion && displayData.some(row => {
+      const nested = row[nestedDataKey] || row.items || row.children || row.HQs;
+      return nested && Array.isArray(nested) && nested.length > 0;
+    });
+
+    if (hasNestedData) {
+      // Export with nested data structure - each HQ row repeats parent Sales Team
+      displayData.forEach((row, rowIndex) => {
+        // Get nested data
+        const nestedData = row[nestedDataKey] || row.items || row.children || row.HQs;
+        
+        if (nestedData && Array.isArray(nestedData) && nestedData.length > 0) {
+          // Get all columns from nested data
+          const nestedColumns = Object.keys(nestedData[0]);
+          
+          // Add main row first (with empty nested fields)
+          const mainRowCells = [];
+          displayColumns.forEach(col => {
+            mainRowCells.push(formatCellValue(row[col.key]));
+          });
+          // Add empty cells for nested columns that don't exist in main row
+          nestedColumns.forEach(nestedCol => {
+            if (!displayColumns.some(c => c.key === nestedCol)) {
+              mainRowCells.push(''); // Empty for nested-only columns like HQ name
+            }
+          });
+          csvRows.push(mainRowCells.join(','));
+          
+          // Add nested rows - each row repeats the parent data + adds nested data
+          nestedData.forEach(nestedRow => {
+            const combinedRowCells = [];
+            
+            // Add parent row data first (Sales Team, Target from parent, etc.)
+            displayColumns.forEach(col => {
+              // Use nested data if available, otherwise use parent data
+              if (nestedRow.hasOwnProperty(col.key)) {
+                combinedRowCells.push(formatCellValue(nestedRow[col.key]));
+              } else {
+                combinedRowCells.push(formatCellValue(row[col.key]));
+              }
+            });
+            
+            // Add nested-only columns (like HQ name)
+            nestedColumns.forEach(nestedCol => {
+              if (!displayColumns.some(c => c.key === nestedCol)) {
+                combinedRowCells.push(formatCellValue(nestedRow[nestedCol]));
+              }
+            });
+            
+            csvRows.push(combinedRowCells.join(','));
+          });
+        } else {
+          // No nested data, just add main row
+          const mainRowData = displayColumns.map(col => formatCellValue(row[col.key]));
+          csvRows.push(mainRowData.join(','));
         }
-        return stringValue;
-      }).join(',');
-    }).join('\n');
+      });
 
-    const csvContent = `${headers}\n${rows}`;
+      // Create headers - combine main columns + nested-only columns
+      const nestedData = displayData.find(row => {
+        const nested = row[nestedDataKey] || row.items || row.children || row.HQs;
+        return nested && Array.isArray(nested) && nested.length > 0;
+      });
+      
+      let allHeaders = [...displayColumns.map(col => col.title)];
+      
+      if (nestedData) {
+        const nested = nestedData[nestedDataKey] || nestedData.items || nestedData.children || nestedData.HQs;
+        if (nested && nested.length > 0) {
+          const nestedColumns = Object.keys(nested[0]);
+          nestedColumns.forEach(nestedCol => {
+            if (!displayColumns.some(c => c.key === nestedCol)) {
+              // Add nested-only column (like "HQ")
+              const headerName = nestedCol.charAt(0).toUpperCase() + nestedCol.slice(1).replace(/([A-Z])/g, ' $1');
+              allHeaders.push(headerName);
+            }
+          });
+        }
+      }
+      
+      const csvContent = `${allHeaders.join(',')}\n${csvRows.join('\n')}`;
 
-    // Create blob and download
-    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `table_export_${new Date().toISOString().slice(0, 10)}.csv`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [displayData, displayColumns]);
+      // Create blob and download
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `table_export_with_details_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Simple export without nested data
+      const headers = displayColumns.map(col => col.title).join(',');
+      const rows = displayData.map(row => {
+        return displayColumns.map(col => formatCellValue(row[col.key])).join(',');
+      }).join('\n');
+
+      const csvContent = `${headers}\n${rows}`;
+
+      // Create blob and download
+      const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute('href', url);
+      link.setAttribute('download', `table_export_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.style.visibility = 'hidden';
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
 
   // Handle sort
   const handleSort = useCallback((e) => {

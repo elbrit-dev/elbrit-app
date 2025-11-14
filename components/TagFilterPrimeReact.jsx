@@ -682,29 +682,14 @@ const TagFilterPrimeReact = ({
           backgroundColor: '#ffffff',
           minWidth: '300px'
         }}>
-          {/* Header with Search Input and Close Button */}
+          {/* Header with Close Button */}
           <div style={{ 
-            padding: '16px 16px 12px 16px',
+            padding: '12px 16px',
             borderBottom: '1px solid #e9ecef',
             display: 'flex',
             alignItems: 'center',
-            gap: '8px'
+            justifyContent: 'flex-end'
           }}>
-            {showSearch && (
-              <InputText
-                value={searchQuery}
-                onChange={handleSearchChange}
-                placeholder={searchPlaceholder || 'Filter...'}
-                style={{ 
-                  width: '100%',
-                  padding: '10px 12px',
-                  fontSize: '14px',
-                  border: '1px solid #ced4da',
-                  borderRadius: '6px'
-                }}
-                autoFocus
-              />
-            )}
             <button
               onClick={(e) => {
                 e.stopPropagation();
