@@ -2,6 +2,7 @@
 const CACHE_NAME = 'app-cache-v2';
 const ALLOWED_ORIGINS = [
   'https://app.elbrit.org',
+  'https://plamsic-app.netlify.app',
   'http://localhost:3000',
   self.location.origin
 ];
