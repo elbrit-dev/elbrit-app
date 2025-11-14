@@ -1,5 +1,10 @@
 /* Basic service worker for offline caching */
 const CACHE_NAME = 'app-cache-v2';
+const ALLOWED_ORIGINS = [
+  'https://app.elbrit.org',
+  'http://localhost:3000',
+  self.location.origin
+];
 const PRE_CACHE_URLS = [
   '/',
   '/favicon.ico',
@@ -29,6 +34,16 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const requestUrl = new URL(request.url);
+
+  // Only handle requests from allowed origins
+  const isAllowedOrigin = ALLOWED_ORIGINS.some(origin => 
+    request.url.startsWith(origin) || requestUrl.origin === self.location.origin
+  );
+
+  if (!isAllowedOrigin) {
+    return; // Let the browser handle external requests
+  }
 
   // Network-first for navigation requests (pages)
   if (request.mode === 'navigate') {
@@ -44,14 +59,18 @@ self.addEventListener('fetch', (event) => {
       if (cached) {
         // Stale-while-revalidate
         fetch(request).then((response) => {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          if (response && response.status === 200) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
         }).catch(() => {});
         return cached;
       }
       return fetch(request).then((response) => {
-        const copy = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        if (response && response.status === 200 && request.method === 'GET') {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
         return response;
       }).catch(() => cached);
     })

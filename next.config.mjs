@@ -98,6 +98,24 @@ const nextConfig = {
   
   async headers() {
     return [
+      // PWA manifest and service worker
+      {
+        source: '/manifest.webmanifest',
+        headers: [
+          { key: 'Content-Type', value: 'application/manifest+json' },
+          { key: 'Cache-Control', value: 'public, max-age=86400' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://app.elbrit.org' }
+        ]
+      },
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript' },
+          { key: 'Service-Worker-Allowed', value: '/' },
+          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
+          { key: 'Access-Control-Allow-Origin', value: 'https://app.elbrit.org' }
+        ]
+      },
       // Static assets caching
       {
         source: '/_next/static/(.*)',
@@ -122,6 +140,14 @@ const nextConfig = {
         source: '/img',
         headers: [
           { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }
+        ]
+      },
+      // Loading GIF for PWA
+      {
+        source: '/elbrit one logo.gif',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+          { key: 'Access-Control-Allow-Origin', value: '*' }
         ]
       },
       // API routes caching

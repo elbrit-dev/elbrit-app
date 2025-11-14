@@ -339,17 +339,38 @@ if (typeof window !== 'undefined') {
 
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
-    // Hide the loading screen once the app is ready
     const loadingScreen = document.getElementById('app-loading-screen');
-    if (loadingScreen) {
-      // Add a small delay to ensure smooth transition
+    const loadingGif = document.querySelector('.loading-gif');
+    
+    if (loadingScreen && loadingGif) {
+      let animationCompleted = false;
+      let appReady = false;
+      
+      // Minimum display time (3 seconds) - adjust based on your GIF duration
+      const MIN_DISPLAY_TIME = 3000;
+      const startTime = Date.now();
+      
+      // Mark app as ready after a short delay
       setTimeout(() => {
-        loadingScreen.classList.add('fade-out');
-        // Remove from DOM after fade animation
-        setTimeout(() => {
-          loadingScreen.remove();
-        }, 500);
-      }, 100);
+        appReady = true;
+        checkAndHideLoader();
+      }, 500);
+      
+      // Wait for minimum display time (to ensure GIF plays)
+      setTimeout(() => {
+        animationCompleted = true;
+        checkAndHideLoader();
+      }, MIN_DISPLAY_TIME);
+      
+      // Function to hide loader only when both conditions are met
+      function checkAndHideLoader() {
+        if (animationCompleted && appReady) {
+          loadingScreen.classList.add('fade-out');
+          setTimeout(() => {
+            loadingScreen.remove();
+          }, 500);
+        }
+      }
     }
   }, []);
 
