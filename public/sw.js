@@ -1,9 +1,10 @@
 /* Basic service worker for offline caching */
-const CACHE_NAME = 'app-cache-v1';
+const CACHE_NAME = 'app-cache-v2';
 const PRE_CACHE_URLS = [
   '/',
   '/favicon.ico',
-  '/manifest.webmanifest'
+  '/manifest.webmanifest',
+  '/elbrit one logo.gif'
 ];
 
 self.addEventListener('install', (event) => {

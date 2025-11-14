@@ -5,6 +5,7 @@ import { AuthProvider } from '../components/AuthContext';
 import dynamic from 'next/dynamic';
 const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
+import { useEffect } from 'react';
 
 // PrimeReact CSS imports
 import 'primereact/resources/primereact.min.css';
@@ -337,6 +338,21 @@ if (typeof window !== 'undefined') {
 }
 
 function MyApp({ Component, pageProps }) {
+  useEffect(() => {
+    // Hide the loading screen once the app is ready
+    const loadingScreen = document.getElementById('app-loading-screen');
+    if (loadingScreen) {
+      // Add a small delay to ensure smooth transition
+      setTimeout(() => {
+        loadingScreen.classList.add('fade-out');
+        // Remove from DOM after fade animation
+        setTimeout(() => {
+          loadingScreen.remove();
+        }, 500);
+      }, 100);
+    }
+  }, []);
+
   return (
     <DataProvider name="fn" data={a}>
       <AuthProvider>

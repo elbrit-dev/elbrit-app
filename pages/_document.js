@@ -28,6 +28,13 @@ class MyDocument extends Document {
             crossOrigin="anonymous"
           />
 
+          {/* Preload loading GIF for instant display */}
+          <link
+            rel="preload"
+            as="image"
+            href="/elbrit one logo.gif"
+          />
+
           {/* Minimize layout shift */}
           <meta name="theme-color" content="#ffffff" />
 
@@ -39,6 +46,16 @@ class MyDocument extends Document {
           <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         </Head>
         <body>
+          {/* Loading screen with animated GIF */}
+          <div id="app-loading-screen">
+            <div className="loading-container">
+              <img 
+                src="/elbrit one logo.gif" 
+                alt="Loading..." 
+                className="loading-gif"
+              />
+            </div>
+          </div>
           <Main />
           <NextScript />
         </body>
