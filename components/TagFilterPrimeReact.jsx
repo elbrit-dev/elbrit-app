@@ -665,8 +665,10 @@ const TagFilterPrimeReact = ({
       {/* Dropdown Panel - Opens below the bar */}
       <OverlayPanel
         ref={overlayPanelRef}
+        appendTo={typeof document !== 'undefined' ? document.body : null}
         style={{ 
-          width: searchInputRef.current?.offsetWidth || '350px',
+          width: 'auto',
+          maxWidth: 'calc(100vw - 32px)',
           zIndex: 1000,
           padding: 0
         }}
@@ -680,7 +682,8 @@ const TagFilterPrimeReact = ({
           flexDirection: 'column',
           gap: '0',
           backgroundColor: '#ffffff',
-          minWidth: '300px'
+          width: Math.min(searchInputRef.current?.offsetWidth || 350, window.innerWidth - 32) + 'px',
+          maxWidth: '100%'
         }}>
           {/* Header with Close Button */}
           <div style={{ 
