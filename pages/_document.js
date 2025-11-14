@@ -33,7 +33,7 @@ class MyDocument extends Document {
 
           {/* PWA manifest and icons */}
           <link rel="manifest" href="/manifest.webmanifest" />
-          <meta name="application-name" content="Elbrit App" />
+          <meta name="application-name" content="Elbrit One" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
           <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
