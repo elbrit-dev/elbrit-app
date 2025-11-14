@@ -20,6 +20,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   background: #ffffff;
   display: flex;
   align-items: center;
@@ -27,6 +28,8 @@
   z-index: 9999;
   transition: opacity 0.8s ease-out;
   overflow: hidden;
+  margin: 0;
+  padding: 0;
 }
 
 #app-loading-screen.fade-out {
@@ -41,22 +44,22 @@
   justify-content: center;
   width: 100%;
   height: 100%;
-  padding: 2rem;
+  padding: 0;
+  margin: 0;
 }
 
 .loading-gif {
-  max-width: 90vw;
-  max-height: 90vh;
-  width: auto;
-  height: auto;
-  object-fit: contain;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
+  object-fit: cover; /* Changed from contain to cover for full-screen */
   animation: zoomIn 0.8s ease-out;
 }
 
 @keyframes zoomIn {
   from {
     opacity: 0;
-    transform: scale(0.8);
+    transform: scale(0.95);
   }
   to {
     opacity: 1;
@@ -64,11 +67,12 @@
   }
 }
 
-/* For mobile devices - make it even larger */
+/* Ensure full coverage on all devices */
 @media (max-width: 768px) {
   .loading-gif {
-    max-width: 95vw;
-    max-height: 95vh;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
   }
 }
 
