@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: false,
+  reactStrictMode: true, // Enable for better performance and development checks
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -14,9 +14,9 @@ const nextConfig = {
   // Optimize output
   output: 'standalone',
   
-  // Speed up image responses by skipping Next.js optimizer and using remote CDNs directly
+  // Enable Next.js image optimization for better performance
   images: {
-    unoptimized: true,
+    unoptimized: false, // Enable optimization for better performance
     remotePatterns: [
       { protocol: 'https', hostname: 'img.plasmic.app' },
       { protocol: 'https', hostname: 'img.plasmiccdn.com' },
@@ -24,7 +24,10 @@ const nextConfig = {
     ],
     minimumCacheTTL: 31536000,
     dangerouslyAllowSVG: true,
-    formats: ['image/avif', 'image/webp']
+    formats: ['image/avif', 'image/webp'],
+    // Optimize images for better performance
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   
   // Performance optimizations
@@ -39,8 +42,14 @@ const nextConfig = {
   },
 
   experimental: {
-    // Enable package import optimization for icon library
-    optimizePackageImports: ['lucide-react']
+    // Enable package import optimization for multiple libraries
+    // This reduces bundle size by tree-shaking unused exports
+    optimizePackageImports: [
+      'lucide-react',
+      'primereact',
+      'antd',
+      '@ant-design/icons'
+    ],
   },
   
   // Webpack optimizations

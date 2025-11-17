@@ -7,12 +7,19 @@ const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
 import { useEffect } from 'react';
 
-// PrimeReact CSS imports
+// ⚡ PERFORMANCE: CSS imports are optimized by Next.js via optimizeCss config
+// Next.js will automatically:
+// - Code-split CSS by route/page
+// - Minify and optimize CSS
+// - Remove unused CSS
+// - Load CSS asynchronously where possible
+
+// PrimeReact CSS - loaded via Next.js optimization
 import 'primereact/resources/primereact.min.css';
 import 'primereact/resources/themes/lara-light-cyan/theme.css';
 import 'primeicons/primeicons.css';
 
-// Ant Design CSS import
+// Ant Design CSS - loaded via Next.js optimization
 import 'antd/dist/reset.css';
 
 import { advancedMerge } from '../components/utils/dataUtils';
@@ -382,5 +389,6 @@ function MyApp({ Component, pageProps }) {
     </DataProvider>
   );
 }
+
 
 export default MyApp; 

@@ -5,14 +5,21 @@ class MyDocument extends Document {
     return (
       <Html lang="en">
         <Head>
-          {/* Critical connection hints */}
+          {/* Critical connection hints - prioritized */}
           <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
           <link rel="preconnect" href="https://fonts.googleapis.com" />
           <link rel="dns-prefetch" href="//img.plasmic.app" />
           <link rel="dns-prefetch" href="//img.plasmiccdn.com" />
           <link rel="dns-prefetch" href="//images.plasmic.app" />
+          
+          {/* Performance: Preconnect to Firebase if used */}
+          <link rel="preconnect" href="https://firebase.googleapis.com" />
+          <link rel="preconnect" href="https://firestore.googleapis.com" />
+          
+          {/* Resource hints for faster loading */}
+          <link rel="prefetch" href="/api/hello" />
 
-          {/* Self-hosted variable fonts preloads */}
+          {/* Self-hosted variable fonts preloads with font-display swap */}
           <link
             rel="preload"
             as="font"
@@ -26,6 +33,24 @@ class MyDocument extends Document {
             href="/fonts/GeistMonoVF.woff"
             type="font/woff"
             crossOrigin="anonymous"
+          />
+          <style
+            dangerouslySetInnerHTML={{
+              __html: `
+                @font-face {
+                  font-family: 'GeistVF';
+                  src: url('/fonts/GeistVF.woff') format('woff');
+                  font-display: swap;
+                  font-weight: 100 900;
+                }
+                @font-face {
+                  font-family: 'GeistMonoVF';
+                  src: url('/fonts/GeistMonoVF.woff') format('woff');
+                  font-display: swap;
+                  font-weight: 100 900;
+                }
+              `,
+            }}
           />
 
           {/* Preload loading GIF for instant display */}

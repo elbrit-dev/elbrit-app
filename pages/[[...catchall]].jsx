@@ -242,7 +242,10 @@ export const getStaticProps = async (context) => {
       plasmicData,
       queryCache
     },
-    // Revalidate periodically to pick up published CMS/Plasmic changes
-    revalidate: 60
+    // ⚡ PERFORMANCE: Increase revalidate time for better caching
+    // Lower revalidation = more fresh content but more server requests
+    // Higher revalidation = better performance but less frequent updates
+    // 300 seconds (5 min) is a good balance for most content
+    revalidate: process.env.NODE_ENV === 'production' ? 300 : 60
   };
 }
