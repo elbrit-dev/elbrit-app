@@ -712,7 +712,7 @@ const SimpleDataTable = ({
     return (
       <div className="custom-toolbar-wrapper" style={{
         padding: '1rem',
-        backgroundColor: '#f9fafb',
+        backgroundColor: '#ffffff',
         borderRadius: '0.5rem',
         marginBottom: '1rem'
       }}>
@@ -727,24 +727,31 @@ const SimpleDataTable = ({
             }}>
               <Search 
                 size={18} 
+                className="custom-search-icon"
                 style={{ 
                   position: 'absolute', 
                   left: '0.75rem', 
                   top: '50%', 
                   transform: 'translateY(-50%)',
                   color: '#6b7280',
-                  zIndex: 1
+                  zIndex: 1,
+                  pointerEvents: 'none'
                 }} 
               />
               <InputText
                 value={globalFilterValue}
                 onChange={handleGlobalSearch}
                 placeholder="Search all columns..."
+                className="custom-search-input"
                 style={{
                   paddingLeft: '2.5rem',
                   width: '100%',
                   fontSize: '0.875rem',
-                  padding: '0.5rem 0.5rem 0.5rem 2.5rem'
+                  padding: '0.5rem 0.5rem 0.5rem 2.5rem',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '0.5rem',
+                  color: '#374151'
                 }}
               />
             </div>
@@ -1139,6 +1146,23 @@ const SimpleDataTable = ({
           justify-content: flex-start;
         }
         
+        /* Custom Toolbar Search Input Styles */
+        .custom-search-input {
+          background-color: #ffffff !important;
+          border: 1px solid #93c5fd !important;
+          border-radius: 0.5rem !important;
+        }
+        
+        .custom-search-input:focus {
+          border-color: #60a5fa !important;
+          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+          outline: none !important;
+        }
+        
+        .custom-search-input::placeholder {
+          color: #9ca3af !important;
+        }
+        
         /* Custom Toolbar Button Styles */
         .custom-toolbar-button {
           display: flex;
@@ -1148,7 +1172,7 @@ const SimpleDataTable = ({
           font-size: 0.875rem;
           font-weight: 400;
           color: #374151;
-          background-color: transparent;
+          background-color: #f3f4f6;
           border: 1px solid #e5e7eb;
           border-radius: 0.5rem;
           cursor: pointer;
@@ -1158,12 +1182,12 @@ const SimpleDataTable = ({
         }
         
         .custom-toolbar-button:hover {
-          background-color: #f9fafb;
+          background-color: #e5e7eb;
           border-color: #d1d5db;
         }
         
         .custom-toolbar-button:active {
-          background-color: #f3f4f6;
+          background-color: #d1d5db;
           border-color: #9ca3af;
         }
         
