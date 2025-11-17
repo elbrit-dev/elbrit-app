@@ -742,16 +742,12 @@ const SimpleDataTable = ({
                 value={globalFilterValue}
                 onChange={handleGlobalSearch}
                 placeholder="Search all columns..."
-                className="custom-search-input"
+                className="custom-search-input p-inputtext"
                 style={{
                   paddingLeft: '2.5rem',
                   width: '100%',
                   fontSize: '0.875rem',
-                  padding: '0.5rem 0.5rem 0.5rem 2.5rem',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #93c5fd',
-                  borderRadius: '0.5rem',
-                  color: '#374151'
+                  padding: '0.5rem 0.5rem 0.5rem 2.5rem'
                 }}
               />
             </div>
@@ -1147,53 +1143,77 @@ const SimpleDataTable = ({
         }
         
         /* Custom Toolbar Search Input Styles */
-        .custom-search-input {
+        .custom-toolbar-wrapper .custom-search-input,
+        .custom-toolbar-wrapper .custom-search-input input {
           background-color: #ffffff !important;
           border: 1px solid #93c5fd !important;
           border-radius: 0.5rem !important;
         }
         
-        .custom-search-input:focus {
+        .custom-toolbar-wrapper .custom-search-input:focus,
+        .custom-toolbar-wrapper .custom-search-input:focus-within,
+        .custom-toolbar-wrapper .custom-search-input input:focus {
           border-color: #60a5fa !important;
           box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
           outline: none !important;
         }
         
-        .custom-search-input::placeholder {
+        .custom-toolbar-wrapper .custom-search-input input::placeholder {
+          color: #9ca3af !important;
+        }
+        
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input,
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input input {
+          background-color: #ffffff !important;
+          border: 1px solid #93c5fd !important;
+          border-radius: 0.5rem !important;
+          color: #374151 !important;
+        }
+        
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input:focus,
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input:enabled:focus,
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input:focus-within,
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input input:focus {
+          border-color: #60a5fa !important;
+          box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1) !important;
+          outline: none !important;
+        }
+        
+        .custom-toolbar-wrapper .p-inputtext.custom-search-input input::placeholder {
           color: #9ca3af !important;
         }
         
         /* Custom Toolbar Button Styles */
-        .custom-toolbar-button {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          font-size: 0.875rem;
-          font-weight: 400;
-          color: #374151;
-          background-color: #f3f4f6;
-          border: 1px solid #e5e7eb;
-          border-radius: 0.5rem;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          font-family: inherit;
-          white-space: nowrap;
+        .custom-toolbar-wrapper .custom-toolbar-button {
+          display: flex !important;
+          align-items: center !important;
+          gap: 0.5rem !important;
+          padding: 0.5rem 1rem !important;
+          font-size: 0.875rem !important;
+          font-weight: 400 !important;
+          color: #374151 !important;
+          background-color: #f3f4f6 !important;
+          border: 1px solid #e5e7eb !important;
+          border-radius: 0.5rem !important;
+          cursor: pointer !important;
+          transition: all 0.2s ease !important;
+          font-family: inherit !important;
+          white-space: nowrap !important;
         }
         
-        .custom-toolbar-button:hover {
-          background-color: #e5e7eb;
-          border-color: #d1d5db;
+        .custom-toolbar-wrapper .custom-toolbar-button:hover {
+          background-color: #e5e7eb !important;
+          border-color: #d1d5db !important;
         }
         
-        .custom-toolbar-button:active {
-          background-color: #d1d5db;
-          border-color: #9ca3af;
+        .custom-toolbar-wrapper .custom-toolbar-button:active {
+          background-color: #d1d5db !important;
+          border-color: #9ca3af !important;
         }
         
-        .custom-toolbar-button:focus {
-          outline: none;
-          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        .custom-toolbar-wrapper .custom-toolbar-button:focus {
+          outline: none !important;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
         }
         
         /* Desktop: Row layout (search on left, buttons on right) */
