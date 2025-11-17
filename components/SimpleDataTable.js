@@ -352,81 +352,51 @@ const SimpleDataTable = ({
     });
 
     if (hasNestedData) {
-      // Export with nested data structure - each HQ row repeats parent Sales Team
-      displayData.forEach((row, rowIndex) => {
-        // Get nested data
+      // Export ONLY child rows with parent key as first column
+      // Find the first column from parent (typically the key like "Sales Team")
+      const parentKeyColumn = displayColumns.length > 0 ? displayColumns[0] : null;
+      const parentKeyTitle = parentKeyColumn ? parentKeyColumn.title : 'Parent';
+      const parentKeyField = parentKeyColumn ? parentKeyColumn.key : null;
+      
+      // Get all nested data columns from first nested row
+      let nestedColumns = [];
+      let allNestedDataRows = [];
+      
+      displayData.forEach((row) => {
         const nestedData = row[nestedDataKey] || row.items || row.children || row.HQs;
         
         if (nestedData && Array.isArray(nestedData) && nestedData.length > 0) {
-          // Get all columns from nested data
-          const nestedColumns = Object.keys(nestedData[0]);
+          // Get nested columns from first nested row if not already set
+          if (nestedColumns.length === 0) {
+            nestedColumns = Object.keys(nestedData[0]);
+          }
           
-          // Add main row first (with empty nested fields)
-          const mainRowCells = [];
-          displayColumns.forEach(col => {
-            mainRowCells.push(formatCellValue(row[col.key]));
-          });
-          // Add empty cells for nested columns that don't exist in main row
-          nestedColumns.forEach(nestedCol => {
-            if (!displayColumns.some(c => c.key === nestedCol)) {
-              mainRowCells.push(''); // Empty for nested-only columns like HQ name
-            }
-          });
-          csvRows.push(mainRowCells.join(','));
-          
-          // Add nested rows - each row repeats the parent data + adds nested data
+          // Add each nested row with parent key
           nestedData.forEach(nestedRow => {
-            const combinedRowCells = [];
-            
-            // Add parent row data first (Sales Team, Target from parent, etc.)
-            displayColumns.forEach(col => {
-              // Use nested data if available, otherwise use parent data
-              if (nestedRow.hasOwnProperty(col.key)) {
-                combinedRowCells.push(formatCellValue(nestedRow[col.key]));
-              } else {
-                combinedRowCells.push(formatCellValue(row[col.key]));
-              }
+            allNestedDataRows.push({
+              parentKey: parentKeyField ? row[parentKeyField] : '',
+              nestedData: nestedRow
             });
-            
-            // Add nested-only columns (like HQ name)
-            nestedColumns.forEach(nestedCol => {
-              if (!displayColumns.some(c => c.key === nestedCol)) {
-                combinedRowCells.push(formatCellValue(nestedRow[nestedCol]));
-              }
-            });
-            
-            csvRows.push(combinedRowCells.join(','));
-          });
-        } else {
-          // No nested data, just add main row
-          const mainRowData = displayColumns.map(col => formatCellValue(row[col.key]));
-          csvRows.push(mainRowData.join(','));
-        }
-      });
-
-      // Create headers - combine main columns + nested-only columns
-      const nestedData = displayData.find(row => {
-        const nested = row[nestedDataKey] || row.items || row.children || row.HQs;
-        return nested && Array.isArray(nested) && nested.length > 0;
-      });
-      
-      let allHeaders = [...displayColumns.map(col => col.title)];
-      
-      if (nestedData) {
-        const nested = nestedData[nestedDataKey] || nestedData.items || nestedData.children || nestedData.HQs;
-        if (nested && nested.length > 0) {
-          const nestedColumns = Object.keys(nested[0]);
-          nestedColumns.forEach(nestedCol => {
-            if (!displayColumns.some(c => c.key === nestedCol)) {
-              // Add nested-only column (like "HQ")
-              const headerName = nestedCol.charAt(0).toUpperCase() + nestedCol.slice(1).replace(/([A-Z])/g, ' $1');
-              allHeaders.push(headerName);
-            }
           });
         }
-      }
+      });
       
-      const csvContent = `${allHeaders.join(',')}\n${csvRows.join('\n')}`;
+      // Create headers: Parent Key + all nested columns
+      const headers = [parentKeyTitle, ...nestedColumns.map(col => {
+        // Format column name
+        return col.charAt(0).toUpperCase() + col.slice(1).replace(/([A-Z])/g, ' $1');
+      })];
+      
+      // Create rows: Parent Key value + all nested data values
+      allNestedDataRows.forEach(({ parentKey, nestedData }) => {
+        const rowCells = [
+          formatCellValue(parentKey),
+          ...nestedColumns.map(col => formatCellValue(nestedData[col]))
+        ];
+        csvRows.push(rowCells.join(','));
+      });
+      
+      const csvContent = `${headers.join(',')}\n${csvRows.join('\n')}`;
 
       // Create blob and download
       const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -434,7 +404,7 @@ const SimpleDataTable = ({
       const url = URL.createObjectURL(blob);
       
       link.setAttribute('href', url);
-      link.setAttribute('download', `table_export_with_details_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute('download', `table_export_expansion_data_${new Date().toISOString().slice(0, 10)}.csv`);
       link.style.visibility = 'hidden';
       
       document.body.appendChild(link);
