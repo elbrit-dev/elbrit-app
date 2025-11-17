@@ -7,6 +7,7 @@ import { Button } from 'primereact/button';
 import { Badge } from 'primereact/badge';
 import { InputText } from 'primereact/inputtext';
 import { OverlayPanel } from 'primereact/overlaypanel';
+import { Users } from 'lucide-react';
 
 const TagFilterPrimeReact = ({
   // Data props
@@ -577,13 +578,12 @@ const TagFilterPrimeReact = ({
       >
         {/* Icon */}
         <span style={{ 
-          color: '#666',
-          fontSize: '16px',
+          color: '#60a5fa',
           display: 'flex',
           alignItems: 'center',
           flexShrink: 0
         }}>
-          🔍
+          <Users size={18} color="#60a5fa" />
         </span>
 
         {/* Display selected tags as chips inside the bar */}

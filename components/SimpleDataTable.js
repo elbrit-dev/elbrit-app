@@ -13,7 +13,7 @@ const InputNumber = dynamic(() => import('primereact/inputnumber').then(m => m.I
 const Paginator = dynamic(() => import('primereact/paginator').then(m => m.Paginator), { ssr: false });
 
 import { FilterMatchMode, FilterOperator } from 'primereact/api';
-import { Search, X, ChevronDown, ChevronRight } from "lucide-react";
+import { Search, X, ChevronDown, ChevronRight, Plus, Minus, SlidersHorizontal, Download, RotateCw } from "lucide-react";
 
 /**
  * SimpleDataTable - A simplified, clean version of PrimeDataTable
@@ -740,21 +740,21 @@ const SimpleDataTable = ({
     if (!useCustomToolbar) return null;
     
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
+      <div className="custom-toolbar-wrapper" style={{
         padding: '1rem',
         backgroundColor: '#f9fafb',
         borderRadius: '0.5rem',
-        marginBottom: '1rem',
-        gap: '1rem',
-        flexWrap: 'wrap'
+        marginBottom: '1rem'
       }}>
-        {/* Left section - Search */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: '1 1 auto' }}>
+        {/* Mobile: Search row (full width) */}
+        {/* Desktop: Search on left, buttons on right */}
+        <div className="custom-toolbar-content">
+          {/* Search section */}
           {enableSearch && (
-            <div style={{ position: 'relative', minWidth: '15rem' }}>
+            <div className="custom-toolbar-search" style={{ 
+              position: 'relative', 
+              width: '100%'
+            }}>
               <Search 
                 size={18} 
                 style={{ 
@@ -762,7 +762,8 @@ const SimpleDataTable = ({
                   left: '0.75rem', 
                   top: '50%', 
                   transform: 'translateY(-50%)',
-                  color: '#6b7280'
+                  color: '#6b7280',
+                  zIndex: 1
                 }} 
               />
               <InputText
@@ -779,50 +780,70 @@ const SimpleDataTable = ({
             </div>
           )}
           
-          {/* Clear filters button */}
-          <Button
-            icon="pi pi-filter-slash"
-            label="Clear"
-            className="p-button-outlined p-button-secondary"
-            onClick={clearAllFilters}
-            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-            tooltip="Clear all filters"
-          />
-        </div>
-        
-        {/* Right section - Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          {/* Expand/Collapse All Button */}
-          {enableRowExpansion && (
-            <Button
-              icon={allExpanded ? "pi pi-minus" : "pi pi-plus"}
-              label={allExpanded ? "Collapse All" : "Expand All"}
-              className="p-button-outlined p-button-info"
-              onClick={toggleExpandAll}
-              style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-            />
-          )}
-          
-          {/* Export button */}
-          <Button
-            icon="pi pi-file-excel"
-            label="Export"
-            className="p-button-outlined p-button-success"
-            onClick={exportToExcel}
-            style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-            tooltip="Export to Excel"
-          />
-          
-          {/* Refresh button */}
-          {onRefresh && (
-            <Button
-              icon="pi pi-refresh"
-              label="Refresh"
-              className="p-button-outlined"
-              onClick={handleRefresh}
-              style={{ fontSize: '0.875rem', padding: '0.5rem 1rem' }}
-            />
-          )}
+          {/* Actions section - Mobile: full width row, Desktop: right side */}
+          <div className="custom-toolbar-actions" style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '0.75rem',
+            flexWrap: 'wrap',
+            width: '100%',
+            justifyContent: 'flex-start'
+          }}>
+            {/* Expand/Collapse All Button */}
+            {enableRowExpansion && (
+              <button
+                type="button"
+                onClick={toggleExpandAll}
+                className="custom-toolbar-button"
+              >
+                {allExpanded ? (
+                  <>
+                    <Minus size={16} color="#3b82f6" />
+                    <span>Collapse All</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus size={16} color="#3b82f6" />
+                    <span>Expand All</span>
+                  </>
+                )}
+              </button>
+            )}
+            
+            {/* Clear filters button */}
+            <button
+              type="button"
+              onClick={clearAllFilters}
+              className="custom-toolbar-button"
+              title="Clear all filters"
+            >
+              <SlidersHorizontal size={16} color="#3b82f6" />
+              <span>Clear Filters</span>
+            </button>
+            
+            {/* Export button */}
+            <button
+              type="button"
+              onClick={exportToExcel}
+              className="custom-toolbar-button"
+              title="Export to Excel"
+            >
+              <Download size={16} color="#3b82f6" />
+              <span>Export</span>
+            </button>
+            
+            {/* Refresh button */}
+            {onRefresh && (
+              <button
+                type="button"
+                onClick={handleRefresh}
+                className="custom-toolbar-button"
+              >
+                <RotateCw size={16} color="#3b82f6" />
+                <span>Refresh</span>
+              </button>
+            )}
+          </div>
         </div>
       </div>
     );
@@ -1129,6 +1150,77 @@ const SimpleDataTable = ({
         
         .simple-datatable-wrapper.sticky-first-column .p-datatable-tbody > tr.p-row-odd:hover .p-frozen-column {
           background-color: #f3f4f6 !important;
+        }
+        
+        /* Custom Toolbar Responsive Styles */
+        /* Mobile: Column layout (search on top, buttons below) */
+        .custom-toolbar-content {
+          display: flex;
+          flex-direction: column;
+          gap: 1rem;
+        }
+        
+        .custom-toolbar-search {
+          width: 100%;
+        }
+        
+        .custom-toolbar-actions {
+          width: 100%;
+          justify-content: flex-start;
+        }
+        
+        /* Custom Toolbar Button Styles */
+        .custom-toolbar-button {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem 1rem;
+          font-size: 0.875rem;
+          font-weight: 400;
+          color: #374151;
+          background-color: transparent;
+          border: 1px solid #e5e7eb;
+          border-radius: 0.5rem;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+        
+        .custom-toolbar-button:hover {
+          background-color: #f9fafb;
+          border-color: #d1d5db;
+        }
+        
+        .custom-toolbar-button:active {
+          background-color: #f3f4f6;
+          border-color: #9ca3af;
+        }
+        
+        .custom-toolbar-button:focus {
+          outline: none;
+          box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Desktop: Row layout (search on left, buttons on right) */
+        @media (min-width: 768px) {
+          .custom-toolbar-content {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+          }
+          
+          .custom-toolbar-search {
+            flex: 1 1 auto;
+            min-width: 15rem;
+            max-width: 30rem;
+          }
+          
+          .custom-toolbar-actions {
+            width: auto;
+            flex: 0 0 auto;
+            justify-content: flex-end;
+          }
         }
       `}</style>
       
