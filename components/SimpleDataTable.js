@@ -92,11 +92,26 @@ const SimpleDataTable = ({
   const [rows, setRows] = useState(pageSize);
   const [expandedRows, setExpandedRows] = useState({});
   const [allExpanded, setAllExpanded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
   const isMountedRef = useRef(true);
   
   // Determine if compact text mode should be active (only when tableSize is "small" and prop is enabled)
   const isCompactText = tableSize === "small" && compactTextInSmall;
+
+  // Detect screen size for responsive toolbar
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+    
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   // Initialize data
   useEffect(() => {
@@ -718,11 +733,21 @@ const SimpleDataTable = ({
       }}>
         {/* Mobile: Search row (full width) */}
         {/* Desktop: Search on left, buttons on right */}
-        <div className="custom-toolbar-content">
+        <div className="custom-toolbar-content" style={{
+          display: 'flex',
+          flexDirection: isMobile ? 'column' : 'row',
+          justifyContent: isMobile ? 'flex-start' : 'space-between',
+          alignItems: isMobile ? 'stretch' : 'center',
+          gap: '1rem'
+        }}>
           {/* Search section */}
           {enableSearch && (
             <div className="custom-toolbar-search" style={{ 
-              position: 'relative'
+              position: 'relative',
+              width: isMobile ? '100%' : 'auto',
+              flex: isMobile ? 'none' : '1 1 auto',
+              minWidth: isMobile ? 'auto' : '15rem',
+              maxWidth: isMobile ? 'none' : '35rem'
             }}>
               <Search 
                 size={18} 
@@ -746,7 +771,19 @@ const SimpleDataTable = ({
                   paddingLeft: '2.5rem',
                   width: '100%',
                   fontSize: '0.875rem',
-                  padding: '0.5rem 0.5rem 0.5rem 2.5rem'
+                  padding: '0.5rem 0.5rem 0.5rem 2.5rem',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #93c5fd',
+                  borderRadius: '0.5rem',
+                  color: '#374151'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#60a5fa';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(96, 165, 250, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#93c5fd';
+                  e.target.style.boxShadow = 'none';
                 }}
               />
             </div>
@@ -757,7 +794,10 @@ const SimpleDataTable = ({
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.75rem',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
+            width: isMobile ? '100%' : 'auto',
+            flex: isMobile ? 'none' : '0 0 auto',
+            justifyContent: isMobile ? 'flex-start' : 'flex-end'
           }}>
             {/* Expand/Collapse All Button */}
             {enableRowExpansion && (
@@ -765,6 +805,30 @@ const SimpleDataTable = ({
                 type="button"
                 onClick={toggleExpandAll}
                 className="custom-toolbar-button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '400',
+                  color: '#374151',
+                  backgroundColor: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                }}
               >
                 {allExpanded ? (
                   <>
@@ -786,6 +850,30 @@ const SimpleDataTable = ({
               onClick={clearAllFilters}
               className="custom-toolbar-button"
               title="Clear all filters"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                color: '#374151',
+                backgroundColor: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e5e7eb';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
             >
               <SlidersHorizontal size={16} color="#3b82f6" />
               <span>Clear Filters</span>
@@ -797,6 +885,30 @@ const SimpleDataTable = ({
               onClick={exportToExcel}
               className="custom-toolbar-button"
               title="Export to Excel"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.5rem 1rem',
+                fontSize: '0.875rem',
+                fontWeight: '400',
+                color: '#374151',
+                backgroundColor: '#f3f4f6',
+                border: '1px solid #e5e7eb',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#e5e7eb';
+                e.currentTarget.style.borderColor = '#d1d5db';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.borderColor = '#e5e7eb';
+              }}
             >
               <Download size={16} color="#3b82f6" />
               <span>Export</span>
@@ -808,6 +920,30 @@ const SimpleDataTable = ({
                 type="button"
                 onClick={handleRefresh}
                 className="custom-toolbar-button"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '400',
+                  color: '#374151',
+                  backgroundColor: '#f3f4f6',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                  whiteSpace: 'nowrap'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e5e7eb';
+                  e.currentTarget.style.borderColor = '#d1d5db';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                }}
               >
                 <RotateCw size={16} color="#3b82f6" />
                 <span>Refresh</span>
@@ -828,7 +964,8 @@ const SimpleDataTable = ({
     toggleExpandAll,
     exportToExcel,
     onRefresh,
-    handleRefresh
+    handleRefresh,
+    isMobile
   ]);
 
   // Native Toolbar
