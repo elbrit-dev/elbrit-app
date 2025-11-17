@@ -722,8 +722,7 @@ const SimpleDataTable = ({
           {/* Search section */}
           {enableSearch && (
             <div className="custom-toolbar-search" style={{ 
-              position: 'relative', 
-              width: '100%'
+              position: 'relative'
             }}>
               <Search 
                 size={18} 
@@ -758,9 +757,7 @@ const SimpleDataTable = ({
             display: 'flex', 
             alignItems: 'center', 
             gap: '0.75rem',
-            flexWrap: 'wrap',
-            width: '100%',
-            justifyContent: 'flex-start'
+            flexWrap: 'wrap'
           }}>
             {/* Expand/Collapse All Button */}
             {enableRowExpansion && (
@@ -1135,11 +1132,17 @@ const SimpleDataTable = ({
         
         .custom-toolbar-search {
           width: 100%;
+          position: relative;
         }
         
         .custom-toolbar-actions {
           width: 100%;
           justify-content: flex-start;
+        }
+        
+        /* Ensure search input takes full width of its container */
+        .custom-toolbar-search .p-inputtext {
+          width: 100% !important;
         }
         
         /* Custom Toolbar Search Input Styles */
@@ -1219,21 +1222,28 @@ const SimpleDataTable = ({
         /* Desktop: Row layout (search on left, buttons on right) */
         @media (min-width: 768px) {
           .custom-toolbar-content {
-            flex-direction: row;
-            justify-content: space-between;
-            align-items: center;
+            flex-direction: row !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            gap: 1rem !important;
           }
           
           .custom-toolbar-search {
-            flex: 1 1 auto;
-            min-width: 15rem;
-            max-width: 30rem;
+            flex: 1 1 auto !important;
+            min-width: 15rem !important;
+            max-width: 35rem !important;
+            width: auto !important;
+          }
+          
+          .custom-toolbar-search .p-inputtext {
+            width: 100% !important;
           }
           
           .custom-toolbar-actions {
-            width: auto;
-            flex: 0 0 auto;
-            justify-content: flex-end;
+            width: auto !important;
+            flex: 0 0 auto !important;
+            justify-content: flex-end !important;
+            flex-shrink: 0 !important;
           }
         }
       `}</style>
