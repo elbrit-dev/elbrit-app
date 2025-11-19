@@ -342,8 +342,29 @@ const SimpleDataTable = ({
     });
   }, []);
 
-  // Export to Excel (CSV format that opens in Excel) with nested data support
+  // Export data with format selection
   const exportToExcel = useCallback(() => {
+    if (!displayData || displayData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    // Ask user for export format
+    const format = window.prompt('Choose export format:\n\n1 - CSV (Comma-separated values)\n2 - Excel (XLSX format)\n\nEnter 1 or 2:', '1');
+    
+    if (!format) return; // User cancelled
+    
+    const exportFormat = format.trim() === '2' ? 'excel' : 'csv';
+    
+    if (exportFormat === 'excel') {
+      exportToExcelXLSX();
+    } else {
+      exportToCSV();
+    }
+  }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
+
+  // Export to CSV format
+  const exportToCSV = useCallback(() => {
     if (!displayData || displayData.length === 0) {
       alert('No data to export');
       return;
@@ -459,6 +480,172 @@ const SimpleDataTable = ({
       document.body.removeChild(link);
     }
   }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
+
+  // Export to Excel XLSX format
+  const exportToExcelXLSX = useCallback(() => {
+    if (!displayData || displayData.length === 0) {
+      alert('No data to export');
+      return;
+    }
+
+    // Check if we have nested data (expansion rows)
+    const hasNestedData = enableRowExpansion && displayData.some(row => {
+      const nested = row[nestedDataKey] || row.items || row.children || row.HQs;
+      return nested && Array.isArray(nested) && nested.length > 0;
+    });
+
+    let worksheetData = [];
+
+    if (hasNestedData) {
+      // Export child rows with ALL non-numeric parent data merged
+      
+      // Get all non-numeric parent columns
+      const parentNonNumericColumns = displayColumns.filter(col => {
+        // Check if column contains numeric data
+        const sampleValue = displayData.length > 0 ? displayData[0][col.key] : null;
+        return typeof sampleValue !== 'number';
+      });
+      
+      // Get all nested data columns from first nested row
+      let nestedColumns = [];
+      let allNestedDataRows = [];
+      
+      displayData.forEach((row) => {
+        const nestedData = row[nestedDataKey] || row.items || row.children || row.HQs;
+        
+        if (nestedData && Array.isArray(nestedData) && nestedData.length > 0) {
+          // Get nested columns from first nested row if not already set
+          if (nestedColumns.length === 0) {
+            nestedColumns = Object.keys(nestedData[0]);
+          }
+          
+          // Add each nested row with ALL parent non-numeric data
+          nestedData.forEach(nestedRow => {
+            // Create an object with all non-numeric parent data
+            const parentData = {};
+            parentNonNumericColumns.forEach(col => {
+              parentData[col.key] = row[col.key];
+            });
+            
+            allNestedDataRows.push({
+              parentData: parentData,
+              nestedData: nestedRow
+            });
+          });
+        }
+      });
+      
+      // Create headers: All Parent Non-Numeric Columns + all nested columns
+      const parentHeaders = parentNonNumericColumns.map(col => col.title);
+      const nestedHeaders = nestedColumns.map(col => {
+        // Format column name
+        return col.charAt(0).toUpperCase() + col.slice(1).replace(/([A-Z])/g, ' $1');
+      });
+      const headers = [...parentHeaders, ...nestedHeaders];
+      
+      // Add headers as first row
+      worksheetData.push(headers);
+      
+      // Add data rows: All parent non-numeric values + all nested data values
+      allNestedDataRows.forEach(({ parentData, nestedData }) => {
+        const parentValues = parentNonNumericColumns.map(col => parentData[col.key] ?? '');
+        const nestedValues = nestedColumns.map(col => nestedData[col] ?? '');
+        const rowCells = [...parentValues, ...nestedValues];
+        worksheetData.push(rowCells);
+      });
+    } else {
+      // Simple export without nested data
+      const headers = displayColumns.map(col => col.title);
+      worksheetData.push(headers);
+      
+      displayData.forEach(row => {
+        const rowData = displayColumns.map(col => row[col.key] ?? '');
+        worksheetData.push(rowData);
+      });
+    }
+
+    // Convert to Excel XML format (SpreadsheetML)
+    const excelXML = createExcelXML(worksheetData);
+    
+    // Create blob and download
+    const blob = new Blob([excelXML], { type: 'application/vnd.ms-excel' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `table_export_${hasNestedData ? 'expansion_data_' : ''}${new Date().toISOString().slice(0, 10)}.xls`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
+
+  // Helper function to create Excel XML (SpreadsheetML format)
+  const createExcelXML = (data) => {
+    let xml = '<?xml version="1.0"?>\n';
+    xml += '<?mso-application progid="Excel.Sheet"?>\n';
+    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
+    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
+    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
+    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
+    
+    // Styles
+    xml += '<Styles>\n';
+    xml += '<Style ss:ID="Header">\n';
+    xml += '<Font ss:Bold="1" ss:Size="11"/>\n';
+    xml += '<Interior ss:Color="#4472C4" ss:Pattern="Solid"/>\n';
+    xml += '<Font ss:Color="#FFFFFF"/>\n';
+    xml += '<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n';
+    xml += '</Style>\n';
+    xml += '<Style ss:ID="Number">\n';
+    xml += '<NumberFormat ss:Format="#,##0.00"/>\n';
+    xml += '</Style>\n';
+    xml += '</Styles>\n';
+    
+    xml += '<Worksheet ss:Name="Sheet1">\n';
+    xml += '<Table>\n';
+    
+    // Add columns with auto width
+    data[0]?.forEach(() => {
+      xml += '<Column ss:AutoFitWidth="1"/>\n';
+    });
+    
+    // Add rows
+    data.forEach((row, rowIndex) => {
+      xml += '<Row>\n';
+      row.forEach((cell) => {
+        const cellValue = cell === null || cell === undefined ? '' : String(cell);
+        const isHeader = rowIndex === 0;
+        const isNumber = !isHeader && !isNaN(cell) && cell !== '' && cell !== null && typeof cell === 'number';
+        
+        xml += `<Cell${isHeader ? ' ss:StyleID="Header"' : (isNumber ? ' ss:StyleID="Number"' : '')}>\n`;
+        
+        if (isNumber) {
+          xml += `<Data ss:Type="Number">${cell}</Data>\n`;
+        } else {
+          // Escape XML special characters
+          const escapedValue = cellValue
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+          xml += `<Data ss:Type="String">${escapedValue}</Data>\n`;
+        }
+        
+        xml += '</Cell>\n';
+      });
+      xml += '</Row>\n';
+    });
+    
+    xml += '</Table>\n';
+    xml += '</Worksheet>\n';
+    xml += '</Workbook>';
+    
+    return xml;
+  };
 
   // Handle sort
   const handleSort = useCallback((e) => {
