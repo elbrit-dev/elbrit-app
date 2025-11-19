@@ -33,7 +33,8 @@
     "primereact": "^10.9.6",
     "react": "^18",
     "react-dom": "^18",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "eslint": "^8",

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import dynamic from 'next/dynamic';
+import * as XLSX from 'xlsx';
 
 // Dynamic imports for PrimeReact components
 const DataTable = dynamic(() => import('primereact/datatable').then(m => m.DataTable), { ssr: false });
@@ -485,7 +486,7 @@ const SimpleDataTable = ({
     }
   }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
 
-  // Export to Excel XLSX format
+  // Export to Excel XLSX format using SheetJS
   const exportToExcelXLSX = useCallback(() => {
     if (!displayData || displayData.length === 0) {
       alert('No data to export');
@@ -568,84 +569,44 @@ const SimpleDataTable = ({
       });
     }
 
-    // Convert to Excel HTML format
-    const excelHTML = createExcelHTML(worksheetData);
+    // Create worksheet from data
+    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
     
-    // Create blob with BOM for proper Excel compatibility
-    const blob = new Blob(['\ufeff', excelHTML], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    
-    link.setAttribute('href', url);
-    link.setAttribute('download', `table_export_${hasNestedData ? 'expansion_data_' : ''}${new Date().toISOString().slice(0, 10)}.xls`);
-    link.style.visibility = 'hidden';
-    
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
-
-  // Helper function to create Excel HTML format (compatible with Excel)
-  const createExcelHTML = (data) => {
-    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-    html += '<head>';
-    html += '<meta charset="utf-8">';
-    html += '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
-    html += '<x:Name>Sheet1</x:Name>';
-    html += '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
-    html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
-    html += '<style>';
-    html += 'table { border-collapse: collapse; width: 100%; }';
-    html += 'th { background-color: #4472C4; color: white; font-weight: bold; padding: 8px; text-align: center; border: 1px solid #ddd; }';
-    html += 'td { padding: 8px; border: 1px solid #ddd; }';
-    html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
-    html += '.number { text-align: right; mso-number-format:"#,##0.00"; }';
-    html += '</style>';
-    html += '</head>';
-    html += '<body>';
-    html += '<table>';
-    
-    // Add rows
-    data.forEach((row, rowIndex) => {
-      if (rowIndex === 0) {
-        // Header row
-        html += '<thead><tr>';
-        row.forEach((cell) => {
-          const cellValue = cell === null || cell === undefined ? '' : String(cell)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-          html += `<th>${cellValue}</th>`;
-        });
-        html += '</tr></thead><tbody>';
-      } else {
-        // Data rows
-        html += '<tr>';
-        row.forEach((cell) => {
-          const isNumber = !isNaN(cell) && cell !== '' && cell !== null && typeof cell === 'number';
-          const cellValue = cell === null || cell === undefined ? '' : String(cell)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-          
-          if (isNumber) {
-            html += `<td class="number">${cell}</td>`;
-          } else {
-            html += `<td>${cellValue}</td>`;
-          }
-        });
-        html += '</tr>';
-      }
+    // Set column widths
+    const columnWidths = worksheetData[0].map((_, colIndex) => {
+      const maxLength = Math.max(
+        ...worksheetData.map(row => {
+          const cell = row[colIndex];
+          return cell ? String(cell).length : 10;
+        })
+      );
+      return { wch: Math.min(Math.max(maxLength, 10), 50) };
     });
+    worksheet['!cols'] = columnWidths;
     
-    html += '</tbody></table>';
-    html += '</body>';
-    html += '</html>';
+    // Style the header row
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
+    for (let col = range.s.c; col <= range.e.c; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (!worksheet[cellAddress]) continue;
+      
+      worksheet[cellAddress].s = {
+        font: { bold: true, color: { rgb: "FFFFFF" } },
+        fill: { fgColor: { rgb: "4472C4" } },
+        alignment: { horizontal: "center", vertical: "center" }
+      };
+    }
     
-    return html;
-  };
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1');
+    
+    // Generate XLSX file and trigger download
+    XLSX.writeFile(
+      workbook, 
+      `table_export_${hasNestedData ? 'expansion_data_' : ''}${new Date().toISOString().slice(0, 10)}.xlsx`
+    );
+  }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
 
   // Handle sort
   const handleSort = useCallback((e) => {
@@ -1427,19 +1388,19 @@ const SimpleDataTable = ({
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '1.25rem',
+                  fontSize: '1rem',
                   fontWeight: 'bold',
                   color: 'white',
                   flexShrink: 0
                 }}>
-                  XLS
+                  XLSX
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
-                    Excel File
+                    Excel File (.xlsx)
                   </div>
                   <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                    Formatted spreadsheet with styling
+                    Modern Excel format, all versions supported
                   </div>
                 </div>
                 <div style={{ color: '#3b82f6', fontSize: '1.5rem' }}>→</div>
