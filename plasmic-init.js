@@ -1900,6 +1900,11 @@ PLASMIC.registerComponent(PrimeDataTable, {
       description: "Enable global search functionality",
       defaultValue: true
     },
+    enableGlobalSearch: {
+      type: "boolean",
+      description: "Enable/disable global search bar in toolbar (when false, search bar is hidden)",
+      defaultValue: true
+    },
     enableSorting: {
       type: "boolean",
       description: "Enable column sorting",

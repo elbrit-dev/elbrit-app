@@ -47,6 +47,7 @@ const SimpleDataTable = ({
   
   // Feature toggles
   enableSearch = true,
+  enableGlobalSearch = true, // Enable/disable global search bar in toolbar
   enableSorting = true,
   enablePagination = true,
   enableRowExpansion = false,
@@ -741,7 +742,7 @@ const SimpleDataTable = ({
           gap: '1rem'
         }}>
           {/* Search section */}
-          {enableSearch && (
+          {enableGlobalSearch && enableSearch && (
             <div className="custom-toolbar-search" style={{ 
               position: 'relative',
               width: isMobile ? '100%' : 'auto',
@@ -793,11 +794,12 @@ const SimpleDataTable = ({
           <div className="custom-toolbar-actions" style={{ 
             display: 'flex', 
             alignItems: 'center', 
-            gap: '0.75rem',
-            flexWrap: 'wrap',
+            gap: isMobile ? '0.375rem' : '0.5rem',
+            flexWrap: 'nowrap',
             width: isMobile ? '100%' : 'auto',
             flex: isMobile ? 'none' : '0 0 auto',
-            justifyContent: isMobile ? 'flex-start' : 'flex-end'
+            justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            overflowX: isMobile ? 'auto' : 'visible'
           }}>
             {/* Expand/Collapse All Button */}
             {enableRowExpansion && (
@@ -808,18 +810,19 @@ const SimpleDataTable = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.875rem',
+                  gap: '0.375rem',
+                  padding: isMobile ? '0.375rem 0.625rem' : '0.375rem 0.75rem',
+                  fontSize: isMobile ? '0.75rem' : '0.8125rem',
                   fontWeight: '400',
                   color: '#374151',
                   backgroundColor: '#f3f4f6',
                   border: '1px solid #e5e7eb',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   fontFamily: 'inherit',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#e5e7eb';
@@ -832,13 +835,13 @@ const SimpleDataTable = ({
               >
                 {allExpanded ? (
                   <>
-                    <Minus size={16} color="#3b82f6" />
-                    <span>Collapse All</span>
+                    <Minus size={isMobile ? 14 : 15} color="#3b82f6" />
+                    <span>{isMobile ? 'Collapse' : 'Collapse All'}</span>
                   </>
                 ) : (
                   <>
-                    <Plus size={16} color="#3b82f6" />
-                    <span>Expand All</span>
+                    <Plus size={isMobile ? 14 : 15} color="#3b82f6" />
+                    <span>{isMobile ? 'Expand' : 'Expand All'}</span>
                   </>
                 )}
               </button>
@@ -853,18 +856,19 @@ const SimpleDataTable = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                fontSize: '0.875rem',
+                gap: '0.375rem',
+                padding: isMobile ? '0.375rem 0.625rem' : '0.375rem 0.75rem',
+                fontSize: isMobile ? '0.75rem' : '0.8125rem',
                 fontWeight: '400',
                 color: '#374151',
                 backgroundColor: '#f3f4f6',
                 border: '1px solid #e5e7eb',
-                borderRadius: '0.5rem',
+                borderRadius: '0.375rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 fontFamily: 'inherit',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#e5e7eb';
@@ -875,8 +879,8 @@ const SimpleDataTable = ({
                 e.currentTarget.style.borderColor = '#e5e7eb';
               }}
             >
-              <SlidersHorizontal size={16} color="#3b82f6" />
-              <span>Clear Filters</span>
+              <SlidersHorizontal size={isMobile ? 14 : 15} color="#3b82f6" />
+              <span>{isMobile ? 'Clear' : 'Clear Filters'}</span>
             </button>
             
             {/* Export button */}
@@ -888,18 +892,19 @@ const SimpleDataTable = ({
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem 1rem',
-                fontSize: '0.875rem',
+                gap: '0.375rem',
+                padding: isMobile ? '0.375rem 0.625rem' : '0.375rem 0.75rem',
+                fontSize: isMobile ? '0.75rem' : '0.8125rem',
                 fontWeight: '400',
                 color: '#374151',
                 backgroundColor: '#f3f4f6',
                 border: '1px solid #e5e7eb',
-                borderRadius: '0.5rem',
+                borderRadius: '0.375rem',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 fontFamily: 'inherit',
-                whiteSpace: 'nowrap'
+                whiteSpace: 'nowrap',
+                flexShrink: 0
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.backgroundColor = '#e5e7eb';
@@ -910,7 +915,7 @@ const SimpleDataTable = ({
                 e.currentTarget.style.borderColor = '#e5e7eb';
               }}
             >
-              <Download size={16} color="#3b82f6" />
+              <Download size={isMobile ? 14 : 15} color="#3b82f6" />
               <span>Export</span>
             </button>
             
@@ -923,18 +928,19 @@ const SimpleDataTable = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 1rem',
-                  fontSize: '0.875rem',
+                  gap: '0.375rem',
+                  padding: isMobile ? '0.375rem 0.625rem' : '0.375rem 0.75rem',
+                  fontSize: isMobile ? '0.75rem' : '0.8125rem',
                   fontWeight: '400',
                   color: '#374151',
                   backgroundColor: '#f3f4f6',
                   border: '1px solid #e5e7eb',
-                  borderRadius: '0.5rem',
+                  borderRadius: '0.375rem',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   fontFamily: 'inherit',
-                  whiteSpace: 'nowrap'
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#e5e7eb';
@@ -945,7 +951,7 @@ const SimpleDataTable = ({
                   e.currentTarget.style.borderColor = '#e5e7eb';
                 }}
               >
-                <RotateCw size={16} color="#3b82f6" />
+                <RotateCw size={isMobile ? 14 : 15} color="#3b82f6" />
                 <span>Refresh</span>
               </button>
             )}
@@ -956,6 +962,7 @@ const SimpleDataTable = ({
   }, [
     useCustomToolbar,
     enableSearch,
+    enableGlobalSearch,
     globalFilterValue,
     handleGlobalSearch,
     clearAllFilters,
@@ -972,7 +979,7 @@ const SimpleDataTable = ({
   const nativeToolbarLeft = useMemo(() => {
     return (
       <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-        {enableSearch && (
+        {enableGlobalSearch && enableSearch && (
           <span className="p-input-icon-left">
             <i className="pi pi-search" />
             <InputText
@@ -993,7 +1000,7 @@ const SimpleDataTable = ({
         />
       </div>
     );
-  }, [enableSearch, globalFilterValue, handleGlobalSearch, clearAllFilters]);
+  }, [enableGlobalSearch, enableSearch, globalFilterValue, handleGlobalSearch, clearAllFilters]);
 
   const nativeToolbarRight = useMemo(() => {
     return (
@@ -1327,18 +1334,19 @@ const SimpleDataTable = ({
         .custom-toolbar-wrapper .custom-toolbar-button {
           display: flex !important;
           align-items: center !important;
-          gap: 0.5rem !important;
-          padding: 0.5rem 1rem !important;
-          font-size: 0.875rem !important;
+          gap: 0.375rem !important;
+          padding: 0.375rem 0.625rem !important;
+          font-size: 0.75rem !important;
           font-weight: 400 !important;
           color: #374151 !important;
           background-color: #f3f4f6 !important;
           border: 1px solid #e5e7eb !important;
-          border-radius: 0.5rem !important;
+          border-radius: 0.375rem !important;
           cursor: pointer !important;
           transition: all 0.2s ease !important;
           font-family: inherit !important;
           white-space: nowrap !important;
+          flex-shrink: 0 !important;
         }
         
         .custom-toolbar-wrapper .custom-toolbar-button:hover {
@@ -1381,6 +1389,27 @@ const SimpleDataTable = ({
             flex: 0 0 auto !important;
             justify-content: flex-end !important;
             flex-shrink: 0 !important;
+          }
+          
+          /* Desktop: Slightly larger buttons */
+          .custom-toolbar-wrapper .custom-toolbar-button {
+            padding: 0.375rem 0.75rem !important;
+            font-size: 0.8125rem !important;
+            gap: 0.375rem !important;
+          }
+        }
+        
+        /* Mobile: Ensure buttons stay in one row */
+        @media (max-width: 767px) {
+          .custom-toolbar-actions {
+            flex-wrap: nowrap !important;
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            scrollbar-width: none !important;
+          }
+          
+          .custom-toolbar-actions::-webkit-scrollbar {
+            display: none !important;
           }
         }
       `}</style>
