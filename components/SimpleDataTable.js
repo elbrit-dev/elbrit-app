@@ -1926,24 +1926,37 @@ const SimpleDataTable = ({
                 };
                 
                 return (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <button
-                      type="button"
-                      onClick={handleExpandClick}
+                  <div 
+                    onClick={handleExpandClick}
+                    style={{ 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                      width: '100%',
+                      height: '100%',
+                      padding: '0.25rem 0',
+                      transition: 'all 0.2s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }}
+                    title="Click to expand/collapse"
+                  >
+                    <div
                       style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '0.25rem',
                         display: 'flex',
                         alignItems: 'center',
                         color: '#6b7280',
-                        minWidth: '1.25rem'
+                        minWidth: '1.25rem',
+                        padding: '0.25rem'
                       }}
-                      aria-label={isExpanded ? 'Collapse' : 'Expand'}
                     >
                       <i className={isExpanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'} style={{ fontSize: isCompactText ? '0.65rem' : '0.75rem' }} />
-                    </button>
+                    </div>
                     <span style={{ fontSize: isCompactText ? '0.75rem' : 'inherit' }}>{safeCell(rowData[column.key])}</span>
                   </div>
                 );

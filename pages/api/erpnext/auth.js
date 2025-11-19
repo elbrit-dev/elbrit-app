@@ -48,7 +48,7 @@ export default async function handler(req, res) {
         filters: JSON.stringify([
           ['cell_number', '=', cleanedPhoneNumber]
         ]),
-        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id'])
+        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
       });
 
       console.log('🔍 Searching Employee table for phone number:', phoneNumber);
@@ -68,6 +68,23 @@ export default async function handler(req, res) {
 
         if (employeeResult.data && employeeResult.data.length > 0) {
           const employee = employeeResult.data[0];
+          
+          // Check if employee status is Active
+          if (employee.status !== 'Active') {
+            console.warn('⚠️ Employee account is not active:', phoneNumber, 'Status:', employee.status);
+            return res.status(403).json({
+              success: false,
+              error: 'Access Denied',
+              message: 'Your account is not active. Please contact your administrator.',
+              details: {
+                searchedPhone: phoneNumber,
+                authProvider: authProvider,
+                userSource: 'phone_inactive',
+                status: employee.status
+              }
+            });
+          }
+          
           companyEmail = employee.company_email;
           searchValue = companyEmail;
           console.log('✅ Found company email for phone user:', companyEmail);
@@ -112,7 +129,7 @@ export default async function handler(req, res) {
     const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
     const employeeSearchParams = new URLSearchParams({
       filters: JSON.stringify([['company_email', '=', searchValue]]),
-      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id'])
+      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
     });
 
     console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
@@ -138,6 +155,23 @@ export default async function handler(req, res) {
 
       if (employeeResult.data && employeeResult.data.length > 0) {
         const employee = employeeResult.data[0];
+        
+        // Check if employee status is Active
+        if (employee.status !== 'Active') {
+          console.warn('⚠️ Employee account is not active:', searchValue, 'Status:', employee.status);
+          return res.status(403).json({
+            success: false,
+            error: 'Access Denied',
+            message: 'Your account is not active. Please contact your administrator.',
+            details: {
+              searchedEmail: searchValue,
+              authProvider: authProvider,
+              userSource: 'employee_inactive',
+              status: employee.status
+            }
+          });
+        }
+        
         userData = {
           uid: employee.name, // Use ERPNext document name as UID
           email: employee.company_email,
