@@ -94,6 +94,7 @@ const SimpleDataTable = ({
   const [expandedRows, setExpandedRows] = useState({});
   const [allExpanded, setAllExpanded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const isMountedRef = useRef(true);
   
@@ -342,25 +343,28 @@ const SimpleDataTable = ({
     });
   }, []);
 
-  // Export data with format selection
+  // Export data with format selection - opens modal
   const exportToExcel = useCallback(() => {
     if (!displayData || displayData.length === 0) {
       alert('No data to export');
       return;
     }
+    
+    // Show export format selection modal
+    setShowExportModal(true);
+  }, [displayData]);
 
-    // Ask user for export format
-    const format = window.prompt('Choose export format:\n\n1 - CSV (Comma-separated values)\n2 - Excel (XLSX format)\n\nEnter 1 or 2:', '1');
+  // Handle export format selection
+  const handleExportFormat = useCallback((format) => {
+    setShowExportModal(false);
     
-    if (!format) return; // User cancelled
-    
-    const exportFormat = format.trim() === '2' ? 'excel' : 'csv';
-    
-    if (exportFormat === 'excel') {
-      exportToExcelXLSX();
-    } else {
-      exportToCSV();
-    }
+    setTimeout(() => {
+      if (format === 'excel') {
+        exportToExcelXLSX();
+      } else if (format === 'csv') {
+        exportToCSV();
+      }
+    }, 100);
   }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
 
   // Export to CSV format
@@ -564,11 +568,11 @@ const SimpleDataTable = ({
       });
     }
 
-    // Convert to Excel XML format (SpreadsheetML)
-    const excelXML = createExcelXML(worksheetData);
+    // Convert to Excel HTML format
+    const excelHTML = createExcelHTML(worksheetData);
     
-    // Create blob and download
-    const blob = new Blob([excelXML], { type: 'application/vnd.ms-excel' });
+    // Create blob with BOM for proper Excel compatibility
+    const blob = new Blob(['\ufeff', excelHTML], { type: 'application/vnd.ms-excel' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     
@@ -581,70 +585,66 @@ const SimpleDataTable = ({
     document.body.removeChild(link);
   }, [displayData, displayColumns, enableRowExpansion, nestedDataKey]);
 
-  // Helper function to create Excel XML (SpreadsheetML format)
-  const createExcelXML = (data) => {
-    let xml = '<?xml version="1.0"?>\n';
-    xml += '<?mso-application progid="Excel.Sheet"?>\n';
-    xml += '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"\n';
-    xml += ' xmlns:o="urn:schemas-microsoft-com:office:office"\n';
-    xml += ' xmlns:x="urn:schemas-microsoft-com:office:excel"\n';
-    xml += ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"\n';
-    xml += ' xmlns:html="http://www.w3.org/TR/REC-html40">\n';
-    
-    // Styles
-    xml += '<Styles>\n';
-    xml += '<Style ss:ID="Header">\n';
-    xml += '<Font ss:Bold="1" ss:Size="11"/>\n';
-    xml += '<Interior ss:Color="#4472C4" ss:Pattern="Solid"/>\n';
-    xml += '<Font ss:Color="#FFFFFF"/>\n';
-    xml += '<Alignment ss:Horizontal="Center" ss:Vertical="Center"/>\n';
-    xml += '</Style>\n';
-    xml += '<Style ss:ID="Number">\n';
-    xml += '<NumberFormat ss:Format="#,##0.00"/>\n';
-    xml += '</Style>\n';
-    xml += '</Styles>\n';
-    
-    xml += '<Worksheet ss:Name="Sheet1">\n';
-    xml += '<Table>\n';
-    
-    // Add columns with auto width
-    data[0]?.forEach(() => {
-      xml += '<Column ss:AutoFitWidth="1"/>\n';
-    });
+  // Helper function to create Excel HTML format (compatible with Excel)
+  const createExcelHTML = (data) => {
+    let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+    html += '<head>';
+    html += '<meta charset="utf-8">';
+    html += '<!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet>';
+    html += '<x:Name>Sheet1</x:Name>';
+    html += '<x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet>';
+    html += '</x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->';
+    html += '<style>';
+    html += 'table { border-collapse: collapse; width: 100%; }';
+    html += 'th { background-color: #4472C4; color: white; font-weight: bold; padding: 8px; text-align: center; border: 1px solid #ddd; }';
+    html += 'td { padding: 8px; border: 1px solid #ddd; }';
+    html += 'tr:nth-child(even) { background-color: #f9f9f9; }';
+    html += '.number { text-align: right; mso-number-format:"#,##0.00"; }';
+    html += '</style>';
+    html += '</head>';
+    html += '<body>';
+    html += '<table>';
     
     // Add rows
     data.forEach((row, rowIndex) => {
-      xml += '<Row>\n';
-      row.forEach((cell) => {
-        const cellValue = cell === null || cell === undefined ? '' : String(cell);
-        const isHeader = rowIndex === 0;
-        const isNumber = !isHeader && !isNaN(cell) && cell !== '' && cell !== null && typeof cell === 'number';
-        
-        xml += `<Cell${isHeader ? ' ss:StyleID="Header"' : (isNumber ? ' ss:StyleID="Number"' : '')}>\n`;
-        
-        if (isNumber) {
-          xml += `<Data ss:Type="Number">${cell}</Data>\n`;
-        } else {
-          // Escape XML special characters
-          const escapedValue = cellValue
+      if (rowIndex === 0) {
+        // Header row
+        html += '<thead><tr>';
+        row.forEach((cell) => {
+          const cellValue = cell === null || cell === undefined ? '' : String(cell)
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
-          xml += `<Data ss:Type="String">${escapedValue}</Data>\n`;
-        }
-        
-        xml += '</Cell>\n';
-      });
-      xml += '</Row>\n';
+            .replace(/"/g, '&quot;');
+          html += `<th>${cellValue}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+      } else {
+        // Data rows
+        html += '<tr>';
+        row.forEach((cell) => {
+          const isNumber = !isNaN(cell) && cell !== '' && cell !== null && typeof cell === 'number';
+          const cellValue = cell === null || cell === undefined ? '' : String(cell)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+          
+          if (isNumber) {
+            html += `<td class="number">${cell}</td>`;
+          } else {
+            html += `<td>${cellValue}</td>`;
+          }
+        });
+        html += '</tr>';
+      }
     });
     
-    xml += '</Table>\n';
-    xml += '</Worksheet>\n';
-    xml += '</Workbook>';
+    html += '</tbody></table>';
+    html += '</body>';
+    html += '</html>';
     
-    return xml;
+    return html;
   };
 
   // Handle sort
@@ -1284,7 +1284,212 @@ const SimpleDataTable = ({
 
   return (
     <div className={className} style={style}>
+      {/* Modern Export Format Selection Modal */}
+      {showExportModal && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            backdropFilter: 'blur(4px)'
+          }}
+          onClick={() => setShowExportModal(false)}
+        >
+          <div 
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '1rem',
+              padding: '2rem',
+              minWidth: '400px',
+              maxWidth: '90vw',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+              animation: 'modalSlideIn 0.3s ease-out'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 style={{ 
+              margin: '0 0 0.5rem 0', 
+              fontSize: '1.5rem', 
+              fontWeight: '600',
+              color: '#1f2937'
+            }}>
+              Export Data
+            </h3>
+            <p style={{ 
+              margin: '0 0 1.5rem 0', 
+              fontSize: '0.875rem', 
+              color: '#6b7280'
+            }}>
+              Choose your preferred export format
+            </p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              {/* CSV Option */}
+              <button
+                onClick={() => handleExportFormat('csv')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem 1.25rem',
+                  backgroundColor: '#f9fafb',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                  fontSize: '1rem',
+                  textAlign: 'left',
+                  width: '100%'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#eff6ff';
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: '#10b981',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  flexShrink: 0
+                }}>
+                  CSV
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                    CSV File
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Comma-separated values, universal compatibility
+                  </div>
+                </div>
+                <div style={{ color: '#3b82f6', fontSize: '1.5rem' }}>→</div>
+              </button>
+              
+              {/* Excel Option */}
+              <button
+                onClick={() => handleExportFormat('excel')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  padding: '1rem 1.25rem',
+                  backgroundColor: '#f9fafb',
+                  border: '2px solid #e5e7eb',
+                  borderRadius: '0.75rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                  fontFamily: 'inherit',
+                  fontSize: '1rem',
+                  textAlign: 'left',
+                  width: '100%'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#eff6ff';
+                  e.currentTarget.style.borderColor = '#3b82f6';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = '0 4px 6px -1px rgba(0, 0, 0, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f9fafb';
+                  e.currentTarget.style.borderColor = '#e5e7eb';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+              >
+                <div style={{
+                  width: '48px',
+                  height: '48px',
+                  backgroundColor: '#059669',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.25rem',
+                  fontWeight: 'bold',
+                  color: 'white',
+                  flexShrink: 0
+                }}>
+                  XLS
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: '#1f2937', marginBottom: '0.25rem' }}>
+                    Excel File
+                  </div>
+                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                    Formatted spreadsheet with styling
+                  </div>
+                </div>
+                <div style={{ color: '#3b82f6', fontSize: '1.5rem' }}>→</div>
+              </button>
+            </div>
+            
+            {/* Cancel Button */}
+            <button
+              onClick={() => setShowExportModal(false)}
+              style={{
+                marginTop: '1rem',
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '0.5rem',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: '500',
+                color: '#6b7280',
+                fontFamily: 'inherit',
+                transition: 'all 0.2s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#f3f4f6';
+                e.currentTarget.style.color = '#374151';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.color = '#6b7280';
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+      
       <style jsx>{`
+        @keyframes modalSlideIn {
+          from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+        
         /* Responsive sizing with em/rem units */
         .simple-datatable-wrapper {
           font-size: 1rem;
