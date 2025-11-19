@@ -368,11 +368,14 @@ const SimpleDataTable = ({
     });
 
     if (hasNestedData) {
-      // Export ONLY child rows with parent key as first column
-      // Find the first column from parent (typically the key like "Sales Team")
-      const parentKeyColumn = displayColumns.length > 0 ? displayColumns[0] : null;
-      const parentKeyTitle = parentKeyColumn ? parentKeyColumn.title : 'Parent';
-      const parentKeyField = parentKeyColumn ? parentKeyColumn.key : null;
+      // Export child rows with ALL non-numeric parent data merged
+      
+      // Get all non-numeric parent columns
+      const parentNonNumericColumns = displayColumns.filter(col => {
+        // Check if column contains numeric data
+        const sampleValue = displayData.length > 0 ? displayData[0][col.key] : null;
+        return typeof sampleValue !== 'number';
+      });
       
       // Get all nested data columns from first nested row
       let nestedColumns = [];
@@ -387,28 +390,35 @@ const SimpleDataTable = ({
             nestedColumns = Object.keys(nestedData[0]);
           }
           
-          // Add each nested row with parent key
+          // Add each nested row with ALL parent non-numeric data
           nestedData.forEach(nestedRow => {
+            // Create an object with all non-numeric parent data
+            const parentData = {};
+            parentNonNumericColumns.forEach(col => {
+              parentData[col.key] = row[col.key];
+            });
+            
             allNestedDataRows.push({
-              parentKey: parentKeyField ? row[parentKeyField] : '',
+              parentData: parentData,
               nestedData: nestedRow
             });
           });
         }
       });
       
-      // Create headers: Parent Key + all nested columns
-      const headers = [parentKeyTitle, ...nestedColumns.map(col => {
+      // Create headers: All Parent Non-Numeric Columns + all nested columns
+      const parentHeaders = parentNonNumericColumns.map(col => col.title);
+      const nestedHeaders = nestedColumns.map(col => {
         // Format column name
         return col.charAt(0).toUpperCase() + col.slice(1).replace(/([A-Z])/g, ' $1');
-      })];
+      });
+      const headers = [...parentHeaders, ...nestedHeaders];
       
-      // Create rows: Parent Key value + all nested data values
-      allNestedDataRows.forEach(({ parentKey, nestedData }) => {
-        const rowCells = [
-          formatCellValue(parentKey),
-          ...nestedColumns.map(col => formatCellValue(nestedData[col]))
-        ];
+      // Create rows: All parent non-numeric values + all nested data values
+      allNestedDataRows.forEach(({ parentData, nestedData }) => {
+        const parentValues = parentNonNumericColumns.map(col => formatCellValue(parentData[col.key]));
+        const nestedValues = nestedColumns.map(col => formatCellValue(nestedData[col]));
+        const rowCells = [...parentValues, ...nestedValues];
         csvRows.push(rowCells.join(','));
       });
       
