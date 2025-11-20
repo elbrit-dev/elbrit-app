@@ -2022,7 +2022,7 @@ PLASMIC.registerComponent(PrimeDataTable, {
     // Event handlers
     onRowClick: {
       type: "eventHandler",
-      description: "Called when a row is clicked",
+      description: "Called when a parent row is clicked",
       argTypes: [
         {
           name: "rowData",
@@ -2033,6 +2033,27 @@ PLASMIC.registerComponent(PrimeDataTable, {
           name: "index",
           type: "number",
           description: "The row index"
+        }
+      ]
+    },
+    onChildRowClick: {
+      type: "eventHandler",
+      description: "Called when a child/nested row (in expansion table) is clicked",
+      argTypes: [
+        {
+          name: "childRowData",
+          type: "object",
+          description: "The clicked child row data"
+        },
+        {
+          name: "childIndex",
+          type: "number",
+          description: "The child row index"
+        },
+        {
+          name: "parentRowData",
+          type: "object",
+          description: "The parent row data (for context)"
         }
       ]
     },
