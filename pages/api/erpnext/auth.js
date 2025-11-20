@@ -35,23 +35,25 @@ export default async function handler(req, res) {
 
     // If phone authentication, we need to get the company_email from Employee data first
     if (phoneNumber && !email) {
-      console.log('📱 Phone authentication - searching for company_email by phone number');
+      console.log('📱 Phone authentication - searching for company_email by cell_number OR WhatsApp number');
       
       // Clean phone number (remove +91 country code)
       const cleanedPhoneNumber = phoneNumber.replace(/^\+91/, '').replace(/^\+/, '');
       console.log('📱 Original phone number:', phoneNumber);
       console.log('📱 Cleaned phone number:', cleanedPhoneNumber);
       
-      // Search Employee table by phone number to get company_email
+      // Search Employee table by phone number (cell_number OR WhatsApp number) to get company_email
       const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
       const employeeSearchParams = new URLSearchParams({
         filters: JSON.stringify([
-          ['cell_number', '=', cleanedPhoneNumber]
+          ['cell_number', '=', cleanedPhoneNumber],
+          'or',
+          ['fsl_whatsapp_number', '=', cleanedPhoneNumber]
         ]),
         fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
       });
 
-      console.log('🔍 Searching Employee table for phone number:', phoneNumber);
+      console.log('🔍 Searching Employee table for phone number (cell_number OR WhatsApp):', phoneNumber);
       
       const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
         method: 'GET',
