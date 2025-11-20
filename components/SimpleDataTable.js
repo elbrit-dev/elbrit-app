@@ -38,6 +38,8 @@ import { Search, X, ChevronDown, ChevronRight, Plus, Minus, SlidersHorizontal, D
  * @param {boolean} useCustomToolbar - Use custom toolbar instead of native
  * @param {number} pageSize - Rows per page
  * @param {string} dataKey - Unique identifier for rows
+ * @param {function} onRowClick - Callback when parent row is clicked (rowData, index)
+ * @param {function} onChildRowClick - Callback when child/nested row is clicked (childRowData, childIndex, parentRowData)
  */
 
 const SimpleDataTable = ({
@@ -80,6 +82,7 @@ const SimpleDataTable = ({
   
   // Callbacks
   onRowClick,
+  onChildRowClick, // Row click handler for nested/expansion tables
   onRefresh,
 }) => {
   // State management
@@ -675,6 +678,8 @@ const SimpleDataTable = ({
           sortMode="single"
           stripedRows
           showGridlines
+          onRowClick={onChildRowClick ? (e) => onChildRowClick(e.data, e.index, data) : undefined}
+          rowClassName={onChildRowClick ? () => 'clickable-child-row' : undefined}
         >
           {nestedColumns.map(col => (
             <Column 
@@ -703,7 +708,7 @@ const SimpleDataTable = ({
         </DataTable>
       </div>
     );
-  }, [nestedDataKey]);
+  }, [nestedDataKey, onChildRowClick]);
 
   // Number formatter with comma separators
   const formatNumber = useCallback((value) => {
@@ -1584,6 +1589,20 @@ const SimpleDataTable = ({
         .simple-datatable-wrapper .p-datatable-row-expansion .p-datatable-tbody > tr > td {
           font-size: 0.8125rem;
           padding: 0.5rem;
+        }
+        
+        /* Clickable child rows styling */
+        .simple-datatable-wrapper .p-datatable-row-expansion .clickable-child-row {
+          cursor: pointer;
+          transition: background-color 0.2s ease;
+        }
+        
+        .simple-datatable-wrapper .p-datatable-row-expansion .clickable-child-row:hover {
+          background-color: #eff6ff !important;
+        }
+        
+        .simple-datatable-wrapper .p-datatable-row-expansion .clickable-child-row:active {
+          background-color: #dbeafe !important;
         }
         
         /* Sorting arrows in nested table */
