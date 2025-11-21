@@ -39,7 +39,8 @@ import { Search, X, ChevronDown, ChevronRight, Plus, Minus, SlidersHorizontal, D
  * @param {number} pageSize - Rows per page
  * @param {string} dataKey - Unique identifier for rows
  * @param {function} onRowClick - Callback when parent row is clicked (rowData, index)
- * @param {function} onChildRowClick - Callback when child/nested row is clicked (childRowData, childIndex, parentRowData)
+ * @param {function} onChildRowClick - Callback when child/nested row is clicked (parentRowDataWithClickedChild, childIndex, childRowData)
+ *                                     Note: parentRowData includes nested array with ONLY the clicked child
  */
 
 const SimpleDataTable = ({
@@ -82,7 +83,7 @@ const SimpleDataTable = ({
   
   // Callbacks
   onRowClick,
-  onChildRowClick, // Row click handler for nested/expansion tables
+  onChildRowClick, // Row click handler for nested/expansion tables: (parentDataWithClickedChild, childIndex, childRowData)
   onRefresh,
 }) => {
   // State management
@@ -678,7 +679,14 @@ const SimpleDataTable = ({
           sortMode="single"
           stripedRows
           showGridlines
-          onRowClick={onChildRowClick ? (e) => onChildRowClick(e.data, e.index, data) : undefined}
+          onRowClick={onChildRowClick ? (e) => {
+            // Create parent data with only the clicked child in the nested array
+            const parentWithClickedChild = {
+              ...data,
+              [nestedDataKey]: [e.data]
+            };
+            onChildRowClick(parentWithClickedChild, e.index, e.data);
+          } : undefined}
           rowClassName={onChildRowClick ? () => 'clickable-child-row' : undefined}
         >
           {nestedColumns.map(col => (
