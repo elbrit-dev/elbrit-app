@@ -67,12 +67,22 @@
   }
 }
 
-/* Ensure full coverage on all devices */
+/* Mobile: Full coverage */
 @media (max-width: 768px) {
   .loading-gif {
     width: 100vw;
     height: 100vh;
     height: 100dvh;
+    object-fit: cover;
+  }
+}
+
+/* Desktop: Fit correctly with auto width */
+@media (min-width: 769px) {
+  .loading-gif {
+    height: 100vh;
+    width: auto;
+    object-fit: contain;
   }
 }
 
