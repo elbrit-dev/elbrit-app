@@ -8,6 +8,7 @@ const TruecallerSSOLogin = dynamic(() => import("./components/TruecallerSSOLogin
 const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext"), { ssr: false, loading: () => null });
 const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
 const SimpleDataTable = dynamic(() => import("./components/SimpleDataTable"), { ssr: false, loading: () => null });
+const ExportDataButton = dynamic(() => import("./components/ExportDataButton"), { ssr: false, loading: () => null });
 // const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
 const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
 const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), { ssr: false, loading: () => null });
@@ -2065,6 +2066,99 @@ PLASMIC.registerComponent(PrimeDataTable, {
   },
   
   importPath: "./components/SimpleDataTable"
+});
+
+// Register ExportDataButton component
+PLASMIC.registerComponent(ExportDataButton, {
+  name: "ExportDataButton",
+  displayName: "Export Data Button",
+  description: "A standalone export button that exports data to CSV or Excel (XLSX). Automatically detects and handles nested/expansion data. No table required - just pass data as props. Features format selection modal, multiple sizes/variants, and custom styling.",
+  
+  props: {
+    // Data props
+    data: {
+      type: "object",
+      description: "Array of data objects to export (Required). Supports simple arrays or nested arrays with child data.",
+      defaultValue: []
+    },
+    columns: {
+      type: "object",
+      description: "Array of column definitions with key and title. Auto-generated from data if not provided. Example: [{ key: 'id', title: 'ID' }, { key: 'name', title: 'Name' }]",
+      defaultValue: []
+    },
+    nestedDataKey: {
+      type: "string",
+      description: "Key name for nested data arrays (e.g., 'items', 'employees', 'orders'). Component auto-detects: 'items', 'children', 'HQs'",
+      defaultValue: "items"
+    },
+    
+    // Button Configuration
+    label: {
+      type: "string",
+      description: "Button label text",
+      defaultValue: "Export"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "medium", "large"],
+      description: "Button size: small (14px icon), medium (16px icon), large (18px icon)",
+      defaultValue: "medium"
+    },
+    variant: {
+      type: "choice",
+      options: ["primary", "secondary", "outline"],
+      description: "Button style variant: primary (blue), secondary (gray), outline (transparent with border)",
+      defaultValue: "primary"
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the button (also auto-disables when data is empty)",
+      defaultValue: false
+    },
+    
+    // UI Options
+    useNativeButton: {
+      type: "boolean",
+      description: "Use PrimeReact native button instead of custom styled button",
+      defaultValue: false
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for the button",
+      defaultValue: ""
+    },
+    buttonStyle: {
+      type: "object",
+      description: "Inline styles for custom button styling. Example: { backgroundColor: '#8b5cf6', borderRadius: '9999px' }",
+      defaultValue: {}
+    },
+    
+    // Event handlers
+    onExportStart: {
+      type: "eventHandler",
+      description: "Called when export starts (user selects format)",
+      argTypes: [
+        {
+          name: "format",
+          type: "string",
+          description: "Export format: 'csv' or 'excel'"
+        }
+      ]
+    },
+    onExportComplete: {
+      type: "eventHandler",
+      description: "Called when export completes (file download triggered)",
+      argTypes: [
+        {
+          name: "format",
+          type: "string",
+          description: "Export format: 'csv' or 'excel'"
+        }
+      ]
+    }
+  },
+  
+  importPath: "./components/ExportDataButton"
 });
 
 // Register the Optimized PrimeReact Data Table component
