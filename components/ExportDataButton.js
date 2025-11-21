@@ -22,11 +22,13 @@ const Button = dynamic(() => import('primereact/button').then(m => m.Button), { 
  * @param {boolean} useNativeButton - Use PrimeReact button (default: false, uses custom button)
  * @param {string} label - Button label (default: 'Export')
  * @param {string} icon - Icon to display (default: Download from lucide-react)
+ * @param {string} iconPosition - Icon position: 'left' or 'right' (default: 'left')
+ * @param {boolean} iconOnly - Show only icon without label (default: false)
  * @param {string} buttonStyle - Custom inline styles for button
  * @param {string} className - Custom class name for button
  * @param {string} size - Button size: 'small', 'medium', 'large' (default: 'medium')
  * @param {boolean} disabled - Disable button (default: false)
- * @param {string} variant - Button variant: 'primary', 'secondary', 'outline' (default: 'primary')
+ * @param {string} variant - Button variant: 'primary', 'secondary', 'outline', 'light' (default: 'primary')
  */
 
 const ExportDataButton = ({
@@ -35,6 +37,8 @@ const ExportDataButton = ({
   nestedDataKey = 'items',
   useNativeButton = false,
   label = 'Export',
+  iconPosition = 'left',
+  iconOnly = false,
   buttonStyle = {},
   className = '',
   size = 'medium',
@@ -389,6 +393,14 @@ const ExportDataButton = ({
       border: '1px solid #3b82f6',
       hoverBackgroundColor: '#eff6ff',
       hoverBorderColor: '#3b82f6'
+    },
+    light: {
+      backgroundColor: '#ffffff',
+      color: '#6b7280',
+      border: '1px solid #e5e7eb',
+      hoverBackgroundColor: '#f9fafb',
+      hoverBorderColor: '#d1d5db',
+      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)'
     }
   };
 
@@ -405,7 +417,8 @@ const ExportDataButton = ({
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '0.5rem',
+        justifyContent: 'center',
+        gap: iconOnly ? '0' : '0.5rem',
         padding: currentSize.padding,
         fontSize: currentSize.fontSize,
         fontWeight: '500',
@@ -418,6 +431,7 @@ const ExportDataButton = ({
         fontFamily: 'inherit',
         whiteSpace: 'nowrap',
         opacity: disabled || !data || data.length === 0 ? 0.5 : 1,
+        boxShadow: currentVariant.boxShadow || 'none',
         ...buttonStyle
       }}
       onMouseEnter={(e) => {
@@ -432,9 +446,11 @@ const ExportDataButton = ({
           e.currentTarget.style.borderColor = currentVariant.border.split(' ')[2];
         }
       }}
+      title={iconOnly ? label : undefined}
     >
-      <Download size={currentSize.iconSize} />
-      <span>{label}</span>
+      {iconPosition === 'left' && <Download size={currentSize.iconSize} />}
+      {!iconOnly && <span>{label}</span>}
+      {iconPosition === 'right' && <Download size={currentSize.iconSize} />}
     </button>
   );
 

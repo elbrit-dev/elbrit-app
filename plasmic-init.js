@@ -2106,9 +2106,20 @@ PLASMIC.registerComponent(ExportDataButton, {
     },
     variant: {
       type: "choice",
-      options: ["primary", "secondary", "outline"],
-      description: "Button style variant: primary (blue), secondary (gray), outline (transparent with border)",
+      options: ["primary", "secondary", "outline", "light"],
+      description: "Button style variant: primary (blue), secondary (gray), outline (border), light (white with shadow)",
       defaultValue: "primary"
+    },
+    iconPosition: {
+      type: "choice",
+      options: ["left", "right"],
+      description: "Position of the download icon: left or right of the label",
+      defaultValue: "left"
+    },
+    iconOnly: {
+      type: "boolean",
+      description: "Show only icon without label (button becomes icon-only)",
+      defaultValue: false
     },
     disabled: {
       type: "boolean",
