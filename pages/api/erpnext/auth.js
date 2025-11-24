@@ -33,16 +33,17 @@ export default async function handler(req, res) {
     let companyEmail = email; // Default for Microsoft SSO
     let searchValue = email;
 
-    // If phone authentication, we need to get the company_email from Employee data first
+    // If phone authentication, we need to get the employee data by phone number first
+    let employeeIdFromPhone = null;
     if (phoneNumber && !email) {
-      console.log('📱 Phone authentication - searching for company_email by phone number');
+      console.log('📱 Phone authentication - searching for employee by phone number');
       
       // Clean phone number (remove +91 country code)
       const cleanedPhoneNumber = phoneNumber.replace(/^\+91/, '').replace(/^\+/, '');
       console.log('📱 Original phone number:', phoneNumber);
       console.log('📱 Cleaned phone number:', cleanedPhoneNumber);
       
-      // Search Employee table by phone number to get company_email
+      // Search Employee table by phone number to get employee ID
       const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
       const employeeSearchParams = new URLSearchParams({
         filters: JSON.stringify([
@@ -85,10 +86,20 @@ export default async function handler(req, res) {
             });
           }
           
-          companyEmail = employee.company_email;
-          searchValue = companyEmail;
-          console.log('✅ Found company email for phone user:', companyEmail);
+          // Store employee ID for direct fetch
+          employeeIdFromPhone = employee.name;
+          console.log('✅ Found employee ID for phone user:', employeeIdFromPhone);
           console.log('✅ Employee details:', employee);
+          
+          // If company_email exists, use it as searchValue for Microsoft SSO compatibility
+          // If not, we'll fetch directly by employee ID later
+          if (employee.company_email) {
+            companyEmail = employee.company_email;
+            searchValue = companyEmail;
+            console.log('✅ Company email available:', companyEmail);
+          } else {
+            console.log('⚠️ No company email - will fetch by employee ID:', employeeIdFromPhone);
+          }
         } else {
           console.warn('⚠️ No employee found for phone number:', phoneNumber);
           // Don't create fallback - reject access if not found
@@ -119,93 +130,156 @@ export default async function handler(req, res) {
       }
     }
 
-    // Now search for user data by company_email (unified search for both providers)
-    console.log('🔍 Searching for user by company_email:', searchValue);
-    
+    // Now fetch user data - either by employee ID (phone auth) or by company_email (Microsoft SSO)
     let userData = null;
     let userSource = '';
 
-    // Search in Employee table by company_email (for both Microsoft SSO and Phone auth)
-    const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
-    const employeeSearchParams = new URLSearchParams({
-      filters: JSON.stringify([['company_email', '=', searchValue]]),
-      fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
-    });
-
-    console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
-    console.log('🔍 Search params:', employeeSearchParams.toString());
-
-    console.log('🔍 Making ERPNext API call to:', `${employeeSearchUrl}?${employeeSearchParams}`);
-    console.log('🔍 Authorization header:', `token ${erpnextApiKey}:${erpnextApiSecret}`);
-    
-    const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    console.log('📡 ERPNext API Response Status:', employeeResponse.status);
-    console.log('📡 ERPNext API Response Headers:', Object.fromEntries(employeeResponse.headers.entries()));
-
-    if (employeeResponse.ok) {
-      const employeeResult = await employeeResponse.json();
-      console.log('📊 ERPNext Employee search result:', employeeResult);
-
-      if (employeeResult.data && employeeResult.data.length > 0) {
-        const employee = employeeResult.data[0];
-        
-        // Check if employee status is Active
-        if (employee.status !== 'Active') {
-          console.warn('⚠️ Employee account is not active:', searchValue, 'Status:', employee.status);
-          return res.status(403).json({
-            success: false,
-            error: 'Access Denied',
-            message: 'Your account is not active. Please contact your administrator.',
-            details: {
-              searchedEmail: searchValue,
-              authProvider: authProvider,
-              userSource: 'employee_inactive',
-              status: employee.status
-            }
-          });
+    // If we have employee ID from phone auth, fetch directly by ID
+    if (employeeIdFromPhone) {
+      console.log('🔍 Fetching employee data by ID:', employeeIdFromPhone);
+      
+      const employeeUrl = `${erpnextUrl}/api/resource/Employee/${employeeIdFromPhone}`;
+      
+      console.log('🔍 Making ERPNext API call to:', employeeUrl);
+      
+      const employeeResponse = await fetch(employeeUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+          'Content-Type': 'application/json'
         }
-        
-        userData = {
-          uid: employee.name, // Use ERPNext document name as UID
-          email: employee.company_email,
-          phoneNumber: employee.cell_number || employee.fsl_whatsapp_number,
-          displayName: employee.first_name || employee.company_email?.split('@')[0] || 'User',
-          role: 'admin', // Default role for now
-          roleName: 'Admin',
-          kly_role_id: employee.kly_role_id || null, // Add role ID field
-          authProvider: authProvider || 'employee', // Use 'employee' for both providers
-          customProperties: {
-            organization: "Elbrit Life Sciences",
-            accessLevel: "full",
-            provider: authProvider || 'employee',
-            employeeId: employee.name,
-            department: employee.department__name,
-            designation: employee.designation__name,
-            dateOfJoining: employee.date_of_joining,
-            dateOfBirth: employee.date_of_birth
-          },
-          employeeData: employee
-        };
-        userSource = 'employee';
-        console.log('✅ Found user in Employee table by company_email:', userData);
-      }
-    } else {
-      const errorText = await employeeResponse.text();
-      console.warn('⚠️ Employee search failed:', employeeResponse.status);
-      console.warn('⚠️ Error response:', errorText);
-    }
+      });
 
-    // No fallback to User table - only Employee table users are allowed
-    if (!userData) {
-      console.log('❌ User not found in Employee table by company_email:', searchValue);
-      console.log('❌ Access denied - user not in organization (Employee table only)');
+      console.log('📡 ERPNext API Response Status:', employeeResponse.status);
+
+      if (employeeResponse.ok) {
+        const employeeResult = await employeeResponse.json();
+        console.log('📊 ERPNext Employee fetch result:', employeeResult);
+
+        if (employeeResult.data) {
+          const employee = employeeResult.data;
+          
+          // Double-check employee status is Active
+          if (employee.status !== 'Active') {
+            console.warn('⚠️ Employee account is not active:', employeeIdFromPhone, 'Status:', employee.status);
+            return res.status(403).json({
+              success: false,
+              error: 'Access Denied',
+              message: 'Your account is not active. Please contact your administrator.',
+              details: {
+                employeeId: employeeIdFromPhone,
+                authProvider: authProvider,
+                userSource: 'employee_inactive',
+                status: employee.status
+              }
+            });
+          }
+          
+          userData = {
+            uid: employee.name, // Use ERPNext document name as UID
+            email: employee.company_email || `${employee.name}@elbrit.org`, // Fallback email if null
+            phoneNumber: employee.cell_number || employee.fsl_whatsapp_number,
+            displayName: employee.first_name || employee.employee_name || 'User',
+            role: 'admin', // Default role for now
+            roleName: 'Admin',
+            kly_role_id: employee.kly_role_id || null, // Add role ID field
+            authProvider: authProvider || 'phone', // Use 'phone' for phone auth
+            customProperties: {
+              organization: "Elbrit Life Sciences",
+              accessLevel: "full",
+              provider: authProvider || 'phone',
+              employeeId: employee.name,
+              department: employee.department,
+              designation: employee.designation,
+              dateOfJoining: employee.date_of_joining,
+              dateOfBirth: employee.date_of_birth
+            },
+            employeeData: employee
+          };
+          userSource = 'employee_by_id';
+          console.log('✅ Found user in Employee table by ID:', userData);
+        }
+      } else {
+        const errorText = await employeeResponse.text();
+        console.warn('⚠️ Employee fetch by ID failed:', employeeResponse.status);
+        console.warn('⚠️ Error response:', errorText);
+      }
+    } 
+    // Otherwise, search by company_email (for Microsoft SSO)
+    else if (searchValue) {
+      console.log('🔍 Searching for user by company_email:', searchValue);
+      
+      const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
+      const employeeSearchParams = new URLSearchParams({
+        filters: JSON.stringify([['company_email', '=', searchValue]]),
+        fields: JSON.stringify(['name', 'first_name', 'employee_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status', 'department', 'designation', 'date_of_joining', 'date_of_birth'])
+      });
+
+      console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
+      console.log('🔍 Search params:', employeeSearchParams.toString());
+      
+      const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      console.log('📡 ERPNext API Response Status:', employeeResponse.status);
+
+      if (employeeResponse.ok) {
+        const employeeResult = await employeeResponse.json();
+        console.log('📊 ERPNext Employee search result:', employeeResult);
+
+        if (employeeResult.data && employeeResult.data.length > 0) {
+          const employee = employeeResult.data[0];
+          
+          // Check if employee status is Active
+          if (employee.status !== 'Active') {
+            console.warn('⚠️ Employee account is not active:', searchValue, 'Status:', employee.status);
+            return res.status(403).json({
+              success: false,
+              error: 'Access Denied',
+              message: 'Your account is not active. Please contact your administrator.',
+              details: {
+                searchedEmail: searchValue,
+                authProvider: authProvider,
+                userSource: 'employee_inactive',
+                status: employee.status
+              }
+            });
+          }
+          
+          userData = {
+            uid: employee.name, // Use ERPNext document name as UID
+            email: employee.company_email,
+            phoneNumber: employee.cell_number || employee.fsl_whatsapp_number,
+            displayName: employee.first_name || employee.employee_name || employee.company_email?.split('@')[0] || 'User',
+            role: 'admin', // Default role for now
+            roleName: 'Admin',
+            kly_role_id: employee.kly_role_id || null, // Add role ID field
+            authProvider: authProvider || 'microsoft', // Use 'microsoft' for email auth
+            customProperties: {
+              organization: "Elbrit Life Sciences",
+              accessLevel: "full",
+              provider: authProvider || 'microsoft',
+              employeeId: employee.name,
+              department: employee.department,
+              designation: employee.designation,
+              dateOfJoining: employee.date_of_joining,
+              dateOfBirth: employee.date_of_birth
+            },
+            employeeData: employee
+          };
+          userSource = 'employee_by_email';
+          console.log('✅ Found user in Employee table by company_email:', userData);
+        }
+      } else {
+        const errorText = await employeeResponse.text();
+        console.warn('⚠️ Employee search by email failed:', employeeResponse.status);
+        console.warn('⚠️ Error response:', errorText);
+      }
     }
 
     // If user not found in ERPNext, reject access
