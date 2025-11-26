@@ -33,7 +33,8 @@ export const PLASMIC = initPlasmicLoader({
   projects: [
     {
       id: 'oiawYdGgGKrh1ZZAv15gDZ',  // ID of a project you are using
-      token: 'at5jesnXc89u9hbeOAv8HEZRXhbDHtJCVKm7DsJoRGxuRCGXsNP4LynYxAea6cDCjlePUmjN5TIX3ImE35A'  // API token for that project
+      token: 'at5jesnXc89u9hbeOAv8HEZRXhbDHtJCVKm7DsJoRGxuRCGXsNP4LynYxAea6cDCjlePUmjN5TIX3ImE35A',  // API token for that project
+      version: process.env.PLASMIC_VERSION_TAG  // Version tag (e.g., 'prod', 'dev')
     }
   ],
 
