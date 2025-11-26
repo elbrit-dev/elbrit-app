@@ -68,7 +68,24 @@ class MyDocument extends Document {
           <meta name="application-name" content="Elbrit One" />
           <meta name="apple-mobile-web-app-capable" content="yes" />
           <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-          <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+          <link rel="apple-touch-icon" href="/logo.svg" />
+          <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+          <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+
+          {/* OneSignal Push Notifications */}
+          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                OneSignalDeferred.push(async function(OneSignal) {
+                  await OneSignal.init({
+                    appId: "9cc963c3-d3c9-4230-b817-6860109d8f3f",
+                  });
+                });
+              `,
+            }}
+          />
         </Head>
         <body>
           {/* Loading screen with animated GIF */}

@@ -325,7 +325,14 @@ if (typeof window !== 'undefined') {
     }
   });
 
-  // Register service worker in production only
+  // Service worker registration is now handled by OneSignal
+  // OneSignal SDK will automatically register OneSignalSDKWorker.js
+  // which includes push notification support
+  
+  // If you need offline caching alongside OneSignal, you'll need to merge
+  // the sw.js functionality into OneSignalSDKWorker.js
+  
+  /* Commented out - replaced by OneSignal's service worker
   if (process.env.NODE_ENV === 'production' && 'serviceWorker' in navigator) {
     const registerServiceWorker = () => {
       navigator.serviceWorker.register('/sw.js')
@@ -342,6 +349,7 @@ if (typeof window !== 'undefined') {
       window.addEventListener('load', registerServiceWorker, { once: true });
     }
   }
+  */
 }
 
 function MyApp({ Component, pageProps }) {
