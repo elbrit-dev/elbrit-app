@@ -6,8 +6,9 @@ import dynamic from 'next/dynamic';
 const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
 import { useEffect } from 'react';
+import LZString from 'lz-string';
 
-// ⚡ PERFORMANCE: CSS imports are optimized by Next.js via optimizeCss config
+// ⚡ PERFORMANCE: CSS imports are optimized by Next.js via optimizeCs config
 // Next.js will automatically:
 // - Code-split CSS by route/page
 // - Minify and optimize CSS
@@ -294,7 +295,116 @@ const a = {
   },
 
   // ✅ NEW flatten function for dynamic JSON
-  flatten
+  flatten,
+
+  // ✅ LZ-String compression functions for Plasmic Studio
+  // Compress JSON/array data to a compressed string
+  compress: (data) => {
+    try {
+      const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+      return LZString.compress(jsonString);
+    } catch (e) {
+      console.error('Compression error:', e);
+      return null;
+    }
+  },
+
+  // Decompress back to original data
+  decompress: (compressed) => {
+    try {
+      const decompressed = LZString.decompress(compressed);
+      if (!decompressed) return null;
+      try {
+        return JSON.parse(decompressed);
+      } catch {
+        return decompressed; // Return as string if not JSON
+      }
+    } catch (e) {
+      console.error('Decompression error:', e);
+      return null;
+    }
+  },
+
+  // Compress to Base64 (URL-safe and readable)
+  compressToBase64: (data) => {
+    try {
+      const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+      return LZString.compressToBase64(jsonString);
+    } catch (e) {
+      console.error('Base64 compression error:', e);
+      return null;
+    }
+  },
+
+  // Decompress from Base64
+  decompressFromBase64: (compressed) => {
+    try {
+      const decompressed = LZString.decompressFromBase64(compressed);
+      if (!decompressed) return null;
+      try {
+        return JSON.parse(decompressed);
+      } catch {
+        return decompressed; // Return as string if not JSON
+      }
+    } catch (e) {
+      console.error('Base64 decompression error:', e);
+      return null;
+    }
+  },
+
+  // Compress to UTF16 (efficient for storage)
+  compressToUTF16: (data) => {
+    try {
+      const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+      return LZString.compressToUTF16(jsonString);
+    } catch (e) {
+      console.error('UTF16 compression error:', e);
+      return null;
+    }
+  },
+
+  // Decompress from UTF16
+  decompressFromUTF16: (compressed) => {
+    try {
+      const decompressed = LZString.decompressFromUTF16(compressed);
+      if (!decompressed) return null;
+      try {
+        return JSON.parse(decompressed);
+      } catch {
+        return decompressed; // Return as string if not JSON
+      }
+    } catch (e) {
+      console.error('UTF16 decompression error:', e);
+      return null;
+    }
+  },
+
+  // Compress to EncodedURIComponent (safe for URLs)
+  compressToEncodedURIComponent: (data) => {
+    try {
+      const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+      return LZString.compressToEncodedURIComponent(jsonString);
+    } catch (e) {
+      console.error('URI compression error:', e);
+      return null;
+    }
+  },
+
+  // Decompress from EncodedURIComponent
+  decompressFromEncodedURIComponent: (compressed) => {
+    try {
+      const decompressed = LZString.decompressFromEncodedURIComponent(compressed);
+      if (!decompressed) return null;
+      try {
+        return JSON.parse(decompressed);
+      } catch {
+        return decompressed; // Return as string if not JSON
+      }
+    } catch (e) {
+      console.error('URI decompression error:', e);
+      return null;
+    }
+  }
 };
 
 // Global error handler to catch unhandled promise rejections
