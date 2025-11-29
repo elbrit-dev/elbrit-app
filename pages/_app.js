@@ -7,6 +7,7 @@ const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
 import { useEffect } from 'react';
 import LZString from 'lz-string';
+import localforage from 'localforage';
 
 // ⚡ PERFORMANCE: CSS imports are optimized by Next.js via optimizeCs config
 // Next.js will automatically:
@@ -402,6 +403,132 @@ const a = {
       }
     } catch (e) {
       console.error('URI decompression error:', e);
+      return null;
+    }
+  },
+
+  // ✅ LocalForage functions (async, better than localStorage for large data)
+  // Save compressed data to localforage (IndexedDB/WebSQL/localStorage)
+  lfSave: async (key, data, compress = true) => {
+    try {
+      if (compress) {
+        const jsonString = typeof data === 'string' ? data : JSON.stringify(data);
+        const compressed = LZString.compressToUTF16(jsonString);
+        await localforage.setItem(key, compressed);
+      } else {
+        await localforage.setItem(key, data);
+      }
+      return true;
+    } catch (e) {
+      console.error('LocalForage save error:', e);
+      return false;
+    }
+  },
+
+  // Load and decompress data from localforage
+  lfLoad: async (key, defaultValue = null, compressed = true) => {
+    try {
+      const value = await localforage.getItem(key);
+      if (value === null) return defaultValue;
+      
+      if (compressed) {
+        const decompressed = LZString.decompressFromUTF16(value);
+        if (!decompressed) return defaultValue;
+        try {
+          return JSON.parse(decompressed);
+        } catch {
+          return decompressed;
+        }
+      } else {
+        return value;
+      }
+    } catch (e) {
+      console.error('LocalForage load error:', e);
+      return defaultValue;
+    }
+  },
+
+  // Remove item from localforage
+  lfRemove: async (key) => {
+    try {
+      await localforage.removeItem(key);
+      return true;
+    } catch (e) {
+      console.error('LocalForage remove error:', e);
+      return false;
+    }
+  },
+
+  // Check if key exists in localforage
+  lfHas: async (key) => {
+    try {
+      const value = await localforage.getItem(key);
+      return value !== null;
+    } catch (e) {
+      console.error('LocalForage has error:', e);
+      return false;
+    }
+  },
+
+  // Get all localforage keys
+  lfKeys: async () => {
+    try {
+      return await localforage.keys();
+    } catch (e) {
+      console.error('LocalForage keys error:', e);
+      return [];
+    }
+  },
+
+  // Clear all localforage
+  lfClear: async () => {
+    try {
+      await localforage.clear();
+      return true;
+    } catch (e) {
+      console.error('LocalForage clear error:', e);
+      return false;
+    }
+  },
+
+  // Get storage info
+  lfInfo: async () => {
+    try {
+      const keys = await localforage.keys();
+      let totalSize = 0;
+      const items = {};
+
+      for (const key of keys) {
+        const value = await localforage.getItem(key);
+        const size = new Blob([JSON.stringify(value)]).size;
+        totalSize += size;
+        items[key] = {
+          size: size,
+          sizeKB: (size / 1024).toFixed(2),
+          sizeMB: (size / (1024 * 1024)).toFixed(2)
+        };
+      }
+
+      return {
+        totalKeys: keys.length,
+        totalSize: totalSize,
+        totalSizeKB: (totalSize / 1024).toFixed(2),
+        totalSizeMB: (totalSize / (1024 * 1024)).toFixed(2),
+        driver: localforage.driver(),
+        items: items
+      };
+    } catch (e) {
+      console.error('LocalForage info error:', e);
+      return null;
+    }
+  },
+
+  // Get current driver name (IndexedDB, WebSQL, or localStorage)
+  lfDriver: () => {
+    try {
+      return localforage.driver();
+    } catch (e) {
+      console.error('LocalForage driver error:', e);
       return null;
     }
   }
