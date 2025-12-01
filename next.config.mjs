@@ -125,15 +125,6 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Origin', value: '*' }
         ]
       },
-      {
-        source: '/OneSignalSDKWorker.js',
-        headers: [
-          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
-          { key: 'Service-Worker-Allowed', value: '/' },
-          { key: 'Cache-Control', value: 'public, max-age=0, must-revalidate' },
-          { key: 'Access-Control-Allow-Origin', value: '*' }
-        ]
-      },
       // Static assets caching
       {
         source: '/_next/static/(.*)',
