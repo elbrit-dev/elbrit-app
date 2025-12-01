@@ -770,19 +770,9 @@ const PrimeDataTable = ({
       
       setIsLoadingPivotConfig(true);
       try {
-        console.log('📥 LOADING FROM CMS - Config Key:', pivotConfigKey);
-        console.log('📥 Load function check:', {
-          enablePivotPersistence,
-          hasLoadFunction: !!finalLoadFromCMS,
-          pivotConfigLoaded,
-          finalLoadFromCMS: typeof finalLoadFromCMS
-        });
-        
         const savedConfig = await finalLoadFromCMS(pivotConfigKey);
-        console.log('📥 Load result:', savedConfig);
         
         if (savedConfig && typeof savedConfig === 'object') {
-          console.log('✅ CMS LOAD SUCCESSFUL:', savedConfig);
           
           // Update local pivot config first
           setLocalPivotConfig(prev => ({
@@ -792,18 +782,13 @@ const PrimeDataTable = ({
           
           // If config was enabled, ensure pivot is enabled and force refresh
           if (savedConfig.enabled) {
-            console.log('📊 APPLYING SAVED PIVOT CONFIG - Enabling pivot...');
             // Use setTimeout to ensure state updates are processed
             setTimeout(() => {
               setIsPivotEnabled(true);
-              console.log('📊 PIVOT ENABLED FROM SAVED CONFIG');
             }, 100);
           }
-        } else {
-          console.log('📭 NO SAVED CONFIG FOUND FOR:', pivotConfigKey);
         }
       } catch (error) {
-        console.error('❌ CMS LOAD FAILED:', error);
       } finally {
         setIsLoadingPivotConfig(false);
         setPivotConfigLoaded(true);
@@ -832,7 +817,6 @@ const PrimeDataTable = ({
           try {
             callback(...args);
           } catch (error) {
-            safeConsole.error('Callback execution error:', error);
           }
         }
       }, 0);
@@ -846,12 +830,8 @@ const PrimeDataTable = ({
       
       setIsSavingPivotConfig(true);
       try {
-        // console.log('Auto-saving pivot config to CMS:', localPivotConfig);
         await finalSaveToCMS(pivotConfigKey, localPivotConfig);
       } catch (error) {
-        if (isMountedRef.current) {
-          console.error('❌ AUTO-SAVE FAILED:', error);
-        }
       } finally {
         if (isMountedRef.current) {
           setIsSavingPivotConfig(false);
@@ -926,7 +906,6 @@ const PrimeDataTable = ({
       } catch (error) {
         if (isMountedRef.current && error.name !== 'AbortError') {
           setGraphqlError(error.message);
-          console.error('GraphQL query failed:', error);
         }
       } finally {
         if (isMountedRef.current) {
@@ -983,15 +962,6 @@ const PrimeDataTable = ({
     
     const hasIndividualProps = pivotRows.length > 0 || pivotColumns.length > 0 || pivotValues.length > 0;
     
-    // console.log('MergedPivotConfig Debug:', {
-    //   hasIndividualProps,
-    //   enablePivotTable,
-    //   pivotRows,
-    //   pivotColumns,
-    //   pivotValues,
-    //   pivotConfigEnabled: pivotConfig.enabled
-    // });
-    
     if (hasIndividualProps) {
       // Use individual props (Plasmic interface)
       const config = {
@@ -1017,7 +987,6 @@ const PrimeDataTable = ({
           ...pivotAggregationFunctions
         }
       };
-      // console.log('Using individual props config:', config);
       return config;
     }
     
@@ -1026,7 +995,6 @@ const PrimeDataTable = ({
       ...pivotConfig,
       enabled: enablePivotTable && pivotConfig.enabled
     };
-    // console.log('Using pivotConfig object:', config);
     return config;
   }, [
     // HIBERNATION FIX: Reduced dependency array using JSON.stringify for complex objects
@@ -1055,11 +1023,9 @@ const PrimeDataTable = ({
     // Only set based on props if no saved config is loaded or config is explicitly disabled
     if (pivotConfigLoaded && localPivotConfig.enabled) {
       // Config was loaded from CMS and is enabled, keep it enabled
-      console.log('🔄 PIVOT STATE SYNC: Keeping CMS config enabled');
       setIsPivotEnabled(true);
     } else {
       // Use prop-based logic for initial state or when config is disabled
-      console.log('🔄 PIVOT STATE SYNC: Using prop-based logic', { enablePivotTable, mergedConfigEnabled: mergedPivotConfig.enabled });
       setIsPivotEnabled(enablePivotTable && mergedPivotConfig.enabled);
     }
   }, [enablePivotTable, mergedPivotConfig.enabled, pivotConfigLoaded, localPivotConfig.enabled]);
@@ -1196,7 +1162,6 @@ const PrimeDataTable = ({
   const pivotTransformation = useMemo(() => {
     // CRITICAL: Ensure tableData is an array before pivot transformation
     if (!Array.isArray(tableData)) {
-      console.warn('PrimeDataTable: tableData is not an array before pivot transformation');
       return { 
         pivotData: [], 
         pivotColumns: [], 
@@ -1207,7 +1172,6 @@ const PrimeDataTable = ({
     }
 
     if (!isPivotEnabled || !adjustedPivotConfig.enabled) {
-      // console.log('Pivot disabled - returning original data');
       return { 
         pivotData: tableData, 
         pivotColumns: [], 
@@ -1218,13 +1182,10 @@ const PrimeDataTable = ({
     }
 
     try {
-      // console.log('Transforming data to pivot...');
       const result = transformToPivotData(tableData, adjustedPivotConfig);
-      // console.log('Pivot transformation result:', result);
       
       // CRITICAL: Validate pivot transformation result
       if (!result || !Array.isArray(result.pivotData)) {
-        console.error('PrimeDataTable: Pivot transformation did not return valid data structure');
         return { 
           pivotData: tableData, 
           pivotColumns: [], 
@@ -1239,7 +1200,6 @@ const PrimeDataTable = ({
         isPivot: true
       };
     } catch (error) {
-      console.error('Error transforming data to pivot:', error);
       return { 
         pivotData: Array.isArray(tableData) ? tableData : [], 
         pivotColumns: [], 
@@ -1259,7 +1219,6 @@ const PrimeDataTable = ({
     
     // CRITICAL: Ensure data is always an array
     if (!Array.isArray(data)) {
-      console.error('PrimeDataTable: finalTableData is not an array, converting to empty array. Data type:', typeof data, 'Value:', data);
       return [];
     }
 
@@ -1314,7 +1273,6 @@ const PrimeDataTable = ({
     // Find the first key that contains an array
     for (const key of commonKeys) {
       if (sample[key] && Array.isArray(sample[key]) && sample[key].length > 0) {
-        console.log('🔍 Detected nested key:', key, 'with', sample[key].length, 'items');
         return key;
       }
     }
@@ -1322,12 +1280,10 @@ const PrimeDataTable = ({
     // Fallback: look for any array field
     for (const [key, value] of Object.entries(sample)) {
       if (Array.isArray(value) && value.length > 0) {
-        console.log('🔍 Found array field:', key, 'with', value.length, 'items');
         return key;
       }
     }
     
-    console.log('🔍 No nested data found, using default: items');
     return 'items'; // Default fallback
   };
 
@@ -1336,12 +1292,6 @@ const PrimeDataTable = ({
     if (!enableRowExpansion) return null;
 
     const detectedKey = detectNestedKey(finalTableData);
-    console.log('🔍 Building expansion config:', {
-      dataLength: finalTableData?.length,
-      dataKey: resolvedDataKey,
-      nestedKey: detectedKey,
-      sampleRow: finalTableData?.[0]
-    });
 
     return createRowExpansionConfig({
       data: finalTableData,
@@ -1545,27 +1495,8 @@ const PrimeDataTable = ({
             // ✅ Round grand total to 2 decimal places
             const roundedGrandTotal = Math.round(grandTotalValue * 100) / 100;
             grandTotalRow[calcFieldKey] = roundedGrandTotal;
-            
-            console.log('✅ CALCULATED FIELD GRAND TOTAL:', {
-              fieldName: calcField.name,
-              calcFieldKey: calcFieldKey,
-              formula: calcField.formula,
-              valuesCount: calculatedValues.length,
-              grandTotal: grandTotalValue,
-              roundedGrandTotal: roundedGrandTotal
-            });
-          } else {
-            console.warn('⚠️ NO VALID CALCULATED FIELD VALUES FOR GRAND TOTAL:', {
-              fieldName: calcField.name,
-              calcFieldKey: calcFieldKey,
-              availableKeys: Object.keys(dataToCalculate[0] || {}).filter(k => k.startsWith('calc_'))
-            });
           }
         } catch (error) {
-          console.error('❌ ERROR CALCULATING GRAND TOTAL FOR CALCULATED FIELD:', {
-            fieldName: calcField.name,
-            error: error.message
-          });
         }
       });
     }
@@ -1635,22 +1566,6 @@ const PrimeDataTable = ({
     setLocalPivotConfig
   });
 
-  // Debug logging for save functionality
-  useEffect(() => {
-    console.log('🔍 PrimeDataTable Debug Info:', {
-      user: user ? {
-        email: user.email,
-        role: user.role,
-        roleId: user.roleId,
-        roleIds: user.roleIds,
-        roleName: user.roleName
-      } : null,
-      isAdmin: isAdminUser(),
-      enablePivotPersistence,
-      hasSaveFunction: !!finalSaveToCMS,
-      pivotConfigKey
-    });
-  }, [user, isAdminUser, enablePivotPersistence, finalSaveToCMS, pivotConfigKey]);
 
   // HIBERNATION FIX: Comprehensive component unmount cleanup with performance monitoring
   useEffect(() => {
@@ -1666,9 +1581,6 @@ const PrimeDataTable = ({
     };
     
     const handleVisibilityChange = () => {
-      if (typeof document !== 'undefined' && document.hidden && tableData && tableData.length > 10000) {
-        safeConsole.log('⚠️ Page hidden with large dataset - potential hibernation risk');
-      }
     };
     
     // Only add event listeners if dealing with large datasets and we're in a proper browser environment
@@ -1682,11 +1594,6 @@ const PrimeDataTable = ({
     }
     
     return () => {
-      const componentLifetime = Date.now() - componentMountTime;
-      if (componentLifetime > 300000) { // 5 minutes
-        safeConsole.log(`⚠️ Long-lived PrimeDataTable component (${componentLifetime}ms) - potential memory leak`);
-      }
-      
       // Clean up event listeners with proper checks (don't clear isMountedRef here as this effect runs on tableData changes)
       if (typeof window !== 'undefined' && !isPlasmicStudio) {
         window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -1752,14 +1659,6 @@ const PrimeDataTable = ({
   const defaultColumns = useMemo(() => {
     let cols = [];
 
-    // Debug logging
-    // console.log('Pivot Transformation:', {
-    //   isPivot: pivotTransformation.isPivot,
-    //   pivotColumnsLength: pivotTransformation.pivotColumns.length,
-    //   pivotColumns: pivotTransformation.pivotColumns,
-    //   mergedPivotConfig: mergedPivotConfig
-    // });
-
     // Use pivot columns if pivot is enabled and available
     if (pivotTransformation.isPivot && pivotTransformation.pivotColumns.length > 0) {
       cols = pivotTransformation.pivotColumns.map(col => ({
@@ -1780,7 +1679,6 @@ const PrimeDataTable = ({
             if (meta) {
               // ✅ Step 1: Prevent duplicate columns with same name
               if (processedCalculatedFields.has(meta.name)) {
-                console.warn(`⚠️ Skipping duplicate calculated field: ${meta.name} (key: ${key})`);
                 return; // Skip this duplicate
               }
               
@@ -1842,20 +1740,6 @@ const PrimeDataTable = ({
               if (!alreadyExists) {
                 // Add calculated field column to the pivot columns
                 cols.push(calculatedFieldColumn);
-                
-                console.log('✅ ADDED CALCULATED FIELD COLUMN:', {
-                  key: key,
-                  uniqueKey: uniqueKey,
-                  title: title,
-                  formula: meta.formula,
-                  hasDuplicateTitle: duplicateTitle
-                });
-              } else {
-                console.warn('⚠️ SKIPPING DUPLICATE CALCULATED FIELD:', {
-                  key: key,
-                  title: title,
-                  existingColumns: cols.filter(col => col.key === key).map(col => ({ key: col.key, title: col.title }))
-                });
               }
             }
           }
@@ -1918,34 +1802,6 @@ const PrimeDataTable = ({
       });
     }
 
-    // Debug log to confirm calculated fields are included
-    console.log("🧠 Final column keys:", cols.map(col => col.key));
-    
-    // NEW: Debug log to check for duplicate keys in final columns
-    const finalColumnKeys = cols.map(col => col.key);
-    const duplicateKeys = finalColumnKeys.filter((key, index) => finalColumnKeys.indexOf(key) !== index);
-    
-    if (duplicateKeys.length > 0) {
-      console.error('❌ DUPLICATE COLUMN KEYS DETECTED:', {
-        duplicateKeys: duplicateKeys,
-        allKeys: finalColumnKeys,
-        columns: cols.map(col => ({ key: col.key, title: col.title, uniqueKey: col.uniqueKey }))
-      });
-    } else {
-      console.log('✅ NO DUPLICATE COLUMN KEYS FOUND');
-    }
-    
-    // NEW: Summary of calculated field columns
-    const calculatedFieldColumns = cols.filter(col => col.isPivotCalculatedField);
-    if (calculatedFieldColumns.length > 0) {
-      console.log('📊 FINAL CALCULATED FIELD COLUMNS:', calculatedFieldColumns.map(col => ({
-        key: col.key,
-        uniqueKey: col.uniqueKey,
-        title: col.title,
-        formula: col.calculatedField?.formula
-      })));
-    }
-
     // NEW: Add ROI column if ROI calculation is enabled
     if (enableROICalculation && roiConfig?.showROIColumn) {
       const roiColumn = {
@@ -1960,11 +1816,6 @@ const PrimeDataTable = ({
       // Add ROI column to the end of the columns
       cols.push(roiColumn);
     }
-
-
-
-    // Debug log to confirm calculated fields are in final columns
-    console.log("🧠 Final Columns:", cols.map(col => col.key));
     
     return cols;
   }, [columns, finalTableData, hiddenColumns, columnOrder, fields, pivotTransformation.isPivot, pivotTransformation.pivotColumns, enableROICalculation, roiConfig]);
@@ -2289,14 +2140,6 @@ const PrimeDataTable = ({
       }
     });
     
-    // FIXED: Debug logging to help identify filter initialization issues
-    console.log('🔍 FILTER INITIALIZATION:', {
-      totalColumns: defaultColumns.length,
-      filterableColumns: defaultColumns.filter(col => (col.filterable !== false) && enableColumnFilter).length,
-      initialFilters: Object.keys(initialFilters),
-      enableColumnFilter
-    });
-    
     setFilters(initialFilters);
   }, [defaultColumns, enableColumnFilter, globalFilterValue, getEffectiveColumnType]);
 
@@ -2605,9 +2448,6 @@ const PrimeDataTable = ({
       ...event,
       data: updated
     });
-
-    // Optional debug log (can be removed after verification)
-    console.log("✅ Row updated:", updated[index]);
   }, [data, onRowEditSave]);
 
   // Universal field update handler for card views and inline editing
@@ -4195,9 +4035,6 @@ const PrimeDataTable = ({
             // Only update grand total if there's no global filter active
             if (!globalFilterValue || globalFilterValue.trim() === '') {
               setFilteredDataForGrandTotal(validFilteredRows);
-
-            } else {
-
             }
           }
         }}
