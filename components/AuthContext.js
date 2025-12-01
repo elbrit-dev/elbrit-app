@@ -273,6 +273,8 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userInitial', firstLetter);
                   localStorage.setItem('klyRoleId', finalUser.kly_role_id || 'null');
                   
+                  // Dispatch custom event to notify OneSignal and other listeners
+                  window.dispatchEvent(new Event('userUpdated'));
                   
                   console.log('💾 Auth data saved to localStorage:', {
                     authType: 'erpnext',
@@ -360,6 +362,9 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('employeeId');
             localStorage.removeItem('klyRoleId');
             
+            // Dispatch custom event to notify OneSignal and other listeners
+            window.dispatchEvent(new Event('userUpdated'));
+            
             console.log('🧹 Cleared all auth data from localStorage');
           }
         }
@@ -418,8 +423,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('erpnextUser');
       localStorage.removeItem('userPhoneNumber'); // Remove phone number from storage
       localStorage.removeItem('authProvider'); // Remove auth provider from storage
+      localStorage.removeItem('userEmail');
+      localStorage.removeItem('userDisplayName');
+      localStorage.removeItem('userRole');
       localStorage.removeItem('employeeId');
       localStorage.removeItem('klyRoleId');
+      
+      // Dispatch custom event to notify OneSignal and other listeners
+      window.dispatchEvent(new Event('userUpdated'));
     }
   };
 

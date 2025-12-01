@@ -5,9 +5,10 @@ import { AuthProvider } from '../components/AuthContext';
 import dynamic from 'next/dynamic';
 const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import LZString from 'lz-string';
 import localforage from 'localforage';
+import Script from 'next/script';
 
 // ⚡ PERFORMANCE: CSS imports are optimized by Next.js via optimizeCs config
 // Next.js will automatically:
@@ -467,6 +468,116 @@ if (typeof window !== 'undefined') {
   */
 }
 
+// OneSignal initialization component
+function OneSignalInit() {
+  const [userEmail, setUserEmail] = useState(null);
+  const [userPhone, setUserPhone] = useState(null);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+
+    // Function to get user data from localStorage
+    const getUserFromStorage = () => {
+      try {
+        // Read user data from individual localStorage keys (as set by AuthContext)
+        const email = localStorage.getItem('userEmail');
+        const phone = localStorage.getItem('userPhoneNumber');
+        
+        setUserEmail(email);
+        setUserPhone(phone);
+        
+        console.log('📧 OneSignal: Loaded user data from localStorage:', { email, phone });
+        
+        return { email, phone };
+      } catch (error) {
+        console.error('OneSignal: Error reading user from localStorage:', error);
+      }
+      return null;
+    };
+
+    // Get initial user data
+    getUserFromStorage();
+
+    // Listen for localStorage changes (e.g., when user logs in/out in other tabs)
+    const handleStorageChange = (e) => {
+      if (e.key === 'userEmail' || e.key === 'userPhoneNumber' || e.key === 'erpnextUser') {
+        getUserFromStorage();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also listen for custom events (for same-tab updates)
+    const handleUserUpdate = () => {
+      getUserFromStorage();
+    };
+
+    window.addEventListener('userUpdated', handleUserUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('userUpdated', handleUserUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
+    // Don't initialize if no user data
+    if (!userEmail && !userPhone) {
+      console.log('OneSignal: No user data available, skipping initialization');
+      return;
+    }
+
+    // Wait for OneSignal SDK to load
+    const initOneSignal = async () => {
+      if (!window.OneSignalDeferred) {
+        console.warn('OneSignal SDK not loaded yet');
+        return;
+      }
+
+      window.OneSignalDeferred.push(async function (OneSignal) {
+        try {
+          // 1️⃣ Initialize OneSignal
+          await OneSignal.init({
+            appId: "9cc963c3-d3c9-4230-b817-6860109d8f3f",
+          });
+
+          console.log('✅ OneSignal initialized successfully');
+
+          // 2️⃣ Add email only if available
+          if (userEmail) {
+            await OneSignal.User.addEmail(userEmail);
+            console.log("✅ OneSignal: Email added:", userEmail);
+          }
+
+          // 3️⃣ Add phone only if available
+          if (userPhone) {
+            await OneSignal.User.addSms(userPhone);
+            console.log("✅ OneSignal: Phone added:", userPhone);
+          }
+
+          // 4️⃣ Get Player ID
+          const playerId = OneSignal.User.PushSubscription.id;
+          console.log("✅ OneSignal: Player ID:", playerId);
+
+        } catch (error) {
+          console.error('❌ OneSignal initialization error:', error);
+        }
+      });
+    };
+
+    // Initialize after a short delay to ensure SDK is loaded
+    const timer = setTimeout(initOneSignal, 1000);
+
+    return () => clearTimeout(timer);
+  }, [userEmail, userPhone]);
+
+  return null; // This component doesn't render anything
+}
+
 function MyApp({ Component, pageProps }) {
   useEffect(() => {
     const loadingScreen = document.getElementById('app-loading-screen');
@@ -505,11 +616,20 @@ function MyApp({ Component, pageProps }) {
   }, []);
 
   return (
-    <DataProvider name="fn" data={a}>
-      <AuthProvider>
-        <Component {...pageProps} />
-      </AuthProvider>
-    </DataProvider>
+    <>
+      {/* OneSignal SDK */}
+      <Script 
+        src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" 
+        strategy="afterInteractive"
+      />
+      
+      <DataProvider name="fn" data={a}>
+        <AuthProvider>
+          <OneSignalInit />
+          <Component {...pageProps} />
+        </AuthProvider>
+      </DataProvider>
+    </>
   );
 }
 
