@@ -409,7 +409,19 @@ const a = {
 
   // ✅ Direct access to localforage library
   // Use all localforage methods directly in Plasmic Studio
-  localforage: localforage
+  localforage: localforage,
+
+  // ✅ Division function: divides value by divisor, multiplies by 100, formats to decimal places
+  // Usage: $ctx.fn.divid(value, divisor, decimalPlaces)
+  // Example: $ctx.fn.divid($props.incentive, $props.target, 1)
+  divid: (value, divisor, decimalPlaces = 1) => {
+    if (value && divisor) {
+      const result = ((value / divisor) * 100).toFixed(decimalPlaces);
+      // Remove trailing .0 if present
+      return result.replace(/\.0+$/, "");
+    }
+    return "0";
+  }
 };
 
 // Global error handler to catch unhandled promise rejections
