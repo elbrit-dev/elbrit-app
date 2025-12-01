@@ -414,9 +414,21 @@ const a = {
   // ✅ Division function: divides value by divisor, multiplies by 100, formats to decimal places
   // Usage: $ctx.fn.divid(value, divisor, decimalPlaces)
   // Example: $ctx.fn.divid($props.incentive, $props.target, 1)
-  divid: (value, divisor, decimalPlaces = 1) => {
+  percentage: (value, divisor, decimalPlaces = 1) => {
     if (value && divisor) {
       const result = ((value / divisor) * 100).toFixed(decimalPlaces);
+      // Remove trailing .0 if present
+      return result.replace(/\.0+$/, "");
+    }
+    return "0";
+  },
+
+  // ✅ Normal division function: divides value by divisor, formats to decimal places (no 100 multiplication)
+  // Usage: $ctx.fn.divide(value, divisor, decimalPlaces)
+  // Example: $ctx.fn.divide(10, 3, 2) returns "3.33"
+  divide: (value, divisor, decimalPlaces = 1) => {
+    if (value && divisor) {
+      const result = (value / divisor).toFixed(decimalPlaces);
       // Remove trailing .0 if present
       return result.replace(/\.0+$/, "");
     }
