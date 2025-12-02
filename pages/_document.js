@@ -74,6 +74,19 @@ class MyDocument extends Document {
 
           {/* OneSignal Push Notifications */}
           <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.OneSignalDeferred = window.OneSignalDeferred || [];
+                OneSignalDeferred.push(async function(OneSignal) {
+                  await OneSignal.init({
+                    appId: "9cc963c3-d3c9-4230-b817-6860109d8f3f",
+                    allowLocalhostAsSecureOrigin: true
+                  });
+                });
+              `,
+            }}
+          />
         </Head>
         <body>
           {/* Loading screen with animated GIF */}
