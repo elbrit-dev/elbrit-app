@@ -438,11 +438,6 @@ const a = {
   }
 };
 
-// Initialize OneSignal Deferred before SDK loads
-if (typeof window !== 'undefined') {
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-}
-
 // Global error handler to catch unhandled promise rejections
 if (typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {
@@ -532,19 +527,6 @@ function MyApp({ Component, pageProps }) {
           }, 500);
         }
       }
-    }
-  }, []);
-
-  // OneSignal initialization
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: "9cc963c3-d3c9-4230-b817-6860109d8f3f",
-        });
-      });
     }
   }, []);
 
