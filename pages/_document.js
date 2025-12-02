@@ -73,7 +73,7 @@ class MyDocument extends Document {
           <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
           {/* OneSignal Push Notifications */}
-          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.es6.js" defer></script>
+          <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js" defer></script>
         </Head>
         <body>
           {/* Loading screen with animated GIF */}
