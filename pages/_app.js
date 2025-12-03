@@ -5,7 +5,7 @@ import { AuthProvider } from '../components/AuthContext';
 import dynamic from 'next/dynamic';
 const PlasmicInit = dynamic(() => import('../plasmic-init'), { ssr: false });
 import { DataProvider } from '@plasmicapp/host';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import LZString from 'lz-string';
 import localforage from 'localforage';
 
@@ -494,6 +494,37 @@ if (typeof window !== 'undefined') {
 }
 
 function MyApp({ Component, pageProps }) {
+  // Global state that can be accessed and updated from Plasmic Studio
+  const [globalState, setGlobalState] = useState({});
+
+  // setState function that can be used in Plasmic Studio as $ctx.fn.setState(stateName, data)
+  // Usage examples:
+  //   $ctx.fn.setState('myStateName', 'myValue') - sets $ctx.state.myStateName = 'myValue'
+  //   $ctx.fn.setState({ key1: 'value1', key2: 'value2' }) - merges multiple state properties
+  const setState = useCallback((stateName, data) => {
+    if (typeof stateName === 'string') {
+      // If stateName is a string, treat it as the state property name (key) and update that specific property
+      // Example: setState('userName', 'John') creates/updates $ctx.state.userName = 'John'
+      setGlobalState(prev => ({
+        ...prev,
+        [stateName]: data
+      }));
+    } else if (typeof stateName === 'object' && stateName !== null) {
+      // If stateName is an object, merge it with existing state
+      // Example: setState({ userName: 'John', age: 30 }) merges both properties into state
+      setGlobalState(prev => ({
+        ...prev,
+        ...stateName
+      }));
+    }
+  }, []);
+
+  // Combine all utility functions with setState
+  const fnWithState = {
+    ...a,
+    setState
+  };
+
   useEffect(() => {
     const loadingScreen = document.getElementById('app-loading-screen');
     const loadingGif = document.querySelector('.loading-gif');
@@ -531,10 +562,12 @@ function MyApp({ Component, pageProps }) {
   }, []);
 
   return (
-    <DataProvider name="fn" data={a}>
-      <AuthProvider>
-        <Component {...pageProps} />
-      </AuthProvider>
+    <DataProvider name="fn" data={fnWithState}>
+      <DataProvider name="state" data={globalState}>
+        <AuthProvider>
+          <Component {...pageProps} />
+        </AuthProvider>
+      </DataProvider>
     </DataProvider>
   );
 }
