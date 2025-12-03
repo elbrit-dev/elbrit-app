@@ -497,25 +497,80 @@ function MyApp({ Component, pageProps }) {
   // Global state that can be accessed and updated from Plasmic Studio
   const [globalState, setGlobalState] = useState({});
 
-  // setState function that can be used in Plasmic Studio as $ctx.fn.setState(stateName, data)
+  // setState function that can be used in Plasmic Studio as $ctx.fn.setState(stateName, data, callback)
+  // This updates the global state which can then be bound to component states in Plasmic Studio
+  // 
   // Usage examples:
-  //   $ctx.fn.setState('myStateName', 'myValue') - sets $ctx.state.myStateName = 'myValue'
-  //   $ctx.fn.setState({ key1: 'value1', key2: 'value2' }) - merges multiple state properties
-  const setState = useCallback((stateName, data) => {
+  //   $ctx.fn.setState('items', data) - sets $ctx.state.items = data
+  //   $ctx.fn.setState('items', items, (newValue) => console.log('set state', newValue.length)) - with callback
+  //   $ctx.fn.setState('items', items, (newValue, stateName, fullState) => console.log(stateName, newValue.length))
+  //   $ctx.fn.setState('userName', 'John') - sets $ctx.state.userName = 'John'
+  //   $ctx.fn.setState({ items: data, loading: false }) - merges multiple state properties
+  //
+  // Parameters:
+  //   stateName: string (state property name) or object (multiple properties to merge)
+  //   data: the value to set (required if stateName is string)
+  //   callback: optional function called after state update
+  //     - For single property: callback(newValue, stateName, fullState)
+  //     - For object merge: callback(fullState)
+  //
+  // To use with Plasmic component states:
+  //   1. Call $ctx.fn.setState('items', data) to store in global state
+  //   2. In Plasmic Studio, bind your component's "items" state variable to $ctx.state.items
+  //   3. The component state will automatically update when you call setState
+  const setState = useCallback((stateName, data, callback) => {
     if (typeof stateName === 'string') {
       // If stateName is a string, treat it as the state property name (key) and update that specific property
-      // Example: setState('userName', 'John') creates/updates $ctx.state.userName = 'John'
-      setGlobalState(prev => ({
-        ...prev,
-        [stateName]: data
-      }));
+      // Example: setState('items', [1,2,3]) creates/updates $ctx.state.items = [1,2,3]
+      // Then bind your Plasmic component's "items" state to $ctx.state.items
+      setGlobalState(prev => {
+        const newState = {
+          ...prev,
+          [stateName]: data
+        };
+        // Call callback after state update if provided
+        // Note: If callback is not a function (e.g., console.log(...) which executes immediately),
+        // it will be ignored. Wrap in arrow function: (newValue) => console.log("set state", newValue.length)
+        if (typeof callback === 'function') {
+          // Use setTimeout to ensure state is updated and component re-renders before callback
+          // This allows $ctx.state.items to be updated when callback accesses it
+          setTimeout(() => {
+            try {
+              // Callback receives: (newValue, stateName, fullState)
+              callback(newState[stateName], stateName, newState);
+            } catch (error) {
+              console.error('Error in setState callback:', error);
+            }
+          }, 0);
+        } else if (callback !== undefined && callback !== null) {
+          // If callback is provided but not a function, log a warning
+          console.warn('setState callback must be a function. Received:', typeof callback);
+        }
+        return newState;
+      });
     } else if (typeof stateName === 'object' && stateName !== null) {
       // If stateName is an object, merge it with existing state
-      // Example: setState({ userName: 'John', age: 30 }) merges both properties into state
-      setGlobalState(prev => ({
-        ...prev,
-        ...stateName
-      }));
+      // Example: setState({ items: data, loading: false }) merges both properties into state
+      // In this case, data parameter is treated as callback if it's a function
+      const actualCallback = typeof data === 'function' ? data : callback;
+      setGlobalState(prev => {
+        const newState = {
+          ...prev,
+          ...stateName
+        };
+        // Call callback after state update if provided
+        if (typeof actualCallback === 'function') {
+          // Use setTimeout to ensure state is updated before callback
+          setTimeout(() => {
+            try {
+              actualCallback(newState);
+            } catch (error) {
+              console.error('Error in setState callback:', error);
+            }
+          }, 0);
+        }
+        return newState;
+      });
     }
   }, []);
 
