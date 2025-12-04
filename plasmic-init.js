@@ -2224,8 +2224,8 @@ PLASMIC.registerComponent(FileImportButton, {
     variant: {
       type: "choice",
       options: ["primary", "secondary", "outline", "light"],
-      description: "Button style variant: primary (blue), secondary (gray), outline (border), light (white with shadow)",
-      defaultValue: "primary"
+      description: "Button style variant: primary (blue), secondary (gray), outline (blue border, white background), light (white with shadow)",
+      defaultValue: "outline"
     },
     iconPosition: {
       type: "choice",

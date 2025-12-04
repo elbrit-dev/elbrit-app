@@ -1,11 +1,10 @@
 import React, { useState, useCallback } from "react";
 import dynamic from 'next/dynamic';
 import * as XLSX from 'xlsx';
-import { Upload, FileSpreadsheet, FileText, CheckCircle, XCircle, Loader } from "lucide-react";
+import { Upload, FileSpreadsheet, FileText, CheckCircle, XCircle, Loader, FileUp, FileDown } from "lucide-react";
 
 // Dynamic imports for PrimeReact components
 const Button = dynamic(() => import('primereact/button').then(m => m.Button), { ssr: false });
-const FileUpload = dynamic(() => import('primereact/fileupload').then(m => m.FileUpload), { ssr: false });
 const Dialog = dynamic(() => import('primereact/dialog').then(m => m.Dialog), { ssr: false });
 const ProgressBar = dynamic(() => import('primereact/progressbar').then(m => m.ProgressBar), { ssr: false });
 
@@ -47,7 +46,7 @@ const FileImportButton = ({
   className = '',
   size = 'medium',
   disabled = false,
-  variant = 'primary',
+  variant = 'outline',
   showPreview = true,
   maxFileSize = 10,
   firstRowAsHeader = true,
@@ -278,12 +277,10 @@ const FileImportButton = ({
     }
   }, [parseCSV, parseExcel, onImportComplete, stateKey, showPreview, maxFileSize, onError, getSetState]);
 
-  // Get file icon based on type
+  // Get file icon based on type - using document with arrow icon
   const getFileIcon = (fileName) => {
-    if (!fileName) return <Upload size={20} />;
-    const ext = fileName.split('.').pop().toLowerCase();
-    if (ext === 'csv') return <FileText size={20} />;
-    return <FileSpreadsheet size={20} />;
+    // Use FileUp icon which looks like document with arrow
+    return <FileUp size={18} className="text-blue-600" />;
   };
 
   // Button size classes
@@ -293,42 +290,57 @@ const FileImportButton = ({
     large: 'px-6 py-3 text-lg'
   };
 
-  // Variant classes
+  // Variant classes - updated to match the image style
   const variantClasses = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white',
-    secondary: 'bg-gray-600 hover:bg-gray-700 text-white',
-    outline: 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50',
-    light: 'bg-gray-100 hover:bg-gray-200 text-gray-800'
+    primary: 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-600',
+    secondary: 'bg-gray-600 hover:bg-gray-700 text-white border border-gray-600',
+    outline: 'bg-white border border-blue-600 text-blue-600 hover:bg-blue-50',
+    light: 'bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-300'
   };
+
+  // Handle file input change
+  const handleFileInputChange = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      handleFileUpload({ files: [file] });
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  }, [handleFileUpload]);
 
   return (
     <div className="file-import-button-wrapper">
       <div className="relative inline-block">
-        <FileUpload
-          mode="basic"
-          name="file"
-          accept=".csv,.xlsx,.xls"
-          maxFileSize={maxFileSize * 1024 * 1024}
-          customUpload
-          uploadHandler={handleFileUpload}
-          auto
-          chooseLabel={iconOnly ? '' : label}
-          chooseOptions={{
-            icon: iconOnly ? getFileIcon(fileName) : undefined,
-            iconPos: iconPosition,
-            label: iconOnly ? '' : label,
-            className: `
-              ${sizeClasses[size] || sizeClasses.medium}
-              ${variantClasses[variant] || variantClasses.primary}
-              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-              rounded-md font-medium transition-colors duration-200
-              flex items-center gap-2
-              ${className}
-            `,
-            disabled: disabled || isImporting
-          }}
-          disabled={disabled || isImporting}
-        />
+        {/* Custom styled button matching the design - blue border, white background, blue text */}
+        <label
+          className={`
+            ${sizeClasses[size] || sizeClasses.medium}
+            bg-white border border-blue-600 text-blue-600
+            hover:bg-blue-50 active:bg-blue-100
+            ${disabled || isImporting ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+            rounded-md font-medium transition-all duration-200
+            inline-flex items-center gap-2
+            ${className}
+          `}
+        >
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileInputChange}
+            className="hidden"
+            disabled={disabled || isImporting}
+            style={{ display: 'none' }}
+          />
+          {iconOnly ? (
+            getFileIcon(fileName)
+          ) : (
+            <>
+              {iconPosition === 'left' && getFileIcon(fileName)}
+              <span>{label}</span>
+              {iconPosition === 'right' && getFileIcon(fileName)}
+            </>
+          )}
+        </label>
         
         {isImporting && (
           <div className="absolute -bottom-8 left-0 right-0 mt-2">
@@ -349,72 +361,84 @@ const FileImportButton = ({
         )}
       </div>
 
-      {/* Preview Dialog */}
+      {/* Preview Dialog - Clean and modern design */}
       {showPreview && importedData && (
         <Dialog
           visible={showPreviewDialog}
           onHide={() => setShowPreviewDialog(false)}
-          header={`Import Successful - ${fileName}`}
-          modal
-          style={{ width: '90vw', maxWidth: '1200px' }}
-          className="file-import-preview-dialog"
-        >
-          <div className="p-4">
-            <div className="mb-4 flex items-center gap-2 text-green-600">
-              <CheckCircle size={20} />
-              <span className="font-medium">
-                Successfully imported {importedData.length} row{importedData.length !== 1 ? 's' : ''}
-              </span>
+          header={
+            <div className="flex items-center gap-2">
+              <CheckCircle size={20} className="text-green-600" />
+              <span className="font-semibold text-lg">Import Successful</span>
             </div>
-
-            {stateKey && (
-              <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded text-blue-800 text-sm">
-                <strong>Data saved to:</strong> $ctx.state.{stateKey}
+          }
+          modal
+          style={{ width: '90vw', maxWidth: '1400px' }}
+          className="file-import-preview-dialog"
+          footer={
+            <div className="flex justify-end gap-2">
+              <Button
+                label="Close"
+                onClick={() => setShowPreviewDialog(false)}
+                className="p-button-outline"
+              />
+            </div>
+          }
+        >
+          <div className="p-6">
+            {/* Success message and file info */}
+            <div className="mb-6 space-y-3">
+              <div className="flex items-center gap-2 text-green-700">
+                <CheckCircle size={18} />
+                <span className="font-medium">
+                  Successfully imported <strong>{importedData.length}</strong> row{importedData.length !== 1 ? 's' : ''} from <strong>{fileName}</strong>
+                </span>
               </div>
-            )}
 
-            <div className="max-h-96 overflow-auto border rounded">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50 sticky top-0">
-                  <tr>
-                    {Object.keys(importedData[0] || {}).map((key) => (
-                      <th
-                        key={key}
-                        className="px-4 py-2 text-left text-xs font-medium text-gray-700 uppercase tracking-wider"
-                      >
-                        {key}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {importedData.slice(0, 100).map((row, index) => (
-                    <tr key={index} className="hover:bg-gray-50">
-                      {Object.values(row).map((value, cellIndex) => (
-                        <td
-                          key={cellIndex}
-                          className="px-4 py-2 text-sm text-gray-900 whitespace-nowrap"
-                        >
-                          {String(value || '')}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {importedData.length > 100 && (
-                <div className="p-2 bg-gray-50 text-center text-xs text-gray-600">
-                  Showing first 100 rows of {importedData.length} total rows
+              {stateKey && (
+                <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded text-blue-800 text-sm">
+                  <strong>Data saved to:</strong> <code className="bg-blue-100 px-2 py-1 rounded">$ctx.state.{stateKey}</code>
                 </div>
               )}
             </div>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <Button
-                label="Close"
-                onClick={() => setShowPreviewDialog(false)}
-                className="p-button-secondary"
-              />
+            {/* Data preview table */}
+            <div className="border border-gray-200 rounded-lg overflow-hidden">
+              <div className="max-h-[500px] overflow-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50 sticky top-0 z-10">
+                    <tr>
+                      {Object.keys(importedData[0] || {}).map((key) => (
+                        <th
+                          key={key}
+                          className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider border-b border-gray-200"
+                        >
+                          {key}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-100">
+                    {importedData.slice(0, 100).map((row, index) => (
+                      <tr key={index} className="hover:bg-blue-50 transition-colors">
+                        {Object.values(row).map((value, cellIndex) => (
+                          <td
+                            key={cellIndex}
+                            className="px-4 py-3 text-sm text-gray-700 whitespace-nowrap"
+                          >
+                            {String(value || '')}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {importedData.length > 100 && (
+                <div className="p-3 bg-gray-50 border-t border-gray-200 text-center text-xs text-gray-600">
+                  Showing first 100 rows of <strong>{importedData.length}</strong> total rows
+                </div>
+              )}
             </div>
           </div>
         </Dialog>
