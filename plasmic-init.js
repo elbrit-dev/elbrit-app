@@ -9,6 +9,7 @@ const PlasmicDataContext = dynamic(() => import("./components/PlasmicDataContext
 const PrimeDataTable = dynamic(() => import("./components/PrimeDataTable"), { ssr: false, loading: () => null });
 const SimpleDataTable = dynamic(() => import("./components/SimpleDataTable"), { ssr: false, loading: () => null });
 const ExportDataButton = dynamic(() => import("./components/ExportDataButton"), { ssr: false, loading: () => null });
+const FileImportButton = dynamic(() => import("./components/FileImportButton"), { ssr: false, loading: () => null });
 // const PrimeDataTableOptimized = dynamic(() => import("./components/PrimeDataTableOptimized"), { ssr: false, loading: () => null });
 const FirestoreDebug = dynamic(() => import("./components/FirestoreDebug"), { ssr: false, loading: () => null });
 const EnvironmentCheck = dynamic(() => import("./components/EnvironmentCheck"), { ssr: false, loading: () => null });
@@ -2171,6 +2172,115 @@ PLASMIC.registerComponent(ExportDataButton, {
   },
   
   importPath: "./components/ExportDataButton"
+});
+
+// Register FileImportButton component
+PLASMIC.registerComponent(FileImportButton, {
+  name: "FileImportButton",
+  displayName: "File Import Button",
+  description: "A component to upload and import CSV/Excel files (.csv, .xlsx, .xls) and convert them to JSON arrays. Features preview dialog, progress indicator, and automatic state management.",
+  
+  props: {
+    // Data handling
+    onImportComplete: {
+      type: "eventHandler",
+      description: "Callback function called with imported data array and file name",
+      argTypes: [
+        {
+          name: "data",
+          type: "object",
+          description: "Array of objects containing the imported data"
+        },
+        {
+          name: "fileName",
+          type: "string",
+          description: "Name of the imported file"
+        }
+      ]
+    },
+    stateKey: {
+      type: "string",
+      description: "Optional key to save data to global state ($ctx.state[stateKey]). After import, access data via $ctx.state.{stateKey}",
+      defaultValue: ""
+    },
+    setState: {
+      type: "function",
+      description: "Optional setState function. Bind to $ctx.fn.setState in Plasmic Studio for automatic state management",
+      defaultValue: undefined
+    },
+    
+    // Button Configuration
+    label: {
+      type: "string",
+      description: "Button label text",
+      defaultValue: "Import File"
+    },
+    size: {
+      type: "choice",
+      options: ["small", "medium", "large"],
+      description: "Button size: small, medium, or large",
+      defaultValue: "medium"
+    },
+    variant: {
+      type: "choice",
+      options: ["primary", "secondary", "outline", "light"],
+      description: "Button style variant: primary (blue), secondary (gray), outline (border), light (white with shadow)",
+      defaultValue: "primary"
+    },
+    iconPosition: {
+      type: "choice",
+      options: ["left", "right"],
+      description: "Position of the upload icon: left or right of the label",
+      defaultValue: "left"
+    },
+    iconOnly: {
+      type: "boolean",
+      description: "Show only icon without label (button becomes icon-only)",
+      defaultValue: false
+    },
+    disabled: {
+      type: "boolean",
+      description: "Disable the button",
+      defaultValue: false
+    },
+    className: {
+      type: "string",
+      description: "Additional CSS classes for the button",
+      defaultValue: ""
+    },
+    
+    // Import Options
+    showPreview: {
+      type: "boolean",
+      description: "Show preview dialog after successful import",
+      defaultValue: true
+    },
+    maxFileSize: {
+      type: "number",
+      description: "Maximum file size in MB (default: 10MB)",
+      defaultValue: 10
+    },
+    firstRowAsHeader: {
+      type: "boolean",
+      description: "Use first row as column headers (CSV only, Excel always uses headers)",
+      defaultValue: true
+    },
+    
+    // Error handling
+    onError: {
+      type: "eventHandler",
+      description: "Callback function called when an error occurs during import",
+      argTypes: [
+        {
+          name: "error",
+          type: "object",
+          description: "Error object with message and details"
+        }
+      ]
+    }
+  },
+  
+  importPath: "./components/FileImportButton"
 });
 
 // Register the Optimized PrimeReact Data Table component
