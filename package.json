@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
+    "@novu/api": "^3.11.0",
     "@plasmicapp/auth-api": "^0.0.17",
     "@plasmicapp/loader-nextjs": "^1.0.434",
     "@types/react": "^19.1.8",

@@ -1,9 +1,12 @@
+import { Novu } from '@novu/api';
+import { ChatOrPushProviderEnum } from "@novu/api/models/components";
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, phoneNumber, authProvider } = req.body;
+  const { email, phoneNumber, authProvider, oneSignalPlayerId } = req.body;
 
   if (!email && !phoneNumber) {
     return res.status(400).json({ error: 'Email or phone number is required' });
@@ -309,6 +312,49 @@ export default async function handler(req, res) {
       role: userData.role,
       authProvider: userData.authProvider
     });
+
+    // Update Novu subscriber credentials with OneSignal player ID if provided
+    if (oneSignalPlayerId) {
+      try {
+        const novuSecretKey = process.env.NOVU_SECRET_KEY || process.env.NEXT_PUBLIC_NOVU_SECRET_KEY;
+        
+        if (novuSecretKey) {
+          const novu = new Novu({
+            secretKey: novuSecretKey,
+            // Use serverURL for EU region if needed
+            // serverURL: "https://eu.api.novu.co",
+          });
+
+          const subscriberId = userData.email || userData.uid;
+          const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
+
+          const updateParams = {
+            providerId: ChatOrPushProviderEnum.OneSignal,
+            credentials: {
+              deviceTokens: [oneSignalPlayerId],
+            },
+          };
+
+          // Add integrationIdentifier if provided
+          if (integrationIdentifier) {
+            updateParams.integrationIdentifier = integrationIdentifier;
+          }
+
+          await novu.subscribers.credentials.update(updateParams, subscriberId);
+
+          console.log('✅ Novu subscriber credentials updated successfully:', {
+            subscriberId,
+            playerId: oneSignalPlayerId,
+            integrationIdentifier,
+          });
+        } else {
+          console.warn('⚠️ Novu secret key not found. Skipping Novu update.');
+        }
+      } catch (error) {
+        console.error('❌ Error updating Novu subscriber credentials:', error);
+        // Don't fail the auth request if Novu update fails
+      }
+    }
 
     return res.status(200).json({
       success: true,

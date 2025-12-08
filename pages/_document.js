@@ -83,6 +83,9 @@ class MyDocument extends Document {
                     appId: "9cc963c3-d3c9-4230-b817-6860109d8f3f",
                     allowLocalhostAsSecureOrigin: true
                   });
+                  // Expose OneSignal to window for global access
+                  window.OneSignal = OneSignal;
+                  console.log('✅ OneSignal initialized and exposed to window');
                 });
               `,
             }}

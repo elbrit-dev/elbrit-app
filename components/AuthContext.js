@@ -217,13 +217,29 @@ export const AuthProvider = ({ children }) => {
             // For Phone Auth: ERPNext API will get company_email from Employee data
             const emailForERPNext = user.email; // Always pass Firebase email (will be used for Microsoft SSO)
             
+            // Get OneSignal player ID if available
+            let oneSignalPlayerId = null;
+            if (typeof window !== 'undefined' && window.OneSignal) {
+              try {
+                // Wait a bit for OneSignal to be fully initialized
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                oneSignalPlayerId = await window.OneSignal.User.onesignalId;
+                if (oneSignalPlayerId) {
+                  console.log('✅ OneSignal Player ID retrieved:', oneSignalPlayerId);
+                }
+              } catch (error) {
+                console.warn('⚠️ Could not retrieve OneSignal Player ID:', error);
+              }
+            }
+            
             const response = await fetch('/api/erpnext/auth', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ 
                 email: emailForERPNext,
                 phoneNumber: user.phoneNumber, // Include original phone number in request
-                authProvider: provider // Pass the auth provider
+                authProvider: provider, // Pass the auth provider
+                oneSignalPlayerId: oneSignalPlayerId // Include OneSignal player ID if available
               })
             });
             
@@ -289,6 +305,28 @@ export const AuthProvider = ({ children }) => {
               // No longer updating Firestore - using ERPNext as single source of truth
               
               console.log('✅ Auth state updated successfully');
+              
+              // OneSignal Player ID sync is now handled in auth.js API endpoint
+              // If player ID wasn't available during auth, try to sync it now
+              if (typeof window !== 'undefined' && window.OneSignal && !oneSignalPlayerId) {
+                // Retry getting player ID and sync to Novu
+                setTimeout(async () => {
+                  try {
+                    const retryPlayerId = await window.OneSignal.User.onesignalId;
+                    if (retryPlayerId) {
+                      console.log('✅ OneSignal Player ID retrieved on retry:', retryPlayerId);
+                      // Call a separate endpoint or retry auth with player ID
+                      const subscriberId = finalUser.email || finalUser.uid;
+                      if (subscriberId) {
+                        // You can create a separate endpoint for updating Novu, or retry auth
+                        console.log('💡 Consider creating a separate endpoint to update Novu with player ID:', retryPlayerId);
+                      }
+                    }
+                  } catch (error) {
+                    console.warn('⚠️ Could not retrieve OneSignal Player ID on retry:', error);
+                  }
+                }, 3000);
+              }
             } else {
               const errorData = await response.json().catch(() => ({}));
               console.error('Failed to fetch ERPNext user data:', response.status, errorData);
