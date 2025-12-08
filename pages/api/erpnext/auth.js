@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { email, phoneNumber, authProvider, oneSignalPlayerId } = req.body;
+  const { email, phoneNumber, authProvider, oneSignalPlayerId, oneSignalSubscriptionId } = req.body;
 
   if (!email && !phoneNumber) {
     return res.status(400).json({ error: 'Email or phone number is required' });
@@ -313,7 +313,7 @@ export default async function handler(req, res) {
       authProvider: userData.authProvider
     });
 
-    // Update Novu subscriber credentials with OneSignal player ID if provided
+    // Update Novu subscriber credentials with OneSignal player ID and subscription ID if provided
     if (oneSignalPlayerId) {
       try {
         const novuSecretKey = process.env.NOVU_SECRET_KEY || process.env.NEXT_PUBLIC_NOVU_SECRET_KEY;
@@ -325,13 +325,14 @@ export default async function handler(req, res) {
             // serverURL: "https://eu.api.novu.co",
           });
 
-          const subscriberId = userData.email || userData.uid;
+          // Use subscription ID as subscriber ID, fallback to email/uid if not available
+          const subscriberId = oneSignalSubscriptionId;
           const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
 
           const updateParams = {
             providerId: ChatOrPushProviderEnum.OneSignal,
             credentials: {
-              deviceTokens: [oneSignalPlayerId],
+              deviceTokens: [oneSignalPlayerId], // Use player ID (onesignalId) for device tokens
             },
           };
 
@@ -345,6 +346,7 @@ export default async function handler(req, res) {
           console.log('✅ Novu subscriber credentials updated successfully:', {
             subscriberId,
             playerId: oneSignalPlayerId,
+            subscriptionId: oneSignalSubscriptionId,
             integrationIdentifier,
           });
         } else {

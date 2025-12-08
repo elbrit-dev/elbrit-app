@@ -217,18 +217,27 @@ export const AuthProvider = ({ children }) => {
             // For Phone Auth: ERPNext API will get company_email from Employee data
             const emailForERPNext = user.email; // Always pass Firebase email (will be used for Microsoft SSO)
             
-            // Get OneSignal player ID if available
+            // Get OneSignal player ID and subscription ID if available
             let oneSignalPlayerId = null;
+            let oneSignalSubscriptionId = null;
             if (typeof window !== 'undefined' && window.OneSignal) {
               try {
                 // Wait a bit for OneSignal to be fully initialized
                 await new Promise((resolve) => setTimeout(resolve, 1000));
+                
+                // Get player ID (onesignalId) - used for device tokens
                 oneSignalPlayerId = await window.OneSignal.User.onesignalId;
                 if (oneSignalPlayerId) {
                   console.log('✅ OneSignal Player ID retrieved:', oneSignalPlayerId);
                 }
+                
+                // Get subscription ID (PushSubscription.id) - used as subscriber ID
+                oneSignalSubscriptionId = await window.OneSignal.User.PushSubscription.id;
+                if (oneSignalSubscriptionId) {
+                  console.log('✅ OneSignal Subscription ID retrieved:', oneSignalSubscriptionId);
+                }
               } catch (error) {
-                console.warn('⚠️ Could not retrieve OneSignal Player ID:', error);
+                console.warn('⚠️ Could not retrieve OneSignal IDs:', error);
               }
             }
             
@@ -239,7 +248,8 @@ export const AuthProvider = ({ children }) => {
                 email: emailForERPNext,
                 phoneNumber: user.phoneNumber, // Include original phone number in request
                 authProvider: provider, // Pass the auth provider
-                oneSignalPlayerId: oneSignalPlayerId // Include OneSignal player ID if available
+                oneSignalPlayerId: oneSignalPlayerId, // Player ID for device tokens
+                oneSignalSubscriptionId: oneSignalSubscriptionId // Subscription ID for subscriber ID
               })
             });
             
@@ -306,24 +316,25 @@ export const AuthProvider = ({ children }) => {
               
               console.log('✅ Auth state updated successfully');
               
-              // OneSignal Player ID sync is now handled in auth.js API endpoint
-              // If player ID wasn't available during auth, try to sync it now
-              if (typeof window !== 'undefined' && window.OneSignal && !oneSignalPlayerId) {
-                // Retry getting player ID and sync to Novu
+              // OneSignal IDs sync is now handled in auth.js API endpoint
+              // If IDs weren't available during auth, try to sync them now
+              if (typeof window !== 'undefined' && window.OneSignal && (!oneSignalPlayerId || !oneSignalSubscriptionId)) {
+                // Retry getting both IDs and sync to Novu
                 setTimeout(async () => {
                   try {
                     const retryPlayerId = await window.OneSignal.User.onesignalId;
-                    if (retryPlayerId) {
-                      console.log('✅ OneSignal Player ID retrieved on retry:', retryPlayerId);
-                      // Call a separate endpoint or retry auth with player ID
+                    const retrySubscriptionId = await window.OneSignal.User.PushSubscription.id;
+                    if (retryPlayerId && retrySubscriptionId) {
+                      console.log('✅ OneSignal IDs retrieved on retry:', { playerId: retryPlayerId, subscriptionId: retrySubscriptionId });
+                      // Call a separate endpoint or retry auth with both IDs
                       const subscriberId = finalUser.email || finalUser.uid;
                       if (subscriberId) {
                         // You can create a separate endpoint for updating Novu, or retry auth
-                        console.log('💡 Consider creating a separate endpoint to update Novu with player ID:', retryPlayerId);
+                        console.log('💡 Consider creating a separate endpoint to update Novu with player ID:', retryPlayerId, 'and subscription ID:', retrySubscriptionId);
                       }
                     }
                   } catch (error) {
-                    console.warn('⚠️ Could not retrieve OneSignal Player ID on retry:', error);
+                    console.warn('⚠️ Could not retrieve OneSignal IDs on retry:', error);
                   }
                 }, 3000);
               }
