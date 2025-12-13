@@ -15,8 +15,9 @@ A Plasmic Studio compatible wrapper for PrimeReact's MultiSelect component. This
 
 1. Drag the "MultiSelect (PrimeReact)" component onto your canvas
 2. Configure the `options` prop with your data array
-3. Set `optionLabel` and `optionValue` to specify which fields to use
-4. Connect the `onChange` event handler to update state or trigger actions
+   - For string arrays (e.g., `["Elbrit Chennai", "Elbrit Delhi"]`): No `optionLabel` or `optionValue` needed - auto-detected!
+   - For object arrays (e.g., `[{label: "NY", value: "NY"}]`): Set `optionLabel` and `optionValue` to specify which fields to use
+3. Connect the `onChange` event handler to update state or trigger actions
 
 ## Props Reference
 
@@ -24,9 +25,9 @@ A Plasmic Studio compatible wrapper for PrimeReact's MultiSelect component. This
 
 - **value** (array): Selected value(s)
 - **onChange** (eventHandler): Callback when selection changes
-- **options** (array): Array of objects to display as available options
-- **optionLabel** (string): Property name to use as the label (default: "label")
-- **optionValue** (string): Property name to use as the value (default: "value")
+- **options** (array): Array of objects or primitives (strings/numbers) to display as available options
+- **optionLabel** (string, optional): Property name to use as the label. Auto-detected for primitive arrays (strings/numbers), defaults to "label" for object arrays. Leave empty for string arrays.
+- **optionValue** (string, optional): Property name to use as the value. Auto-detected for primitive arrays (strings/numbers), defaults to "value" for object arrays. Leave empty for string arrays.
 
 ### Display Props
 
@@ -87,7 +88,29 @@ A Plasmic Studio compatible wrapper for PrimeReact's MultiSelect component. This
 
 ## Example Usage
 
-### Basic Example
+### Simple String Array (Auto-detected)
+
+```jsx
+<PrimeMultiSelect
+  options={[
+    "Elbrit Chennai",
+    "Elbrit Delhi",
+    "Elbrit Punjab",
+    "Elbrit Uttar Pradesh",
+    "Elbrit Rajasthan",
+    "Aura & Proxima Karnataka",
+    "Elbrit Telangana",
+    "Elbrit Bangalore"
+  ]}
+  placeholder="Select Locations"
+  display="chip"
+  filter
+  maxSelectedLabels={3}
+  onChange={(e) => console.log("Selected:", e.value)}
+/>
+```
+
+### Object Array Example
 
 ```jsx
 <PrimeMultiSelect

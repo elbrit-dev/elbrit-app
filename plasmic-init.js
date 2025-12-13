@@ -4117,18 +4117,18 @@ PLASMIC.registerComponent(PrimeMultiSelect, {
     },
     options: {
       type: "array",
-      description: "An array of objects to display as the available options",
+      description: "An array of objects or primitives (strings/numbers) to display as the available options. For string arrays like ['Elbrit Chennai', 'Elbrit Delhi'], no optionLabel/optionValue needed.",
       defaultValue: []
     },
     optionLabel: {
       type: "string",
-      description: "Property name or getter function to use as the label of an option",
-      defaultValue: "label"
+      description: "Property name to use as the label of an option. Auto-detected for primitive arrays (strings/numbers), defaults to 'label' for object arrays. Leave empty for string arrays.",
+      defaultValue: undefined
     },
     optionValue: {
       type: "string",
-      description: "Property name or getter function to use as the value of an option",
-      defaultValue: "value"
+      description: "Property name to use as the value of an option. Auto-detected for primitive arrays (strings/numbers), defaults to 'value' for object arrays. Leave empty for string arrays.",
+      defaultValue: undefined
     },
     optionDisabled: {
       type: "string",

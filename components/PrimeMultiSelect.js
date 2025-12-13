@@ -14,8 +14,8 @@ const PrimeMultiSelect = ({
   value,
   onChange,
   options = [],
-  optionLabel = "label",
-  optionValue = "value",
+  optionLabel = undefined, // Auto-detect: undefined for primitives, "label" for objects
+  optionValue = undefined, // Auto-detect: undefined for primitives, "value" for objects
   optionDisabled,
   optionGroupLabel = "label",
   optionGroupChildren = "items",
@@ -175,16 +175,34 @@ const PrimeMultiSelect = ({
   // Determine controlled vs uncontrolled
   const controlledValue = value !== undefined ? value : internalValue;
   
+  // Auto-detect if options are primitives (strings/numbers) or objects
+  // If options are primitives, don't pass optionLabel/optionValue
+  const hasPrimitiveOptions = useMemo(() => {
+    if (!resolvedOptions || resolvedOptions.length === 0) return false;
+    const firstItem = resolvedOptions[0];
+    return typeof firstItem === 'string' || typeof firstItem === 'number';
+  }, [resolvedOptions]);
+  
+  // Determine optionLabel and optionValue
+  // If explicitly provided, use them; otherwise auto-detect
+  const finalOptionLabel = optionLabel !== undefined 
+    ? optionLabel 
+    : (hasPrimitiveOptions ? undefined : "label");
+  
+  const finalOptionValue = optionValue !== undefined 
+    ? optionValue 
+    : (hasPrimitiveOptions ? undefined : "value");
+  
   // Build props object for PrimeReact MultiSelect
   const multiSelectProps = {
     value: controlledValue,
     onChange: handleChange,
     options: resolvedOptions,
-    optionLabel,
-    optionValue,
-    optionDisabled,
-    optionGroupLabel,
-    optionGroupChildren,
+    ...(finalOptionLabel !== undefined && { optionLabel: finalOptionLabel }),
+    ...(finalOptionValue !== undefined && { optionValue: finalOptionValue }),
+    ...(optionDisabled !== undefined && { optionDisabled }),
+    ...(optionGroupLabel !== undefined && { optionGroupLabel }),
+    ...(optionGroupChildren !== undefined && { optionGroupChildren }),
     display,
     placeholder,
     maxSelectedLabels,
