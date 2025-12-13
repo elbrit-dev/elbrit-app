@@ -97,40 +97,50 @@ const PrimeMultiSelect = ({
 }) => {
   // Get options from data source if configured
   const resolvedOptions = useMemo(() => {
-    if (dataSource === "props" || !dataPath) {
-      return options;
-    }
-    
-    let sourceData;
-    switch (dataSource) {
-      case "pageData":
-        sourceData = pageData;
-        break;
-      case "queryData":
-        sourceData = queryData;
-        break;
-      case "cmsData":
-        sourceData = cmsData;
-        break;
-      default:
-        return options;
-    }
-    
-    if (!sourceData) return options;
-    
-    // Navigate through data path (e.g., "categories.items")
-    const pathParts = dataPath.split('.');
-    let result = sourceData;
-    
-    for (const part of pathParts) {
-      if (result && typeof result === 'object' && part in result) {
-        result = result[part];
-      } else {
-        return options;
+    // If using dataSource with dataPath, try to extract from that
+    if (dataSource !== "props" && dataPath) {
+      let sourceData;
+      switch (dataSource) {
+        case "pageData":
+          sourceData = pageData;
+          break;
+        case "queryData":
+          sourceData = queryData;
+          break;
+        case "cmsData":
+          sourceData = cmsData;
+          break;
+        default:
+          break;
+      }
+      
+      if (sourceData) {
+        // Navigate through data path (e.g., "categories.items")
+        const pathParts = dataPath.split('.');
+        let result = sourceData;
+        
+        for (const part of pathParts) {
+          if (result && typeof result === 'object' && part in result) {
+            result = result[part];
+          } else {
+            result = null;
+            break;
+          }
+        }
+        
+        if (Array.isArray(result)) {
+          return result;
+        }
       }
     }
     
-    return Array.isArray(result) ? result : options;
+    // Use options directly - ensure it's an array
+    if (Array.isArray(options)) {
+      return options;
+    }
+    
+    // Fallback to empty array if options is not valid
+    return [];
   }, [dataSource, dataPath, options, pageData, queryData, cmsData]);
   
   // Internal state management if value is not controlled
@@ -183,15 +193,40 @@ const PrimeMultiSelect = ({
     return typeof firstItem === 'string' || typeof firstItem === 'number';
   }, [resolvedOptions]);
   
-  // Determine optionLabel and optionValue
-  // If explicitly provided, use them; otherwise auto-detect
-  const finalOptionLabel = optionLabel !== undefined 
+  // Normalize optionLabel and optionValue - treat empty strings, "unset", null as undefined
+  const normalizedOptionLabel = (optionLabel && 
+    optionLabel !== "unset" && 
+    optionLabel !== "" &&
+    (typeof optionLabel !== 'string' || optionLabel.trim() !== ""))
     ? optionLabel 
+    : undefined;
+  
+  const normalizedOptionValue = (optionValue && 
+    optionValue !== "unset" && 
+    optionValue !== "" &&
+    (typeof optionValue !== 'string' || optionValue.trim() !== ""))
+    ? optionValue 
+    : undefined;
+  
+  // Determine optionLabel and optionValue
+  // If explicitly provided (and not empty), use them; otherwise auto-detect
+  const finalOptionLabel = normalizedOptionLabel !== undefined
+    ? normalizedOptionLabel
     : (hasPrimitiveOptions ? undefined : "label");
   
-  const finalOptionValue = optionValue !== undefined 
-    ? optionValue 
+  const finalOptionValue = normalizedOptionValue !== undefined
+    ? normalizedOptionValue
     : (hasPrimitiveOptions ? undefined : "value");
+  
+  // Debug logging (can be removed in production)
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[PrimeMultiSelect] Options:', resolvedOptions);
+      console.log('[PrimeMultiSelect] Has primitive options:', hasPrimitiveOptions);
+      console.log('[PrimeMultiSelect] Final optionLabel:', finalOptionLabel);
+      console.log('[PrimeMultiSelect] Final optionValue:', finalOptionValue);
+    }
+  }, [resolvedOptions, hasPrimitiveOptions, finalOptionLabel, finalOptionValue]);
   
   // Build props object for PrimeReact MultiSelect
   const multiSelectProps = {
