@@ -17,6 +17,7 @@ const PrimeDataTab = dynamic(() => import("./components/pimereact"), { ssr: fals
 const LinkComponent = dynamic(() => import("./components/LinkComponent"), { ssr: false, loading: () => null });
 const TagFilterPrimeReact = dynamic(() => import("./components/TagFilterPrimeReact"), { ssr: false, loading: () => null });
 const PrimeTimeline = dynamic(() => import("./components/PrimeTimeline"), { ssr: false, loading: () => null });
+const PrimeMultiSelect = dynamic(() => import("./components/PrimeMultiSelect"), { ssr: false, loading: () => null });
 const SimpleButton = dynamic(() => import("./components/SimpleButton"), { ssr: false, loading: () => null });
 const SimpleCard = dynamic(() => import("./components/SimpleCard"), { ssr: false, loading: () => null });
 const PrintButton = dynamic(() => import("./components/PrintButton"), { ssr: false, loading: () => null });
@@ -4079,4 +4080,321 @@ PLASMIC.registerComponent(PrimeTimeline, {
   classNameProp: "className",
   defaultStyles: {},
   providesData: true
+});
+
+// Register PrimeMultiSelect component
+PLASMIC.registerComponent(PrimeMultiSelect, {
+  name: "PrimeMultiSelect",
+  displayName: "MultiSelect (PrimeReact)",
+  description: "PrimeReact MultiSelect component with all features exposed as props. Select multiple items from a collection.",
+  props: {
+    // Core props
+    value: {
+      type: "array",
+      description: "Selected value(s)",
+      defaultValue: []
+    },
+    onChange: {
+      type: "eventHandler",
+      description: "Callback to invoke when selection changes",
+      argTypes: [
+        {
+          name: "value",
+          type: "array",
+          description: "Array of selected values"
+        },
+        {
+          name: "originalEvent",
+          type: "object",
+          description: "Original browser event"
+        },
+        {
+          name: "target",
+          type: "object",
+          description: "Target element"
+        }
+      ]
+    },
+    options: {
+      type: "array",
+      description: "An array of objects to display as the available options",
+      defaultValue: []
+    },
+    optionLabel: {
+      type: "string",
+      description: "Property name or getter function to use as the label of an option",
+      defaultValue: "label"
+    },
+    optionValue: {
+      type: "string",
+      description: "Property name or getter function to use as the value of an option",
+      defaultValue: "value"
+    },
+    optionDisabled: {
+      type: "string",
+      description: "Property name or getter function to use as the disabled flag of an option",
+      defaultValue: undefined
+    },
+    optionGroupLabel: {
+      type: "string",
+      description: "Property name or getter function to use as the label of an option group",
+      defaultValue: "label"
+    },
+    optionGroupChildren: {
+      type: "string",
+      description: "Property name or getter function to use as the options property of an option group",
+      defaultValue: "items"
+    },
+    
+    // Display props
+    display: {
+      type: "choice",
+      options: ["comma", "chip"],
+      description: "Defines how selected items are displayed",
+      defaultValue: "comma"
+    },
+    placeholder: {
+      type: "string",
+      description: "Placeholder text to show when no option is selected",
+      defaultValue: "Select Items"
+    },
+    maxSelectedLabels: {
+      type: "number",
+      description: "Decides how many selected item labels to show at most",
+      defaultValue: 3
+    },
+    selectedItemsLabel: {
+      type: "string",
+      description: "Label to display after exceeding maxSelectedLabels",
+      defaultValue: "{0} items selected"
+    },
+    
+    // Filter props
+    filter: {
+      type: "boolean",
+      description: "When specified, displays a filter input at header",
+      defaultValue: false
+    },
+    filterBy: {
+      type: "string",
+      description: "Fields used when filtering an options, defaults to optionLabel",
+      defaultValue: undefined
+    },
+    filterMatchMode: {
+      type: "choice",
+      options: ["contains", "startsWith", "endsWith", "equals", "notEquals", "in"],
+      description: "Defines how the items are filtered",
+      defaultValue: "contains"
+    },
+    filterPlaceholder: {
+      type: "string",
+      description: "Placeholder text to show when filter input is empty",
+      defaultValue: "Search..."
+    },
+    filterLocale: {
+      type: "string",
+      description: "Locale to use in filtering",
+      defaultValue: undefined
+    },
+    
+    // Selection props
+    selectionLimit: {
+      type: "number",
+      description: "Maximum number of selectable items",
+      defaultValue: undefined
+    },
+    showSelectAll: {
+      type: "boolean",
+      description: "Whether to show the header checkbox to toggle selection of all items",
+      defaultValue: false
+    },
+    selectAll: {
+      type: "boolean",
+      description: "Whether all data is selected",
+      defaultValue: false
+    },
+    onSelectAll: {
+      type: "eventHandler",
+      description: "Callback to invoke when all items are selected",
+      argTypes: [
+        {
+          name: "checked",
+          type: "boolean",
+          description: "Whether all items are selected"
+        },
+        {
+          name: "originalEvent",
+          type: "object",
+          description: "Original browser event"
+        }
+      ]
+    },
+    
+    // Virtual scroll props
+    virtualScrollerOptions: {
+      type: "object",
+      description: "Options of the virtual scroller component",
+      defaultValue: undefined
+    },
+    scrollHeight: {
+      type: "string",
+      description: "Height of the viewport in pixels, a scrollbar is defined if height of list exceeds this value",
+      defaultValue: "200px"
+    },
+    
+    // Message props
+    emptyFilterMessage: {
+      type: "string",
+      description: "Text to display when filtering does not return any results",
+      defaultValue: "No results found"
+    },
+    emptyMessage: {
+      type: "string",
+      description: "Text to display when there are no options available",
+      defaultValue: "No available options"
+    },
+    
+    // State props
+    disabled: {
+      type: "boolean",
+      description: "When present, it specifies that the component should be disabled",
+      defaultValue: false
+    },
+    loading: {
+      type: "boolean",
+      description: "Displays a loading indicator",
+      defaultValue: false
+    },
+    invalid: {
+      type: "boolean",
+      description: "Invalid state style",
+      defaultValue: false
+    },
+    variant: {
+      type: "choice",
+      options: ["outlined", "filled"],
+      description: "Specifies the input variant of the component",
+      defaultValue: "outlined"
+    },
+    
+    // Float label props
+    inputId: {
+      type: "string",
+      description: "Identifier of the underlying input element",
+      defaultValue: undefined
+    },
+    
+    // Style props
+    className: {
+      type: "string",
+      description: "Style class of the component",
+      defaultValue: ""
+    },
+    style: {
+      type: "object",
+      description: "Inline style of the component",
+      defaultValue: {}
+    },
+    panelClassName: {
+      type: "string",
+      description: "Style class of the overlay panel element",
+      defaultValue: ""
+    },
+    panelStyle: {
+      type: "object",
+      description: "Inline style of the overlay panel element",
+      defaultValue: {}
+    },
+    inputClassName: {
+      type: "string",
+      description: "Style class of the input field",
+      defaultValue: ""
+    },
+    inputStyle: {
+      type: "object",
+      description: "Inline style of the input field",
+      defaultValue: {}
+    },
+    unstyled: {
+      type: "boolean",
+      description: "When enabled, it removes component related styles in the core",
+      defaultValue: false
+    },
+    
+    // Data source props (for Plasmic Studio)
+    dataSource: {
+      type: "choice",
+      options: ["props", "pageData", "queryData", "cmsData"],
+      description: "Data source to read options from",
+      defaultValue: "props"
+    },
+    dataPath: {
+      type: "string",
+      description: "Path to options within the selected data source (e.g., 'categories.items')",
+      defaultValue: ""
+    },
+    
+    // Event handlers
+    onShow: {
+      type: "eventHandler",
+      description: "Callback to invoke when overlay panel becomes visible",
+      argTypes: []
+    },
+    onHide: {
+      type: "eventHandler",
+      description: "Callback to invoke when overlay panel becomes hidden",
+      argTypes: []
+    },
+    onFilter: {
+      type: "eventHandler",
+      description: "Callback to invoke when filtering",
+      argTypes: [
+        {
+          name: "originalEvent",
+          type: "object",
+          description: "Original browser event"
+        },
+        {
+          name: "filterValue",
+          type: "string",
+          description: "Filter value"
+        }
+      ]
+    },
+    onFocus: {
+      type: "eventHandler",
+      description: "Callback to invoke when component receives focus",
+      argTypes: [
+        {
+          name: "originalEvent",
+          type: "object",
+          description: "Original browser event"
+        }
+      ]
+    },
+    onBlur: {
+      type: "eventHandler",
+      description: "Callback to invoke when component loses focus",
+      argTypes: [
+        {
+          name: "originalEvent",
+          type: "object",
+          description: "Original browser event"
+        }
+      ]
+    },
+    
+    // Accessibility props
+    ariaLabelledBy: {
+      type: "string",
+      description: "Establishes relationships between the component and label(s) where its value should be one or more element IDs",
+      defaultValue: undefined
+    },
+    ariaLabel: {
+      type: "string",
+      description: "Used to define a string that labels the component",
+      defaultValue: undefined
+    }
+  },
+  importPath: "./components/PrimeMultiSelect"
 });

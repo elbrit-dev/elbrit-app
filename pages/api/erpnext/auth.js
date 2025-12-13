@@ -1,5 +1,4 @@
-import { Novu } from '@novu/api';
-import { ChatOrPushProviderEnum } from "@novu/api/models/components";
+// Removed Novu SDK - using REST API instead
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -313,47 +312,144 @@ export default async function handler(req, res) {
       authProvider: userData.authProvider
     });
 
-    // Update Novu subscriber credentials with OneSignal player ID and subscription ID if provided
-    if (oneSignalPlayerId) {
+    // Fetch subscriber data from OneSignal and create/update Novu subscriber
+    if (oneSignalPlayerId && oneSignalSubscriptionId) {
       try {
         const novuSecretKey = process.env.NOVU_SECRET_KEY || process.env.NEXT_PUBLIC_NOVU_SECRET_KEY;
+        const oneSignalAppId = process.env.ONESIGNAL_APP_ID;
+        const oneSignalRestApiKey = process.env.ONESIGNAL_REST_API_KEY;
         
-        if (novuSecretKey) {
-          const novu = new Novu({
-            secretKey: novuSecretKey,
-            // Use serverURL for EU region if needed
-            // serverURL: "https://eu.api.novu.co",
-          });
+        if (!novuSecretKey) {
+          console.warn('⚠️ Novu secret key not found. Skipping Novu update.');
+        } else {
+          // Fetch subscriber data from OneSignal API
+          let oneSignalSubscriberData = null;
+          if (oneSignalAppId && oneSignalRestApiKey) {
+            try {
+              console.log('📡 Fetching subscriber data from OneSignal...');
+              // OneSignal REST API uses Basic auth with base64 encoded REST API key
+              // Format: Basic base64(:rest_api_key) or just Basic rest_api_key (some APIs accept this)
+              const basicAuth = Buffer.from(`:${oneSignalRestApiKey}`).toString('base64');
+              
+              const oneSignalResponse = await fetch(`https://onesignal.com/api/v1/players/${oneSignalPlayerId}?app_id=${oneSignalAppId}`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Basic ${basicAuth}`,
+                  'Content-Type': 'application/json'
+                }
+              });
 
-          // Use subscription ID as subscriber ID, fallback to email/uid if not available
-          const subscriberId = oneSignalSubscriptionId;
-          const integrationIdentifier = process.env.NOVU_INTEGRATION_IDENTIFIER || process.env.NEXT_PUBLIC_NOVU_INTEGRATION_IDENTIFIER || null;
-
-          const updateParams = {
-            providerId: ChatOrPushProviderEnum.OneSignal,
-            credentials: {
-              deviceTokens: [oneSignalPlayerId], // Use player ID (onesignalId) for device tokens
-            },
-          };
-
-          // Add integrationIdentifier if provided
-          if (integrationIdentifier) {
-            updateParams.integrationIdentifier = integrationIdentifier;
+              if (oneSignalResponse.ok) {
+                oneSignalSubscriberData = await oneSignalResponse.json();
+                console.log('✅ OneSignal subscriber data fetched:', {
+                  playerId: oneSignalPlayerId,
+                  email: oneSignalSubscriberData.email,
+                  identifier: oneSignalSubscriberData.identifier,
+                  externalUserId: oneSignalSubscriberData.external_user_id
+                });
+              } else {
+                const errorText = await oneSignalResponse.text();
+                console.warn('⚠️ Failed to fetch OneSignal subscriber data:', oneSignalResponse.status, errorText);
+              }
+            } catch (oneSignalError) {
+              console.warn('⚠️ Error fetching OneSignal subscriber data:', oneSignalError);
+            }
+          } else {
+            console.warn('⚠️ OneSignal API credentials not configured. Using ERPNext data only.');
           }
 
-          await novu.subscribers.credentials.update(updateParams, subscriberId);
+          // Prepare subscriber data - use OneSignal data if available, otherwise use ERPNext data
+          const subscriberId = oneSignalSubscriptionId || userData.email || userData.uid;
+          const firstName = userData.displayName?.split(' ')[0] || userData.first_name || oneSignalSubscriberData?.name?.split(' ')[0] || 'User';
+          const lastName = userData.displayName?.split(' ').slice(1).join(' ') || userData.last_name || oneSignalSubscriberData?.name?.split(' ').slice(1).join(' ') || '';
+          const subscriberEmail = userData.email || oneSignalSubscriberData?.email || null;
+          const subscriberPhone = userData.phoneNumber || oneSignalSubscriberData?.phone || null;
+          const avatar = oneSignalSubscriberData?.avatar || null;
+          
+          // Generate idempotency key for create/update operations
+          const idempotencyKey = `${subscriberId}-${Date.now()}`;
 
-          console.log('✅ Novu subscriber credentials updated successfully:', {
-            subscriberId,
-            playerId: oneSignalPlayerId,
-            subscriptionId: oneSignalSubscriptionId,
-            integrationIdentifier,
-          });
-        } else {
-          console.warn('⚠️ Novu secret key not found. Skipping Novu update.');
+          // Try to create subscriber first (with failIfExists=true to check if exists)
+          try {
+            console.log('📤 Creating/updating Novu subscriber...');
+            const createResponse = await fetch('https://api.novu.co/v2/subscribers?failIfExists=true', {
+              method: 'POST',
+              headers: {
+                'idempotency-key': idempotencyKey,
+                'Authorization': `ApiKey ${novuSecretKey}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                firstName: firstName,
+                lastName: lastName,
+                email: subscriberEmail,
+                phone: subscriberPhone,
+                avatar: avatar,
+                locale: 'en-US',
+                timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+                data: {
+                  employeeId: userData.uid,
+                  role: userData.role,
+                  authProvider: userData.authProvider,
+                  ...userData.customProperties
+                },
+                subscriberId: subscriberId
+              })
+            });
+
+            if (createResponse.ok) {
+              console.log('✅ Novu subscriber created/updated successfully:', {
+                subscriberId,
+                email: subscriberEmail,
+                playerId: oneSignalPlayerId
+              });
+            } else if (createResponse.status === 409) {
+              // Subscriber already exists, update it
+              console.log('📝 Subscriber exists, updating...');
+              const updateResponse = await fetch(`https://api.novu.co/v2/subscribers/${subscriberId}`, {
+                method: 'PUT',
+                headers: {
+                  'idempotency-key': idempotencyKey,
+                  'Authorization': `ApiKey ${novuSecretKey}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  firstName: firstName,
+                  lastName: lastName,
+                  email: subscriberEmail,
+                  phone: subscriberPhone,
+                  avatar: avatar,
+                  locale: 'en-US',
+                  timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York',
+                  data: {
+                    employeeId: userData.uid,
+                    role: userData.role,
+                    authProvider: userData.authProvider,
+                    ...userData.customProperties
+                  }
+                })
+              });
+
+              if (updateResponse.ok) {
+                console.log('✅ Novu subscriber updated successfully:', {
+                  subscriberId,
+                  email: subscriberEmail,
+                  playerId: oneSignalPlayerId
+                });
+              } else {
+                const errorText = await updateResponse.text();
+                console.error('❌ Failed to update Novu subscriber:', updateResponse.status, errorText);
+              }
+            } else {
+              const errorText = await createResponse.text();
+              console.error('❌ Failed to create/update Novu subscriber:', createResponse.status, errorText);
+            }
+          } catch (novuError) {
+            console.error('❌ Error creating/updating Novu subscriber:', novuError);
+          }
         }
       } catch (error) {
-        console.error('❌ Error updating Novu subscriber credentials:', error);
+        console.error('❌ Error in Novu subscriber sync:', error);
         // Don't fail the auth request if Novu update fails
       }
     }
