@@ -41,93 +41,204 @@ export default async function handler(req, res) {
     if (phoneNumber && !email) {
       console.log('📱 Phone authentication - searching for employee by phone number');
       
-      // Clean phone number (remove +91 country code)
-      const cleanedPhoneNumber = phoneNumber.replace(/^\+91/, '').replace(/^\+/, '');
-      console.log('📱 Original phone number:', phoneNumber);
-      console.log('📱 Cleaned phone number:', cleanedPhoneNumber);
+      // Generate multiple phone number formats to try
+      const phoneVariations = [];
       
-      // Search Employee table by phone number to get employee ID
-      const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
-      const employeeSearchParams = new URLSearchParams({
-        filters: JSON.stringify([
-          ['cell_number', '=', cleanedPhoneNumber]
-        ]),
-        fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
-      });
-
-      console.log('🔍 Searching Employee table for phone number:', phoneNumber);
+      // Original with country code
+      phoneVariations.push(phoneNumber);
       
-      const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
-          'Content-Type': 'application/json'
+      // Remove +91 country code
+      let cleanedPhoneNumber = phoneNumber.replace(/^\+91/, '').replace(/^\+/, '');
+      phoneVariations.push(cleanedPhoneNumber);
+      
+      // Remove any remaining + or spaces
+      cleanedPhoneNumber = cleanedPhoneNumber.replace(/^\+/, '').replace(/\s/g, '');
+      if (!phoneVariations.includes(cleanedPhoneNumber)) {
+        phoneVariations.push(cleanedPhoneNumber);
+      }
+      
+      // If the number starts with 91 and is longer than 10 digits, remove the 91
+      if (cleanedPhoneNumber.startsWith('91') && cleanedPhoneNumber.length > 10) {
+        const without91 = cleanedPhoneNumber.substring(2);
+        if (!phoneVariations.includes(without91)) {
+          phoneVariations.push(without91);
         }
-      });
+      }
+      
+      console.log('📱 Original phone number:', phoneNumber);
+      console.log('📱 Phone number variations to try:', phoneVariations);
+      
+      // Try searching with different phone number formats
+      let employeeFound = false;
+      let lastError = null;
+      let lastErrorText = null;
+      
+      for (const phoneToSearch of phoneVariations) {
+        // Try cell_number first
+        const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
+        const employeeSearchParams = new URLSearchParams({
+          filters: JSON.stringify([
+            ['cell_number', '=', phoneToSearch]
+          ]),
+          fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
+        });
 
-      if (employeeResponse.ok) {
-        const employeeResult = await employeeResponse.json();
-        console.log('📊 Employee search result:', employeeResult);
-        console.log('📊 Employee data count:', employeeResult.data?.length || 0);
-
-        if (employeeResult.data && employeeResult.data.length > 0) {
-          const employee = employeeResult.data[0];
-          
-          // Check if employee status is Active
-          if (employee.status !== 'Active') {
-            console.warn('⚠️ Employee account is not active:', phoneNumber, 'Status:', employee.status);
-            return res.status(403).json({
-              success: false,
-              error: 'Access Denied',
-              message: 'Your account is not active. Please contact your administrator.',
-              details: {
-                searchedPhone: phoneNumber,
-                authProvider: authProvider,
-                userSource: 'phone_inactive',
-                status: employee.status
-              }
-            });
-          }
-          
-          // Store employee ID for direct fetch
-          employeeIdFromPhone = employee.name;
-          console.log('✅ Found employee ID for phone user:', employeeIdFromPhone);
-          console.log('✅ Employee details:', employee);
-          
-          // If company_email exists, use it as searchValue for Microsoft SSO compatibility
-          // If not, we'll fetch directly by employee ID later
-          if (employee.company_email) {
-            companyEmail = employee.company_email;
-            searchValue = companyEmail;
-            console.log('✅ Company email available:', companyEmail);
-          } else {
-            console.log('⚠️ No company email - will fetch by employee ID:', employeeIdFromPhone);
-          }
-        } else {
-          console.warn('⚠️ No employee found for phone number:', phoneNumber);
-          // Don't create fallback - reject access if not found
-          return res.status(403).json({
-            success: false,
-            error: 'Access Denied',
-            message: 'Phone number not found in organization. Please contact your administrator.',
-            details: {
-              searchedPhone: phoneNumber,
-              authProvider: authProvider,
-              userSource: 'phone_not_found'
+        console.log('🔍 Searching Employee table for phone number (cell_number):', phoneToSearch);
+        
+        try {
+          const employeeResponse = await fetch(`${employeeSearchUrl}?${employeeSearchParams}`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+              'Content-Type': 'application/json'
             }
           });
+
+          console.log('📡 ERPNext API Response Status:', employeeResponse.status);
+
+          if (employeeResponse.ok) {
+            const employeeResult = await employeeResponse.json();
+            console.log('📊 Employee search result:', employeeResult);
+            console.log('📊 Employee data count:', employeeResult.data?.length || 0);
+
+            if (employeeResult.data && employeeResult.data.length > 0) {
+              const employee = employeeResult.data[0];
+              
+              // Check if employee status is Active
+              if (employee.status !== 'Active') {
+                console.warn('⚠️ Employee account is not active:', phoneNumber, 'Status:', employee.status);
+                return res.status(403).json({
+                  success: false,
+                  error: 'Access Denied',
+                  message: 'Your account is not active. Please contact your administrator.',
+                  details: {
+                    searchedPhone: phoneNumber,
+                    authProvider: authProvider,
+                    userSource: 'phone_inactive',
+                    status: employee.status
+                  }
+                });
+              }
+              
+              // Store employee ID for direct fetch
+              employeeIdFromPhone = employee.name;
+              console.log('✅ Found employee ID for phone user:', employeeIdFromPhone);
+              console.log('✅ Employee details:', employee);
+              
+              // If company_email exists, use it as searchValue for Microsoft SSO compatibility
+              // If not, we'll fetch directly by employee ID later
+              if (employee.company_email) {
+                companyEmail = employee.company_email;
+                searchValue = companyEmail;
+                console.log('✅ Company email available:', companyEmail);
+              } else {
+                console.log('⚠️ No company email - will fetch by employee ID:', employeeIdFromPhone);
+              }
+              
+              employeeFound = true;
+              break;
+            }
+          } else {
+            // Log the error for debugging
+            lastError = employeeResponse.status;
+            lastErrorText = await employeeResponse.text().catch(() => 'Could not read error response');
+            console.warn('⚠️ Employee search failed for phone format:', phoneToSearch, 'Status:', lastError);
+            console.warn('⚠️ Error response:', lastErrorText);
+            
+            // If it's a 403 or 401, it's likely an auth issue, not a format issue
+            if (employeeResponse.status === 403 || employeeResponse.status === 401) {
+              console.error('❌ ERPNext API authentication failed. Check API credentials.');
+              return res.status(500).json({
+                success: false,
+                error: 'ERPNext API Error',
+                message: 'Unable to connect to ERPNext. Please contact your administrator.',
+                details: {
+                  searchedPhone: phoneNumber,
+                  authProvider: authProvider,
+                  userSource: 'erpnext_api_error',
+                  erpnextStatus: lastError,
+                  erpnextError: lastErrorText
+                }
+              });
+            }
+          }
+        } catch (fetchError) {
+          console.error('❌ Network error during employee search:', fetchError);
+          lastError = fetchError.message;
         }
-      } else {
-        console.warn('⚠️ Employee search failed:', employeeResponse.status);
-        // Don't create fallback - reject access if search fails
+        
+        // If not found in cell_number, try fsl_whatsapp_number
+        if (!employeeFound) {
+          const whatsappSearchParams = new URLSearchParams({
+            filters: JSON.stringify([
+              ['fsl_whatsapp_number', '=', phoneToSearch]
+            ]),
+            fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
+          });
+
+          console.log('🔍 Searching Employee table for phone number (fsl_whatsapp_number):', phoneToSearch);
+          
+          try {
+            const whatsappResponse = await fetch(`${employeeSearchUrl}?${whatsappSearchParams}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+                'Content-Type': 'application/json'
+              }
+            });
+
+            if (whatsappResponse.ok) {
+              const whatsappResult = await whatsappResponse.json();
+              if (whatsappResult.data && whatsappResult.data.length > 0) {
+                const employee = whatsappResult.data[0];
+                
+                if (employee.status !== 'Active') {
+                  console.warn('⚠️ Employee account is not active:', phoneNumber, 'Status:', employee.status);
+                  return res.status(403).json({
+                    success: false,
+                    error: 'Access Denied',
+                    message: 'Your account is not active. Please contact your administrator.',
+                    details: {
+                      searchedPhone: phoneNumber,
+                      authProvider: authProvider,
+                      userSource: 'phone_inactive',
+                      status: employee.status
+                    }
+                  });
+                }
+                
+                employeeIdFromPhone = employee.name;
+                console.log('✅ Found employee ID via WhatsApp number:', employeeIdFromPhone);
+                
+                if (employee.company_email) {
+                  companyEmail = employee.company_email;
+                  searchValue = companyEmail;
+                }
+                
+                employeeFound = true;
+                break;
+              }
+            }
+          } catch (fetchError) {
+            console.error('❌ Network error during WhatsApp number search:', fetchError);
+          }
+        }
+      }
+      
+      // If no employee found after trying all variations
+      if (!employeeFound) {
+        console.warn('⚠️ No employee found for any phone number variation:', phoneVariations);
         return res.status(403).json({
           success: false,
           error: 'Access Denied',
-          message: 'Unable to verify phone number. Please contact your administrator.',
+          message: 'Phone number not found in organization. Please contact your administrator.',
           details: {
             searchedPhone: phoneNumber,
+            triedVariations: phoneVariations,
             authProvider: authProvider,
-            userSource: 'phone_search_failed'
+            userSource: 'phone_not_found',
+            lastError: lastError,
+            lastErrorText: lastErrorText
           }
         });
       }
@@ -302,6 +413,101 @@ export default async function handler(req, res) {
       });
     }
 
+    // Fetch teams and warehouses using REST API if kly_role_id exists
+    let teamsData = null;
+    if (userData.kly_role_id) {
+      try {
+        console.log('🔍 Fetching teams and warehouses for role ID:', userData.kly_role_id);
+        
+        // Use REST API to fetch Elbrit Role ID - filter by name (role ID)
+        // Doctype name is "Elbrit Role ID" (with spaces) - encode spaces as %20 for URL
+        const doctypeName = 'Elbrit Role ID';
+        const roleSearchUrl = `${erpnextUrl}/api/resource/${encodeURIComponent(doctypeName)}`;
+        const roleSearchParams = new URLSearchParams({
+          filters: JSON.stringify([['name', '=', userData.kly_role_id]]),
+          fields: JSON.stringify([
+            'name',
+            'employee__name',
+            'employee_name',
+            'designation__name',
+            'hq__name',
+            'elbrit_sales_team',
+            'sales_team'
+          ])
+        });
+
+        const roleResponse = await fetch(`${roleSearchUrl}?${roleSearchParams}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (roleResponse.ok) {
+          const roleResult = await roleResponse.json();
+          console.log('📊 ElbritRoleIDS REST API response:', roleResult);
+
+          if (roleResult.data && roleResult.data.length > 0) {
+            const roleData = roleResult.data[0]; // Should only be one match since we filtered by name
+            console.log('📊 Role data:', roleData);
+
+            // Extract teams and CFA (warehouses) from role data
+            const n = roleData;
+            const teams = [];
+            const cfa = []; // warehouses/CFA
+
+            // Extract teams and warehouses from elbrit_sales_team (CFA roles - multiple teams)
+            if (n.elbrit_sales_team && Array.isArray(n.elbrit_sales_team)) {
+              n.elbrit_sales_team.forEach(item => {
+                // Get team name
+                const teamName = item?.sales_team?.name || item?.sales_team;
+                if (teamName) teams.push(teamName);
+                
+                // Get warehouse (CFA)
+                const warehouse = item?.sales_team?.warehouse__name || item?.sales_team?.warehouse;
+                if (warehouse) cfa.push(warehouse);
+              });
+            }
+
+            // Extract teams and warehouses from sales_team (normal role - single team)
+            if (n.sales_team) {
+              const teamName = typeof n.sales_team === 'string' 
+                ? n.sales_team 
+                : (n.sales_team?.name || n.sales_team);
+              
+              if (teamName) teams.push(teamName);
+              
+              const warehouse = typeof n.sales_team === 'object'
+                ? (n.sales_team?.warehouse__name || n.sales_team?.warehouse)
+                : null;
+              
+              if (warehouse) cfa.push(warehouse);
+            }
+
+            // Create teams data - deduplicate arrays
+            teamsData = {
+              teams: [...new Set(teams)],
+              CFA: [...new Set(cfa)]
+            };
+            
+            console.log('✅ Teams and CFA fetched successfully:', teamsData);
+          } else {
+            console.warn('⚠️ No role data found for role ID:', userData.kly_role_id);
+          }
+        } else {
+          const errorText = await roleResponse.text();
+          console.warn('⚠️ REST API query failed:', roleResponse.status, errorText);
+          // Don't fail auth if REST API query fails
+        }
+      } catch (error) {
+        console.error('❌ Error fetching teams and warehouses:', error);
+        // Don't fail auth if REST API query fails
+      }
+    } else {
+      console.log('ℹ️ No kly_role_id found, skipping teams/warehouses fetch');
+    }
+
     // Generate a simple token (you can implement JWT if needed)
     const token = Buffer.from(`${userData.uid}:${Date.now()}`).toString('base64');
 
@@ -310,7 +516,8 @@ export default async function handler(req, res) {
       companyEmail: searchValue,
       email: userData.email,
       role: userData.role,
-      authProvider: userData.authProvider
+      authProvider: userData.authProvider,
+      hasTeamsData: !!teamsData
     });
 
     // Update Novu subscriber credentials with OneSignal player ID and subscription ID if provided
@@ -362,7 +569,8 @@ export default async function handler(req, res) {
       success: true,
       user: userData,
       token: token,
-      userSource: userSource
+      userSource: userSource,
+      teams: teamsData || null
     });
 
   } catch (error) {

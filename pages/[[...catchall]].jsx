@@ -113,6 +113,13 @@ export default function PlasmicLoaderPage(props) {
             localStorage.setItem('erpnextAuthToken', erpnextData.token);
             const employeeId = erpnextData?.user?.customProperties?.employeeId || erpnextData?.user?.uid || erpnextData?.user?.employeeData?.name || '';
             localStorage.setItem('employeeId', employeeId);
+            
+            // Store teams and warehouses data if available
+            if (erpnextData.teams) {
+              localStorage.setItem('teams', JSON.stringify(erpnextData.teams));
+            } else {
+              localStorage.removeItem('teams');
+            }
           } else {
             console.error('ERPNext auth refresh failed:', response.status, response.statusText);
           }

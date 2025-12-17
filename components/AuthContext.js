@@ -299,13 +299,22 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userInitial', firstLetter);
                   localStorage.setItem('klyRoleId', finalUser.kly_role_id || 'null');
                   
+                  // Store teams and warehouses data if available
+                  if (erpnextData.teams) {
+                    localStorage.setItem('teams', JSON.stringify(erpnextData.teams));
+                    console.log('💾 Teams data saved to localStorage:', erpnextData.teams);
+                  } else {
+                    // Clear teams data if not available
+                    localStorage.removeItem('teams');
+                  }
                   
                   console.log('💾 Auth data saved to localStorage:', {
                     authType: 'erpnext',
                     authProvider: provider,
                     authMethod: provider === 'phone' ? 'phone' : 'microsoft',
                     userEmail: finalUser.email,
-                    userRole: finalUser.role
+                    userRole: finalUser.role,
+                    hasTeamsData: !!erpnextData.teams
                   });
                 } catch (storageError) {
                   console.warn('Failed to save auth data to localStorage:', storageError);
