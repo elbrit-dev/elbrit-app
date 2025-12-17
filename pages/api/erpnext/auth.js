@@ -413,109 +413,164 @@ export default async function handler(req, res) {
       });
     }
 
-    // Fetch teams and warehouses using REST API
-    // If role ID exists, fetch for that specific role; if null, fetch all teams and CFAs
+    // Fetch teams and warehouses
+    // If role ID exists: use GraphQL to fetch ElbritRoleIDS
+    // If role ID is null: fetch from Elbrit Sales Team doctype
     let teamsData = null;
     try {
-      const doctypeName = 'Elbrit Role ID';
-      const roleSearchUrl = `${erpnextUrl}/api/resource/${encodeURIComponent(doctypeName)}`;
-      
-      // Build query parameters
-      const roleSearchParams = new URLSearchParams({
-        fields: JSON.stringify([
-          'name',
-          'employee__name',
-          'employee_name',
-          'designation__name',
-          'hq__name',
-          'elbrit_sales_team',
-          'sales_team'
-        ]),
-        limit: 1000 // Get up to 1000 records
-      });
-
-      // Add filter only if role ID exists
       if (userData.kly_role_id) {
-        console.log('🔍 Fetching teams and warehouses for role ID:', userData.kly_role_id);
-        roleSearchParams.append('filters', JSON.stringify([['name', '=', userData.kly_role_id]]));
-      } else {
-        console.log('🔍 Fetching all teams and CFAs (no role ID specified)');
-      }
+        // Use GraphQL to fetch ElbritRoleIDS for specific role
+        console.log('🔍 Fetching teams and warehouses via GraphQL for role ID:', userData.kly_role_id);
+        
+        const graphqlQuery = `
+          query ElbritRoleID($name: String!) {
+            ElbritRoleID(name: $name) {
+              sales_team {
+                name
+                warehouse__name
+              }
+              elbrit_sales_team {
+                sales_team {
+                  name
+                  warehouse__name
+                }
+              }
+            }
+          }
+        `;
 
-      const roleResponse = await fetch(`${roleSearchUrl}?${roleSearchParams}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
-          'Content-Type': 'application/json'
-        }
-      });
+        const graphqlUrl = `${erpnextUrl}/api/method/graphql`;
+        
+        const graphqlResponse = await fetch(graphqlUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            query: graphqlQuery,
+            variables: {
+              name: userData.kly_role_id
+            }
+          })
+        });
 
-      if (roleResponse.ok) {
-        const roleResult = await roleResponse.json();
-        console.log('📊 ElbritRoleIDS REST API response:', roleResult);
+        if (graphqlResponse.ok) {
+          const graphqlResult = await graphqlResponse.json();
+          console.log('📊 GraphQL response:', graphqlResult);
 
-        if (roleResult.data && roleResult.data.length > 0) {
-          // Aggregate all teams and CFAs from all role records
-          const allTeams = [];
-          const allCFA = []; // warehouses/CFA
+          // Handle GraphQL response - could be wrapped in various formats
+          const roleData = graphqlResult?.data?.response?.data?.ElbritRoleID ||
+                          graphqlResult?.data?.ElbritRoleID || 
+                          graphqlResult?.response?.data?.ElbritRoleID || 
+                          graphqlResult?.ElbritRoleID || 
+                          null;
 
-          // Process all role records
-          roleResult.data.forEach(roleData => {
+          if (roleData) {
             const n = roleData;
 
-            // Extract teams and warehouses from elbrit_sales_team (CFA roles - multiple teams)
-            if (n.elbrit_sales_team && Array.isArray(n.elbrit_sales_team)) {
-              n.elbrit_sales_team.forEach(item => {
-                // Get team name
-                const teamName = item?.sales_team?.name || item?.sales_team;
-                if (teamName) allTeams.push(teamName);
-                
-                // Get warehouse (CFA)
-                const warehouse = item?.sales_team?.warehouse__name || item?.sales_team?.warehouse;
-                if (warehouse) allCFA.push(warehouse);
-              });
-            }
+            // ---- Teams (CFA + normal role) ----
+            const teams = [
+              // CFA roles (multiple teams)
+              ...(n.elbrit_sales_team?.length
+                ? n.elbrit_sales_team
+                    .map(t => t.sales_team?.name)
+                    .filter(Boolean)
+                : []
+              ),
 
-            // Extract teams and warehouses from sales_team (normal role - single team)
-            if (n.sales_team) {
-              const teamName = typeof n.sales_team === 'string' 
-                ? n.sales_team 
-                : (n.sales_team?.name || n.sales_team);
-              
-              if (teamName) allTeams.push(teamName);
-              
-              const warehouse = typeof n.sales_team === 'object'
-                ? (n.sales_team?.warehouse__name || n.sales_team?.warehouse)
-                : null;
-              
-              if (warehouse) allCFA.push(warehouse);
-            }
-          });
+              // Normal roles (single team object)
+              ...(n.sales_team?.name ? [n.sales_team.name] : [])
+            ];
 
-          // Create teams data - deduplicate arrays
-          teamsData = {
-            teams: [...new Set(allTeams)],
-            CFA: [...new Set(allCFA)]
-          };
-          
-          console.log('✅ Teams and CFA fetched successfully:', {
-            totalRecords: roleResult.data.length,
-            uniqueTeams: teamsData.teams.length,
-            uniqueCFA: teamsData.CFA.length,
-            teams: teamsData.teams,
-            CFA: teamsData.CFA
-          });
+            // ---- Warehouses (CFA + normal role) ----
+            const CFA = [
+              // CFA warehouses
+              ...(n.elbrit_sales_team?.length
+                ? n.elbrit_sales_team
+                    .map(t => t.sales_team?.warehouse__name)
+                    .filter(Boolean)
+                : []
+              ),
+
+              // Normal role warehouse
+              ...(n.sales_team?.warehouse__name ? [n.sales_team.warehouse__name] : [])
+            ];
+
+            teamsData = {
+              teams: [...new Set(teams)],          // deduped
+              CFA: [...new Set(CFA)]               // deduped
+            };
+
+            console.log('✅ Teams and CFA fetched successfully via GraphQL:', teamsData);
+          } else {
+            console.warn('⚠️ No role data found for role ID:', userData.kly_role_id);
+          }
         } else {
-          console.warn('⚠️ No role data found');
+          const errorText = await graphqlResponse.text();
+          console.warn('⚠️ GraphQL query failed:', graphqlResponse.status, errorText);
         }
       } else {
-        const errorText = await roleResponse.text();
-        console.warn('⚠️ REST API query failed:', roleResponse.status, errorText);
-        // Don't fail auth if REST API query fails
+        // Role ID is null - fetch from Elbrit Sales Team doctype
+        console.log('🔍 Fetching all teams and CFAs from Elbrit Sales Team (no role ID)');
+        
+        const salesTeamUrl = `${erpnextUrl}/api/resource/Elbrit Sales Team`;
+        const salesTeamParams = new URLSearchParams({
+          fields: JSON.stringify(['name', 'warehouse__name']),
+          limit: 1000
+        });
+
+        const salesTeamResponse = await fetch(`${salesTeamUrl}?${salesTeamParams}`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (salesTeamResponse.ok) {
+          const salesTeamResult = await salesTeamResponse.json();
+          console.log('📊 Elbrit Sales Team REST API response:', salesTeamResult);
+
+          if (salesTeamResult.data && salesTeamResult.data.length > 0) {
+            // Extract all teams and warehouses
+            const allTeams = [];
+            const allCFA = [];
+
+            salesTeamResult.data.forEach(item => {
+              // Get team name
+              if (item.name) {
+                allTeams.push(item.name);
+              }
+              
+              // Get warehouse (CFA)
+              if (item.warehouse__name) {
+                allCFA.push(item.warehouse__name);
+              }
+            });
+
+            // Create teams data - deduplicate arrays
+            teamsData = {
+              teams: [...new Set(allTeams)],
+              CFA: [...new Set(allCFA)]
+            };
+            
+            console.log('✅ Teams and CFA fetched successfully from Elbrit Sales Team:', {
+              totalRecords: salesTeamResult.data.length,
+              uniqueTeams: teamsData.teams.length,
+              uniqueCFA: teamsData.CFA.length
+            });
+          } else {
+            console.warn('⚠️ No sales team data found');
+          }
+        } else {
+          const errorText = await salesTeamResponse.text();
+          console.warn('⚠️ Elbrit Sales Team REST API query failed:', salesTeamResponse.status, errorText);
+        }
       }
     } catch (error) {
       console.error('❌ Error fetching teams and warehouses:', error);
-      // Don't fail auth if REST API query fails
+      // Don't fail auth if query fails
     }
 
     // Generate a simple token (you can implement JWT if needed)
