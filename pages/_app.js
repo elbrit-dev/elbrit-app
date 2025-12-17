@@ -232,15 +232,29 @@ const a = {
     const get = (obj, path) =>
       path.split('.').reduce((o, k) => (o ? o[k] : undefined), obj);
   
-    // 🔃 Flatten nested object into flat { a_b_c: value }, skipping arrays at any depth
+    // 🔃 Flatten nested object into flat { a_b_c: value }
     const flatten = (obj, prefix = '', res = {}) => {
       if (!obj || typeof obj !== 'object') return res;
+  
       for (const [k, v] of Object.entries(obj)) {
         const newKey = prefix ? `${prefix}_${k}` : k;
+  
+        // ✅ HANDLE ARRAYS (except items)
         if (Array.isArray(v)) {
-          // skip arrays entirely (e.g., parent.items)
+          // Join array objects into readable strings
+          res[newKey] = v
+            .map(item => {
+              if (item && typeof item === "object") {
+                return Object.values(item)
+                  .filter(x => x !== null && x !== undefined)
+                  .join(" | ");
+              }
+              return item;
+            })
+            .join(", ");
           continue;
         }
+  
         if (v && typeof v === 'object') {
           flatten(v, newKey, res);
         } else {
@@ -252,10 +266,10 @@ const a = {
   
     return data.flatMap(entry => {
       const parentPath = itemPath.split('.').slice(0, -1).join('.');
-      const parentObject = parentPath ? get(entry, parentPath) : entry;   // 👈 use whole entry when no parentPath
+      const parentObject = parentPath ? get(entry, parentPath) : entry;
+  
       const parentFlatFull = flatten(parentObject, parentPrefix);
   
-      // If includeParentPaths is defined, filter only selected keys
       const parentFlat = includeParentPaths.length > 0
         ? Object.fromEntries(
             Object.entries(parentFlatFull).filter(([k]) =>
@@ -275,6 +289,7 @@ const a = {
       });
     });
   }
+  
   ,
 
   // URL encoding/decoding helpers (names as requested)
