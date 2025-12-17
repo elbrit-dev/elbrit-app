@@ -413,60 +413,66 @@ export default async function handler(req, res) {
       });
     }
 
-    // Fetch teams and warehouses using REST API if kly_role_id exists
+    // Fetch teams and warehouses using REST API
+    // If role ID exists, fetch for that specific role; if null, fetch all teams and CFAs
     let teamsData = null;
-    if (userData.kly_role_id) {
-      try {
+    try {
+      const doctypeName = 'Elbrit Role ID';
+      const roleSearchUrl = `${erpnextUrl}/api/resource/${encodeURIComponent(doctypeName)}`;
+      
+      // Build query parameters
+      const roleSearchParams = new URLSearchParams({
+        fields: JSON.stringify([
+          'name',
+          'employee__name',
+          'employee_name',
+          'designation__name',
+          'hq__name',
+          'elbrit_sales_team',
+          'sales_team'
+        ]),
+        limit: 1000 // Get up to 1000 records
+      });
+
+      // Add filter only if role ID exists
+      if (userData.kly_role_id) {
         console.log('🔍 Fetching teams and warehouses for role ID:', userData.kly_role_id);
-        
-        // Use REST API to fetch Elbrit Role ID - filter by name (role ID)
-        // Doctype name is "Elbrit Role ID" (with spaces) - encode spaces as %20 for URL
-        const doctypeName = 'Elbrit Role ID';
-        const roleSearchUrl = `${erpnextUrl}/api/resource/${encodeURIComponent(doctypeName)}`;
-        const roleSearchParams = new URLSearchParams({
-          filters: JSON.stringify([['name', '=', userData.kly_role_id]]),
-          fields: JSON.stringify([
-            'name',
-            'employee__name',
-            'employee_name',
-            'designation__name',
-            'hq__name',
-            'elbrit_sales_team',
-            'sales_team'
-          ])
-        });
+        roleSearchParams.append('filters', JSON.stringify([['name', '=', userData.kly_role_id]]));
+      } else {
+        console.log('🔍 Fetching all teams and CFAs (no role ID specified)');
+      }
 
-        const roleResponse = await fetch(`${roleSearchUrl}?${roleSearchParams}`, {
-          method: 'GET',
-          headers: {
-            'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
-            'Content-Type': 'application/json'
-          }
-        });
+      const roleResponse = await fetch(`${roleSearchUrl}?${roleSearchParams}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-        if (roleResponse.ok) {
-          const roleResult = await roleResponse.json();
-          console.log('📊 ElbritRoleIDS REST API response:', roleResult);
+      if (roleResponse.ok) {
+        const roleResult = await roleResponse.json();
+        console.log('📊 ElbritRoleIDS REST API response:', roleResult);
 
-          if (roleResult.data && roleResult.data.length > 0) {
-            const roleData = roleResult.data[0]; // Should only be one match since we filtered by name
-            console.log('📊 Role data:', roleData);
+        if (roleResult.data && roleResult.data.length > 0) {
+          // Aggregate all teams and CFAs from all role records
+          const allTeams = [];
+          const allCFA = []; // warehouses/CFA
 
-            // Extract teams and CFA (warehouses) from role data
+          // Process all role records
+          roleResult.data.forEach(roleData => {
             const n = roleData;
-            const teams = [];
-            const cfa = []; // warehouses/CFA
 
             // Extract teams and warehouses from elbrit_sales_team (CFA roles - multiple teams)
             if (n.elbrit_sales_team && Array.isArray(n.elbrit_sales_team)) {
               n.elbrit_sales_team.forEach(item => {
                 // Get team name
                 const teamName = item?.sales_team?.name || item?.sales_team;
-                if (teamName) teams.push(teamName);
+                if (teamName) allTeams.push(teamName);
                 
                 // Get warehouse (CFA)
                 const warehouse = item?.sales_team?.warehouse__name || item?.sales_team?.warehouse;
-                if (warehouse) cfa.push(warehouse);
+                if (warehouse) allCFA.push(warehouse);
               });
             }
 
@@ -476,36 +482,40 @@ export default async function handler(req, res) {
                 ? n.sales_team 
                 : (n.sales_team?.name || n.sales_team);
               
-              if (teamName) teams.push(teamName);
+              if (teamName) allTeams.push(teamName);
               
               const warehouse = typeof n.sales_team === 'object'
                 ? (n.sales_team?.warehouse__name || n.sales_team?.warehouse)
                 : null;
               
-              if (warehouse) cfa.push(warehouse);
+              if (warehouse) allCFA.push(warehouse);
             }
+          });
 
-            // Create teams data - deduplicate arrays
-            teamsData = {
-              teams: [...new Set(teams)],
-              CFA: [...new Set(cfa)]
-            };
-            
-            console.log('✅ Teams and CFA fetched successfully:', teamsData);
-          } else {
-            console.warn('⚠️ No role data found for role ID:', userData.kly_role_id);
-          }
+          // Create teams data - deduplicate arrays
+          teamsData = {
+            teams: [...new Set(allTeams)],
+            CFA: [...new Set(allCFA)]
+          };
+          
+          console.log('✅ Teams and CFA fetched successfully:', {
+            totalRecords: roleResult.data.length,
+            uniqueTeams: teamsData.teams.length,
+            uniqueCFA: teamsData.CFA.length,
+            teams: teamsData.teams,
+            CFA: teamsData.CFA
+          });
         } else {
-          const errorText = await roleResponse.text();
-          console.warn('⚠️ REST API query failed:', roleResponse.status, errorText);
-          // Don't fail auth if REST API query fails
+          console.warn('⚠️ No role data found');
         }
-      } catch (error) {
-        console.error('❌ Error fetching teams and warehouses:', error);
+      } else {
+        const errorText = await roleResponse.text();
+        console.warn('⚠️ REST API query failed:', roleResponse.status, errorText);
         // Don't fail auth if REST API query fails
       }
-    } else {
-      console.log('ℹ️ No kly_role_id found, skipping teams/warehouses fetch');
+    } catch (error) {
+      console.error('❌ Error fetching teams and warehouses:', error);
+      // Don't fail auth if REST API query fails
     }
 
     // Generate a simple token (you can implement JWT if needed)
