@@ -295,11 +295,11 @@ const a = {
     try { return decodeURIComponent(text); } catch (e) { return text; }
   },
 
+  // ✅ NEW flatten function for dynamic JSON
+  flatten,
   log:(...args) => {
     console.log(`${new Date().toISOString()}`,...args);
   },
-  // ✅ NEW flatten function for dynamic JSON
-
   // ✅ LZ-String compression functions for Plasmic Studio
   // Compress JSON/array data to a compressed string
   compress: (data) => {
