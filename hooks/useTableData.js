@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { processDataWithMerge, generateColumnsFromData } from '../utils/tableUtils';
-import { transformToPivotData, mergePivotConfig } from '../utils/pivotUtils';
+import { processDataWithMerge, generateColumnsFromData } from '../components/utils/tableUtils';
+import { transformToPivotData, mergePivotConfig } from '../components/utils/pivotUtils';
 
 export const useTableData = ({
   data = [],

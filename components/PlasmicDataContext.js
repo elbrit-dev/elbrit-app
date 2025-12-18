@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
-import { isDOMReady, waitForDOMReady } from '../utils/domUtils';
+import { isDOMReady, waitForDOMReady } from './utils/domUtils';
 
 /**
  * This component is responsible for exposing user data to Plasmic Studio
