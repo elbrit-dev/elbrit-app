@@ -511,41 +511,65 @@ export default async function handler(req, res) {
           console.warn('⚠️ GraphQL query failed:', graphqlResponse.status, errorText);
         }
       } else {
-        // Role ID is null - fetch from Elbrit Sales Team doctype
-        console.log('🔍 Fetching all teams and CFAs from Elbrit Sales Team (no role ID)');
+        // Role ID is null - fetch all teams from Elbrit Sales Team via GraphQL
+        console.log('🔍 Fetching all teams and CFAs from Elbrit Sales Team via GraphQL (no role ID)');
         
-        const salesTeamUrl = `${erpnextUrl}/api/resource/Elbrit Sales Team`;
-        const salesTeamParams = new URLSearchParams({
-          fields: JSON.stringify(['name', 'warehouse__name']),
-          limit: 1000
-        });
+        const graphqlQuery = `
+          query MyQuery {
+            ElbritSalesTeams(first: 100) {
+              edges {
+                node {
+                  name
+                  warehouse__name
+                  sales_team_name
+                }
+              }
+            }
+          }
+        `;
 
-        const salesTeamResponse = await fetch(`${salesTeamUrl}?${salesTeamParams}`, {
-          method: 'GET',
+        const graphqlUrl = `${erpnextUrl}/api/method/graphql`;
+        
+        const graphqlResponse = await fetch(graphqlUrl, {
+          method: 'POST',
           headers: {
             'Authorization': `token ${erpnextApiKey}:${erpnextApiSecret}`,
             'Content-Type': 'application/json'
-          }
+          },
+          body: JSON.stringify({
+            query: graphqlQuery
+          })
         });
 
-        if (salesTeamResponse.ok) {
-          const salesTeamResult = await salesTeamResponse.json();
-          console.log('📊 Elbrit Sales Team REST API response:', salesTeamResult);
+        if (graphqlResponse.ok) {
+          const graphqlResult = await graphqlResponse.json();
+          console.log('📊 GraphQL ElbritSalesTeams response:', graphqlResult);
 
-          if (salesTeamResult.data && salesTeamResult.data.length > 0) {
-            // Extract all teams and warehouses
+          // Handle GraphQL response - could be wrapped in various formats
+          const salesTeamsData = graphqlResult?.data?.response?.data?.ElbritSalesTeams ||
+                                  graphqlResult?.data?.ElbritSalesTeams || 
+                                  graphqlResult?.response?.data?.ElbritSalesTeams || 
+                                  graphqlResult?.ElbritSalesTeams || 
+                                  null;
+
+          if (salesTeamsData && salesTeamsData.edges) {
+            // Extract all teams and warehouses from edges array
             const allTeams = [];
             const allCFA = [];
 
-            salesTeamResult.data.forEach(item => {
-              // Get team name
-              if (item.name) {
-                allTeams.push(item.name);
+            salesTeamsData.edges.forEach(edge => {
+              const node = edge.node;
+              
+              // Get team name (use name or sales_team_name)
+              if (node.name) {
+                allTeams.push(node.name);
+              } else if (node.sales_team_name) {
+                allTeams.push(node.sales_team_name);
               }
               
               // Get warehouse (CFA)
-              if (item.warehouse__name) {
-                allCFA.push(item.warehouse__name);
+              if (node.warehouse__name) {
+                allCFA.push(node.warehouse__name);
               }
             });
 
@@ -555,17 +579,19 @@ export default async function handler(req, res) {
               CFA: [...new Set(allCFA)]
             };
             
-            console.log('✅ Teams and CFA fetched successfully from Elbrit Sales Team:', {
-              totalRecords: salesTeamResult.data.length,
+            console.log('✅ Teams and CFA fetched successfully from GraphQL ElbritSalesTeams:', {
+              totalRecords: salesTeamsData.edges.length,
               uniqueTeams: teamsData.teams.length,
-              uniqueCFA: teamsData.CFA.length
+              uniqueCFA: teamsData.CFA.length,
+              teams: teamsData.teams,
+              CFA: teamsData.CFA
             });
           } else {
-            console.warn('⚠️ No sales team data found');
+            console.warn('⚠️ No sales team data found in GraphQL response');
           }
         } else {
-          const errorText = await salesTeamResponse.text();
-          console.warn('⚠️ Elbrit Sales Team REST API query failed:', salesTeamResponse.status, errorText);
+          const errorText = await graphqlResponse.text();
+          console.warn('⚠️ GraphQL ElbritSalesTeams query failed:', graphqlResponse.status, errorText);
         }
       }
     } catch (error) {

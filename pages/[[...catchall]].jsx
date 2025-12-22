@@ -116,9 +116,22 @@ export default function PlasmicLoaderPage(props) {
             
             // Store teams and warehouses data if available
             if (erpnextData.teams) {
-              localStorage.setItem('teams', JSON.stringify(erpnextData.teams));
+              // Store the complete teams object with both teams and CFA arrays
+              localStorage.setItem('teamsData', JSON.stringify(erpnextData.teams));
+              
+              // Also store teams array separately for easy access
+              if (erpnextData.teams.teams) {
+                localStorage.setItem('teams', JSON.stringify(erpnextData.teams.teams));
+              }
+              
+              // Store CFA array separately for easy access
+              if (erpnextData.teams.CFA) {
+                localStorage.setItem('CFA', JSON.stringify(erpnextData.teams.CFA));
+              }
             } else {
+              localStorage.removeItem('teamsData');
               localStorage.removeItem('teams');
+              localStorage.removeItem('CFA');
             }
           } else {
             console.error('ERPNext auth refresh failed:', response.status, response.statusText);

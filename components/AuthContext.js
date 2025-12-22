@@ -301,11 +301,28 @@ export const AuthProvider = ({ children }) => {
                   
                   // Store teams and warehouses data if available
                   if (erpnextData.teams) {
-                    localStorage.setItem('teams', JSON.stringify(erpnextData.teams));
-                    console.log('💾 Teams data saved to localStorage:', erpnextData.teams);
+                    // Store the complete teams object with both teams and CFA arrays
+                    localStorage.setItem('teamsData', JSON.stringify(erpnextData.teams));
+                    
+                    // Also store teams array separately for easy access
+                    if (erpnextData.teams.teams) {
+                      localStorage.setItem('teams', JSON.stringify(erpnextData.teams.teams));
+                    }
+                    
+                    // Store CFA array separately for easy access
+                    if (erpnextData.teams.CFA) {
+                      localStorage.setItem('CFA', JSON.stringify(erpnextData.teams.CFA));
+                    }
+                    
+                    console.log('💾 Teams data saved to localStorage:', {
+                      teams: erpnextData.teams.teams,
+                      CFA: erpnextData.teams.CFA
+                    });
                   } else {
                     // Clear teams data if not available
+                    localStorage.removeItem('teamsData');
                     localStorage.removeItem('teams');
+                    localStorage.removeItem('CFA');
                   }
                   
                   console.log('💾 Auth data saved to localStorage:', {
@@ -386,10 +403,11 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('userPhoneNumber');
             localStorage.removeItem('userAvatar');
             localStorage.removeItem('userInitial');
-            localStorage.removeItem('userAvatar');
-            localStorage.removeItem('userInitial');
             localStorage.removeItem('employeeId');
             localStorage.removeItem('klyRoleId');
+            localStorage.removeItem('teamsData');
+            localStorage.removeItem('teams');
+            localStorage.removeItem('CFA');
           }
         }
         } else {
@@ -417,6 +435,11 @@ export const AuthProvider = ({ children }) => {
             localStorage.removeItem('phoneUserData');
             localStorage.removeItem('employeeId');
             localStorage.removeItem('klyRoleId');
+            
+            // Clear teams and CFA data
+            localStorage.removeItem('teamsData');
+            localStorage.removeItem('teams');
+            localStorage.removeItem('CFA');
             
             console.log('🧹 Cleared all auth data from localStorage');
           }
@@ -478,6 +501,9 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem('authProvider'); // Remove auth provider from storage
       localStorage.removeItem('employeeId');
       localStorage.removeItem('klyRoleId');
+      localStorage.removeItem('teamsData');
+      localStorage.removeItem('teams');
+      localStorage.removeItem('CFA');
     }
   };
 
