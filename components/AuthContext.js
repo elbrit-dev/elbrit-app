@@ -300,16 +300,16 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('klyRoleId', finalUser.kly_role_id || 'null');
                   
                   // Store teams and warehouses data if available
-                  if (erpnextData.teams && Array.isArray(erpnextData.teams)) {
+                  if (erpnextData.teams && Array.isArray(erpnextData.teams.teams)) {
                     // Store the complete teams data as array of {team, cfa} objects
                     localStorage.setItem('teamsData', JSON.stringify(erpnextData.teams));
                     
                     // Extract teams array separately for easy access
-                    const teamsArray = erpnextData.teams.map(item => item.team).filter(Boolean);
+                    const teamsArray = erpnextData.teams.teams.map(item => item.team).filter(Boolean);
                     localStorage.setItem('teams', JSON.stringify(teamsArray));
                     
                     // Extract CFA array separately for easy access (deduplicated)
-                    const cfaArray = [...new Set(erpnextData.teams.map(item => item.cfa).filter(Boolean))];
+                    const cfaArray = [...new Set(erpnextData.teams.teams.map(item => item.cfa).filter(Boolean))];
                     localStorage.setItem('CFA', JSON.stringify(cfaArray));
                     
                     console.log('💾 Teams data saved to localStorage:', {

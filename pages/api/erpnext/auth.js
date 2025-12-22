@@ -469,40 +469,42 @@ export default async function handler(req, res) {
           if (roleData) {
             const n = roleData;
 
-            // ---- Teams (CFA + normal role) ----
-            const teams = [
-              // CFA roles (multiple teams)
-              ...(n.elbrit_sales_team?.length
-                ? n.elbrit_sales_team
-                    .map(t => t.sales_team?.name)
-                    .filter(Boolean)
-                : []
-              ),
+            // Create array of team-CFA objects
+            const teamsArray = [];
 
-              // Normal roles (single team object)
-              ...(n.sales_team?.name ? [n.sales_team.name] : [])
-            ];
+            // Add CFA roles (multiple teams)
+            if (n.elbrit_sales_team?.length) {
+              n.elbrit_sales_team.forEach(t => {
+                if (t.sales_team?.name) {
+                  teamsArray.push({
+                    team: t.sales_team.name,
+                    cfa: t.sales_team.warehouse__name || null
+                  });
+                }
+              });
+            }
 
-            // ---- Warehouses (CFA + normal role) ----
-            const CFA = [
-              // CFA warehouses
-              ...(n.elbrit_sales_team?.length
-                ? n.elbrit_sales_team
-                    .map(t => t.sales_team?.warehouse__name)
-                    .filter(Boolean)
-                : []
-              ),
+            // Add normal role (single team object)
+            if (n.sales_team?.name) {
+              teamsArray.push({
+                team: n.sales_team.name,
+                cfa: n.sales_team.warehouse__name || null
+              });
+            }
 
-              // Normal role warehouse
-              ...(n.sales_team?.warehouse__name ? [n.sales_team.warehouse__name] : [])
-            ];
+            // Remove duplicates based on team name
+            const uniqueTeamsMap = new Map();
+            teamsArray.forEach(item => {
+              if (!uniqueTeamsMap.has(item.team)) {
+                uniqueTeamsMap.set(item.team, item);
+              }
+            });
 
             teamsData = {
-              teams: [...new Set(teams)],          // deduped
-              CFA: [...new Set(CFA)]               // deduped
+              teams: Array.from(uniqueTeamsMap.values())
             };
 
-            console.log('✅ Teams and CFA fetched successfully via GraphQL:', teamsData);
+            console.log('✅ Teams with CFA fetched successfully via GraphQL:', teamsData);
           } else {
             console.warn('⚠️ No role data found for role ID:', userData.kly_role_id);
           }
@@ -553,38 +555,39 @@ export default async function handler(req, res) {
                                   null;
 
           if (salesTeamsData && salesTeamsData.edges) {
-            // Extract all teams and warehouses from edges array
-            const allTeams = [];
-            const allCFA = [];
+            // Extract all teams with their CFAs from edges array
+            const teamsArray = [];
 
             salesTeamsData.edges.forEach(edge => {
               const node = edge.node;
               
               // Get team name (use name or sales_team_name)
-              if (node.name) {
-                allTeams.push(node.name);
-              } else if (node.sales_team_name) {
-                allTeams.push(node.sales_team_name);
-              }
+              const teamName = node.name || node.sales_team_name;
               
-              // Get warehouse (CFA)
-              if (node.warehouse__name) {
-                allCFA.push(node.warehouse__name);
+              if (teamName) {
+                teamsArray.push({
+                  team: teamName,
+                  cfa: node.warehouse__name || null
+                });
               }
             });
 
-            // Create teams data - deduplicate arrays
+            // Remove duplicates based on team name
+            const uniqueTeamsMap = new Map();
+            teamsArray.forEach(item => {
+              if (!uniqueTeamsMap.has(item.team)) {
+                uniqueTeamsMap.set(item.team, item);
+              }
+            });
+
             teamsData = {
-              teams: [...new Set(allTeams)],
-              CFA: [...new Set(allCFA)]
+              teams: Array.from(uniqueTeamsMap.values())
             };
             
-            console.log('✅ Teams and CFA fetched successfully from GraphQL ElbritSalesTeams:', {
+            console.log('✅ Teams with CFA fetched successfully from GraphQL ElbritSalesTeams:', {
               totalRecords: salesTeamsData.edges.length,
               uniqueTeams: teamsData.teams.length,
-              uniqueCFA: teamsData.CFA.length,
-              teams: teamsData.teams,
-              CFA: teamsData.CFA
+              teamsData: teamsData
             });
           } else {
             console.warn('⚠️ No sales team data found in GraphQL response');
