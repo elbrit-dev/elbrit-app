@@ -115,19 +115,17 @@ export default function PlasmicLoaderPage(props) {
             localStorage.setItem('employeeId', employeeId);
             
             // Store teams and warehouses data if available
-            if (erpnextData.teams) {
-              // Store the complete teams object with both teams and CFA arrays
+            if (erpnextData.teams && Array.isArray(erpnextData.teams)) {
+              // Store the complete teams data as array of {team, cfa} objects
               localStorage.setItem('teamsData', JSON.stringify(erpnextData.teams));
               
-              // Also store teams array separately for easy access
-              if (erpnextData.teams.teams) {
-                localStorage.setItem('teams', JSON.stringify(erpnextData.teams.teams));
-              }
+              // Extract teams array separately for easy access
+              const teamsArray = erpnextData.teams.map(item => item.team).filter(Boolean);
+              localStorage.setItem('teams', JSON.stringify(teamsArray));
               
-              // Store CFA array separately for easy access
-              if (erpnextData.teams.CFA) {
-                localStorage.setItem('CFA', JSON.stringify(erpnextData.teams.CFA));
-              }
+              // Extract CFA array separately for easy access (deduplicated)
+              const cfaArray = [...new Set(erpnextData.teams.map(item => item.cfa).filter(Boolean))];
+              localStorage.setItem('CFA', JSON.stringify(cfaArray));
             } else {
               localStorage.removeItem('teamsData');
               localStorage.removeItem('teams');
