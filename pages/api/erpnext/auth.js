@@ -80,7 +80,7 @@ export default async function handler(req, res) {
           filters: JSON.stringify([
             ['cell_number', '=', phoneToSearch]
           ]),
-          fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
+          fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'role_id', 'status'])
         });
 
         console.log('🔍 Searching Employee table for phone number (cell_number):', phoneToSearch);
@@ -173,7 +173,7 @@ export default async function handler(req, res) {
             filters: JSON.stringify([
               ['fsl_whatsapp_number', '=', phoneToSearch]
             ]),
-            fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status'])
+            fields: JSON.stringify(['name', 'first_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'role_id', 'status'])
           });
 
           console.log('🔍 Searching Employee table for phone number (fsl_whatsapp_number):', phoneToSearch);
@@ -296,7 +296,7 @@ export default async function handler(req, res) {
             displayName: employee.first_name || employee.employee_name || 'User',
             role: 'admin', // Default role for now
             roleName: 'Admin',
-            kly_role_id: employee.kly_role_id || null, // Add role ID field
+            kly_role_id: employee.role_id || null, // Add role ID field
             authProvider: authProvider || 'phone', // Use 'phone' for phone auth
             customProperties: {
               organization: "Elbrit Life Sciences",
@@ -326,7 +326,7 @@ export default async function handler(req, res) {
       const employeeSearchUrl = `${erpnextUrl}/api/resource/Employee`;
       const employeeSearchParams = new URLSearchParams({
         filters: JSON.stringify([['company_email', '=', searchValue]]),
-        fields: JSON.stringify(['name', 'first_name', 'employee_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'kly_role_id', 'status', 'department', 'designation', 'date_of_joining', 'date_of_birth'])
+        fields: JSON.stringify(['name', 'first_name', 'employee_name', 'cell_number', 'fsl_whatsapp_number', 'company_email', 'role_id', 'status', 'department', 'designation', 'date_of_joining', 'date_of_birth'])
       });
 
       console.log('🔍 Searching Employee table by company_email:', employeeSearchUrl);
@@ -372,7 +372,7 @@ export default async function handler(req, res) {
             displayName: employee.first_name || employee.employee_name || employee.company_email?.split('@')[0] || 'User',
             role: 'admin', // Default role for now
             roleName: 'Admin',
-            kly_role_id: employee.kly_role_id || null, // Add role ID field
+            kly_role_id: employee.role_id || null, // Add role ID field
             authProvider: authProvider || 'microsoft', // Use 'microsoft' for email auth
             customProperties: {
               organization: "Elbrit Life Sciences",
@@ -418,9 +418,9 @@ export default async function handler(req, res) {
     // If role ID is null: fetch from Elbrit Sales Team doctype
     let teamsData = null;
     try {
-      if (userData.kly_role_id) {
+      if (userData.role_id) {
         // Use GraphQL to fetch ElbritRoleIDS for specific role
-        console.log('🔍 Fetching teams and warehouses via GraphQL for role ID:', userData.kly_role_id);
+        console.log('🔍 Fetching teams and warehouses via GraphQL for role ID:', userData.role_id);
         
         const graphqlQuery = `
           query ElbritRoleID($name: String!) {
@@ -450,7 +450,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             query: graphqlQuery,
             variables: {
-              name: userData.kly_role_id
+              name: userData.role_id
             }
           })
         });
@@ -506,7 +506,7 @@ export default async function handler(req, res) {
 
             console.log('✅ Teams with CFA fetched successfully via GraphQL:', teamsData);
           } else {
-            console.warn('⚠️ No role data found for role ID:', userData.kly_role_id);
+            console.warn('⚠️ No role data found for role ID:', userData.role_id);
           }
         } else {
           const errorText = await graphqlResponse.text();

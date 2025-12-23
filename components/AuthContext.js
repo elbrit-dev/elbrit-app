@@ -297,7 +297,7 @@ export const AuthProvider = ({ children }) => {
                   localStorage.setItem('userPhoneNumber', finalUser.phoneNumber || '');
                   localStorage.setItem('userAvatar', avatarSvg);
                   localStorage.setItem('userInitial', firstLetter);
-                  localStorage.setItem('klyRoleId', finalUser.kly_role_id || 'null');
+                  localStorage.setItem('klyRoleId', finalUser.role_id || 'null');
                   
                   // Store teams and warehouses data if available
                   if (erpnextData.teams && Array.isArray(erpnextData.teams.teams)) {

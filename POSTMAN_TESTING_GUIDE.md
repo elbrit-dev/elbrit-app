@@ -34,7 +34,7 @@
     "displayName": "John Doe",
     "role": "admin",
     "roleName": "Admin",
-    "kly_role_id": "ROLE-123",
+    "role_id": "ROLE-123",
     "authProvider": "microsoft",
     "customProperties": {
       "organization": "Elbrit Life Sciences",
@@ -224,7 +224,7 @@ To test with real data from your ERPNext:
 - Phone numbers are automatically cleaned (removes +91)
 - API searches ERPNext **Employee table only** (not User table)
 - Token returned is base64 encoded: `employeeId:timestamp`
-- `kly_role_id` field is used for role-based access control
+- `role_id` field is used for role-based access control
 
 ---
 
